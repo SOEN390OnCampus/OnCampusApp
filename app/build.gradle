@@ -1,32 +1,33 @@
 plugins {
     alias(libs.plugins.android.application)
+    id 'jacoco' //
 }
 
 android {
     namespace 'com.example.oncampusapp'
-    compileSdk {
-        version = release(36)
-    }
+    compileSdk 35
 
     defaultConfig {
         applicationId "com.example.oncampusapp"
         minSdk 24
-        targetSdk 36
+        targetSdk 34
         versionCode 1
         versionName "1.0"
-
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
 
     buildTypes {
+        debug {
+            enableUnitTestCoverage true // Required for data collection
+        }
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_11
-        targetCompatibility JavaVersion.VERSION_11
+        sourceCompatibility JavaVersion.VERSION_17 // Matches your CI JDK
+        targetCompatibility JavaVersion.VERSION_17
     }
 }
 
@@ -36,8 +37,27 @@ dependencies {
     implementation libs.activity
     implementation libs.constraintlayout
     testImplementation libs.junit
+    testImplementation 'org.mockito:mockito-core:5.11.0'
     androidTestImplementation libs.ext.junit
     androidTestImplementation libs.espresso.core
-    testImplementation 'junit:junit:4.13.2'
-    testImplementation 'org.mockito:mockito-core:5.11.0'
+}
+
+// JaCoCo Task for Sprint 1
+tasks.register('jacocoTestReport', JacocoReport) {
+    dependsOn 'testDebugUnitTest'
+
+    reports {
+        xml.required = true
+        html.required = true
+    }
+
+    def fileFilter = ['**/R.class', '**/R$*.class', '**/BuildConfig.*', '**/Manifest*.*', '**/*Test*.*', 'android/**/*.*']
+    def debugTree = fileTree(dir: "${buildDir}/intermediates/javac/debug/classes", excludes: fileFilter)
+    def mainSrc = "${project.projectDir}/src/main/java"
+
+    sourceDirectories.setFrom(files([mainSrc]))
+    classDirectories.setFrom(files([debugTree]))
+    executionData.setFrom(fileTree(dir: "$buildDir", includes: [
+            "outputs/unit_test_code_coverage/debugUnitTest/testDebugUnitTest.exec"
+    ]))
 }
