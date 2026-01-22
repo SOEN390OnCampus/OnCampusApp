@@ -12,22 +12,31 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4 # Updated version
+        uses: actions/checkout@v4
 
       - name: Set up JDK 17
-        uses: actions/setup-java@v4 # Updated version
+        uses: actions/setup-java@v4
         with:
           java-version: '17'
-          distribution: 'temurin' # Replaces 'adopt'
-          cache: 'gradle' # Optimizes build speed
+          distribution: 'temurin'
+          cache: 'gradle'
 
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
-      - name: Build and Test with Gradle
-        run: ./gradlew test # Fulfills automated test execution requirement
+      - name: Build and Generate JaCoCo Report
+        # This one command runs tests AND creates the coverage files
+        run: ./gradlew jacocoTestReport 
+
+      - name: Upload JaCoCo Report as Artifact
+        # This is your "Backup" report you can download from GitHub
+        uses: actions/upload-artifact@v4 
+        with:
+          name: jacoco-coverage-report
+          path: app/build/reports/jacoco/jacocoTestReport/html/
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v5 # Fulfills code coverage requirement
+        # This will still try to update your dashboard
+        uses: codecov/codecov-action@v5
         with:
-          token: ${{ secrets.CODECOV_TOKEN }} # Required for newer versions
+          token: ${{ secrets.CODECOV_TOKEN }}
