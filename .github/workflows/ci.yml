@@ -1,0 +1,33 @@
+name: Java CI with Gradle
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4 # Updated version
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4 # Updated version
+        with:
+          java-version: '17'
+          distribution: 'temurin' # Replaces 'adopt'
+          cache: 'gradle' # Optimizes build speed
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Build and Test with Gradle
+        run: ./gradlew test # Fulfills automated test execution requirement
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5 # Fulfills code coverage requirement
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }} # Required for newer versions
