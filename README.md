@@ -12,18 +12,13 @@
 </div>
 
 ## Project Overview
-
+The Campus Guide Mobile App is a software engineering project designed to enhance the navigational experience within the Concordia University environment. Developed by team O(n)Campus, the application aims to provide a centralized, user-friendly mobile solution for campus navigation.
 ### Objectives
-
-## Technologies used
-
-## Project Architecture
+The primary goal of the project is to solve the complexity of navigating a large, multi-campus university. Many users face challenges when trying to locate specific buildings, classrooms, or services across both the SGW and Loyola campuses. All the information concerning the project are explained directly on the [Project Wiki](https://github.com/SOEN390OnCampus/OnCampusApp/wiki/01.-Introduction).
 
 ## Setup & Installation
 
 ## Testing
-
-## Project Wiki
 
 ## Team Members
 
