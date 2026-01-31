@@ -54,7 +54,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             CameraUpdateFactory.newLatLngZoom(SGW_COORDS, 17f)
         );;
 
-        TextView btnSgwLoy = findViewById(R.id.btn_sgw);
+        TextView btnSgwLoy = findViewById(R.id.btn_campus_switch);
         ImageButton btnLocation = findViewById(R.id.btn_location);
 
         // Click listener to switch between SGW and loyola campus
