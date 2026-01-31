@@ -45,9 +45,9 @@ dependencies {
     testImplementation libs.mockito.core
     androidTestImplementation libs.ext.junit
     androidTestImplementation libs.espresso.core
-    implementation libs.play.services.location
-    androidTestImplementation libs.androidx.test.rules
+    testImplementation libs.mockito.core
     androidTestImplementation libs.mockito.android
+    androidTestImplementation libs.rules
 }
 // JaCoCo Task for Sprint 1
 tasks.register('jacocoTestReport', JacocoReport) {
