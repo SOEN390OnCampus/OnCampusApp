@@ -50,6 +50,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             // Iterate through the GeoJSON file to find the features
             for (GeoJsonFeature feature : layer.getFeatures()) {
                 String type = feature.getProperty("type");
+                String building = feature.getProperty("building");
+                String name = feature.getProperty("name");
+                String operator = feature.getProperty("operator");
+
+                boolean isConcordiaBuilding = BuildingClassifier.isConcordiaBuilding(building, name, operator);
 
                 // Check if this is the tunnel (route type)
                 if ("route".equals(type)) {
@@ -58,12 +63,19 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     lineStyle.setColor(0x7F000000);  // 50% transparent black
                     lineStyle.setWidth(8f);
                     feature.setLineStringStyle(lineStyle);
-                } else {
+                } else if (isConcordiaBuilding) {
                     // Building style - darker polygon
                     GeoJsonPolygonStyle polyStyle = new GeoJsonPolygonStyle();
                     polyStyle.setFillColor(0xFF912338);  // Fully opaque maroon
                     polyStyle.setStrokeColor(0xFF5E1624);  // Darker maroon outline
                     polyStyle.setStrokeWidth(2f);
+                    feature.setPolygonStyle(polyStyle);
+                } else {
+                    // Irrelevant building, make it invisible
+                    GeoJsonPolygonStyle polyStyle = new GeoJsonPolygonStyle();
+                    polyStyle.setFillColor(0x00000000);
+                    polyStyle.setStrokeColor(0x00000000);
+                    polyStyle.setStrokeWidth(0f);
                     feature.setPolygonStyle(polyStyle);
                 }
             }
@@ -73,12 +85,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             e.printStackTrace();
         }
 
-        // Move camera to SGW campus
-        LatLng SGW = new LatLng(45.496107243097704, -73.57725834380621);
+        // Move camera to a wider view of Montreal
+        LatLng montreal = new LatLng(45.47715, -73.6089);
         mMap.animateCamera(CameraUpdateFactory.newCameraPosition(
                 new CameraPosition.Builder()
-                        .target(SGW)
-                        .zoom(17f)
+                        .target(montreal)
+                        .zoom(13f)
                         .tilt(0f)  // Set tilt to 0 to remove 3D buildings
                         .build()
         ));
