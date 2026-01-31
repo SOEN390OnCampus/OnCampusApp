@@ -24,6 +24,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private static final LatLng SGW_COORDS = new LatLng(45.496107243097704, -73.57725834380621);
     private static final LatLng LOY_COORDS = new LatLng(45.4582, -73.6405);
 
+    public GoogleMap getMap() {
+        return this.mMap;
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
