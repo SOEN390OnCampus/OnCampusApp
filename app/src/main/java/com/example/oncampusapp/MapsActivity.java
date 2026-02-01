@@ -48,5 +48,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         mMap.animateCamera(
                 CameraUpdateFactory.newLatLngZoom(SGW, 17f)
         );;
+
+        GeofenceManager geofenceManager = new GeofenceManager(this);
+        geofenceManager.addGeofence("SGW_GEOFENCE", SGW.latitude, SGW.longitude, 200f);
+
+        mMap.addCircle(geofenceManager.drawGeofenceCircle(SGW, 200f));
     }
 }
