@@ -1,7 +1,18 @@
 plugins {
     alias(libs.plugins.android.application)
     id 'jacoco'
-    alias(libs.plugins.google.android.libraries.mapsplatform.secrets.gradle.plugin) //
+    alias(libs.plugins.google.android.libraries.mapsplatform.secrets.gradle.plugin)
+    id "org.sonarqube"
+}
+
+sonarqube {
+    properties {
+        property "sonar.projectKey", "OnCampusApp"
+        property "sonar.projectName", "OnCampusApp"
+        property "sonar.host.url", "http://localhost:9000"
+        property "sonar.login", "sqp_YOUR_SONARQUBE_TOKEN"
+        property "sonar.coverage.jacoco.xmlReportPaths", "${buildDir}/reports/jacoco/jacocoTestReport/jacocoTestReport.xml"
+    }
 }
 
 android {
@@ -48,6 +59,7 @@ dependencies {
     testImplementation libs.mockito.core
     androidTestImplementation libs.mockito.android
     androidTestImplementation libs.rules
+    implementation 'com.google.maps.android:android-maps-utils:3.8.2'
 }
 // JaCoCo Task for Sprint 1
 tasks.register('jacocoTestReport', JacocoReport) {
