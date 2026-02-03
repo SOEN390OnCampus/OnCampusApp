@@ -5,7 +5,6 @@ import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Bundle;
-import android.util.Log;
 
 import com.google.android.libraries.places.api.Places;
 import com.google.android.libraries.places.api.model.PhotoMetadata;
@@ -42,6 +41,10 @@ public class BuildingDetailsService {
         }
     }
     public void fetchBuildingDetails(String placeId, FetchBuildingDetailsCallback callback){
+        if (placeId == null || placeId.isEmpty()){
+            callback.onFailure(new IllegalArgumentException("Invalid placeId"));
+            return;
+        }
         List<Place.Field> fields = Arrays.asList(
                 Place.Field.ID,
                 Place.Field.DISPLAY_NAME,
@@ -64,15 +67,12 @@ public class BuildingDetailsService {
 
         // If there's no image
         if (metadata == null || metadata.isEmpty()) {
-            Log.w("PlaceDetailsService", "No photo metadata.");
             callback.onSuccess(dto);
+            return;
         }
         // If there's image
         final PhotoMetadata photoMetadata = metadata.get(0);
-        final FetchResolvedPhotoUriRequest photoRequest = FetchResolvedPhotoUriRequest.builder(photoMetadata)
-                .setMaxWidth(1200)
-                .setMaxHeight(600)
-                .build();
+        final FetchResolvedPhotoUriRequest photoRequest = buildPhotoRequest(photoMetadata);
 
         placesClient.fetchResolvedPhotoUri(photoRequest)
                 .addOnSuccessListener(fetchResolvedPhotoUriResponse -> {
@@ -82,6 +82,13 @@ public class BuildingDetailsService {
                 })
                 .addOnFailureListener(callback::onFailure);
     }
+    protected FetchResolvedPhotoUriRequest buildPhotoRequest(PhotoMetadata photoMetadata) {
+        return FetchResolvedPhotoUriRequest.builder(photoMetadata)
+                .setMaxWidth(1200)
+                .setMaxHeight(600)
+                .build();
+    }
+
 
     public interface FetchBuildingDetailsCallback {
         void onSuccess(BuildingDetailsDto buildingDetailsDto);
