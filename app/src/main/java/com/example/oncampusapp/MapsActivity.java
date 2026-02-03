@@ -1,8 +1,12 @@
 package com.example.oncampusapp;
 
+import androidx.core.app.ActivityCompat;
 import androidx.fragment.app.FragmentActivity;
 
+import android.content.pm.PackageManager;
 import android.os.Bundle;
+import android.widget.ImageButton;
+import android.widget.TextView;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
@@ -26,6 +30,13 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private ActivityMapsBinding binding;
     private BuildingClassifier buildingClassifier;
 
+    private static final LatLng SGW_COORDS = new LatLng(45.496107243097704, -73.57725834380621);
+    private static final LatLng LOY_COORDS = new LatLng(45.4582, -73.6405);
+
+    public GoogleMap getMap() {
+        return this.mMap;
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -43,6 +54,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     @Override
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
+        // Add a marker in Sydney and move the camera
+        mMap.animateCamera(
+            CameraUpdateFactory.newLatLngZoom(SGW_COORDS, 17f)
+        );;
+
         mMap.setBuildingsEnabled(false);
         mMap.getUiSettings().setTiltGesturesEnabled(false);
 
@@ -97,5 +113,43 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                         .tilt(0f)  // Set tilt to 0 to remove 3D buildings
                         .build()
         ));
+
+        TextView btnSgwLoy = findViewById(R.id.btn_campus_switch);
+        ImageButton btnLocation = findViewById(R.id.btn_location);
+
+        // Click listener to switch between SGW and loyola campus
+        btnSgwLoy.setOnClickListener(v -> {
+            String currentText = btnSgwLoy.getText().toString();
+            String sgw = getResources().getString(R.string.campus_sgw);
+            String loy = getResources().getString(R.string.campus_loy);
+
+            if (currentText.equals("SGW")) {
+                btnSgwLoy.setText(loy);
+                mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(SGW_COORDS, 15f));
+            } else {
+                btnSgwLoy.setText(sgw);
+                mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(LOY_COORDS, 15f));
+            }
+        });
+
+        // Click listener to navigate to the current location
+        btnLocation.setOnClickListener(v -> {
+            // Check Permissions
+            if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                // Request Permissions if not granted
+                ActivityCompat.requestPermissions(this, new String[]{android.Manifest.permission.ACCESS_FINE_LOCATION}, 1);
+            } else {
+                // If granted, enable location and move camera
+                mMap.setMyLocationEnabled(true);
+
+                // Get the current location from the map's internal "My Location" data
+                android.location.Location myLocation = mMap.getMyLocation();
+
+                if (myLocation != null) {
+                    LatLng myLatLng = new LatLng(myLocation.getLatitude(), myLocation.getLongitude());
+                    mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(myLatLng, 15f));
+                }
+            }
+        });
     }
 }

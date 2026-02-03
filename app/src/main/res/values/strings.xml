@@ -1,4 +1,8 @@
 <resources>
     <string name="app_name">OnCampusApp</string>
     <string name="title_activity_maps">MapsActivity</string>
+    <string name="campus_sgw">SGW</string>
+    <string name="campus_loy">LOY</string>
+    <string name="maps_info">Info</string>
+    <string name="maps_current_location">Current location</string>
 </resources>
