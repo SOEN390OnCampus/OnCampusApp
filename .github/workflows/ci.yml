@@ -24,6 +24,9 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
+      - name: Create empty local.properties file
+        run: touch local.properties
+
       - name: Build and Generate JaCoCo Report
         # This one command runs tests AND creates the coverage files
         run: ./gradlew jacocoTestReport 
