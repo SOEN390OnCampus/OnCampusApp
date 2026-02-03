@@ -10,7 +10,7 @@ public class BuildingClassifier {
      * @param operator The "operator" property of the feature.
      * @return True if the feature is a Concordia building, false otherwise.
      */
-    public static boolean isConcordiaBuilding(String building, String name, String operator) {
+    public boolean isConcordiaBuilding(String building, String name, String operator) {
         return "university".equals(building) ||
                 (name != null && name.contains("Concordia")) ||
                 "Concordia University".equals(operator) ||

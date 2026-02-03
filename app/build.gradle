@@ -4,6 +4,13 @@ plugins {
     alias(libs.plugins.google.android.libraries.mapsplatform.secrets.gradle.plugin) //
 }
 
+secrets {
+    // Configure the plugin to not fail the build when the secrets file is missing.
+    // This is useful for CI/CD environments.
+    defaultPropertiesFileName 'local.properties'
+    ignoreMissingSecrets true
+}
+
 android {
     namespace 'com.example.oncampusapp'
     compileSdk 35

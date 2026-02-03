@@ -24,6 +24,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     private GoogleMap mMap;
     private ActivityMapsBinding binding;
+    private BuildingClassifier buildingClassifier;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -31,6 +32,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         binding = ActivityMapsBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
+
+        buildingClassifier = new BuildingClassifier();
 
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
@@ -54,7 +57,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 String name = feature.getProperty("name");
                 String operator = feature.getProperty("operator");
 
-                boolean isConcordiaBuilding = BuildingClassifier.isConcordiaBuilding(building, name, operator);
+                boolean isConcordiaBuilding = buildingClassifier.isConcordiaBuilding(building, name, operator);
 
                 // Check if this is the tunnel (route type)
                 if ("route".equals(type)) {

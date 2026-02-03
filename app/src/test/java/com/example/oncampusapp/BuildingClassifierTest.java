@@ -1,37 +1,50 @@
 package com.example.oncampusapp;
 
+import org.junit.Before;
 import org.junit.Test;
-import static org.junit.Assert.*;
+import org.junit.runner.RunWith;
+import org.mockito.junit.MockitoJUnitRunner;
 
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
+@RunWith(MockitoJUnitRunner.class)
 public class BuildingClassifierTest {
+
+    private BuildingClassifier buildingClassifier;
+
+    @Before
+    public void setUp() {
+        buildingClassifier = new BuildingClassifier();
+    }
 
     @Test
     public void testIsConcordiaBuilding_university() {
-        assertTrue(BuildingClassifier.isConcordiaBuilding("university", null, null));
+        assertTrue(buildingClassifier.isConcordiaBuilding("university", null, null));
     }
 
     @Test
     public void testIsConcordiaBuilding_nameContainsConcordia() {
-        assertTrue(BuildingClassifier.isConcordiaBuilding(null, "Concordia Hall", null));
+        assertTrue(buildingClassifier.isConcordiaBuilding(null, "Concordia Hall", null));
     }
 
     @Test
     public void testIsConcordiaBuilding_operatorIsConcordia() {
-        assertTrue(BuildingClassifier.isConcordiaBuilding(null, null, "Concordia University"));
+        assertTrue(buildingClassifier.isConcordiaBuilding(null, null, "Concordia University"));
     }
 
     @Test
     public void testIsConcordiaBuilding_stingerDome() {
-        assertTrue(BuildingClassifier.isConcordiaBuilding(null, "Stinger Dome (SD)", null));
+        assertTrue(buildingClassifier.isConcordiaBuilding(null, "Stinger Dome (SD)", null));
     }
 
     @Test
     public void testIsConcordiaBuilding_notConcordiaBuilding() {
-        assertFalse(BuildingClassifier.isConcordiaBuilding("apartments", "Some Building", "Some Operator"));
+        assertFalse(buildingClassifier.isConcordiaBuilding("apartments", "Some Building", "Some Operator"));
     }
 
     @Test
     public void testIsConcordiaBuilding_nullProperties() {
-        assertFalse(BuildingClassifier.isConcordiaBuilding(null, null, null));
+        assertFalse(buildingClassifier.isConcordiaBuilding(null, null, null));
     }
 }
