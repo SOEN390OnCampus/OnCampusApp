@@ -1,9 +1,11 @@
 package com.example.oncampusapp;
 
 import androidx.core.app.ActivityCompat;
+import androidx.core.view.WindowCompat;
 import androidx.fragment.app.FragmentActivity;
 
 import android.content.pm.PackageManager;
+import android.graphics.Color;
 import android.os.Bundle;
 import android.widget.ImageButton;
 import android.widget.TextView;
@@ -40,6 +42,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
+
+        setContentView(R.layout.activity_main);
+        getWindow().setStatusBarColor(Color.TRANSPARENT);
 
         binding = ActivityMapsBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
