@@ -21,6 +21,10 @@ jobs:
           distribution: 'temurin'
           cache: 'gradle'
 
+      # REQUIRED for Android builds & emulator
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
@@ -29,11 +33,22 @@ jobs:
 
       - name: Build and Generate JaCoCo Report
         # This one command runs tests AND creates the coverage files
-        run: ./gradlew jacocoTestReport 
+        run: ./gradlew jacocoTestReport
+
+      # RUN ESPRESSO END-TO-END TESTS
+      - name: Run Espresso end-to-end tests
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 33
+          target: google_apis
+          arch: x86_64
+          profile: Pixel_6
+          emulator-options: -no-window -no-audio -no-snapshot
+          script: ./gradlew connectedDebugAndroidTest
 
       - name: Upload JaCoCo Report as Artifact
         # This is your "Backup" report you can download from GitHub
-        uses: actions/upload-artifact@v4 
+        uses: actions/upload-artifact@v4
         with:
           name: jacoco-coverage-report
           path: app/build/reports/jacoco/jacocoTestReport/html/
