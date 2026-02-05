@@ -4,7 +4,9 @@ import androidx.core.app.ActivityCompat;
 import androidx.fragment.app.FragmentActivity;
 
 import android.content.pm.PackageManager;
+import android.graphics.Color;
 import android.os.Bundle;
+import android.util.Log;
 import android.widget.ImageButton;
 import android.widget.TextView;
 
@@ -13,20 +15,29 @@ import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.CameraPosition;
+import com.google.android.gms.maps.model.CircleOptions;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.example.oncampusapp.databinding.ActivityMapsBinding;
+import com.google.android.gms.maps.model.PolygonOptions;
+import com.google.maps.android.data.Geometry;
 import com.google.maps.android.data.geojson.GeoJsonFeature;
 import com.google.maps.android.data.geojson.GeoJsonLayer;
 import com.google.maps.android.data.geojson.GeoJsonLineStringStyle;
+import com.google.maps.android.data.geojson.GeoJsonPolygon;
 import com.google.maps.android.data.geojson.GeoJsonPolygonStyle;
 
 import org.json.JSONException;
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback {
 
     private GoogleMap mMap;
+
+    public static Map<String, List<LatLng>> buildingPolygons = new HashMap<>();
     private ActivityMapsBinding binding;
     private BuildingClassifier buildingClassifier;
 
@@ -62,6 +73,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         mMap.setBuildingsEnabled(false);
         mMap.getUiSettings().setTiltGesturesEnabled(false);
 
+        GeofenceManager geofenceManager = new GeofenceManager(this);
+
         try {
             // Load the GeoJSON file
             GeoJsonLayer layer = new GeoJsonLayer(mMap, R.raw.concordia_buildings, getApplicationContext());
@@ -71,6 +84,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 String type = feature.getProperty("type");
                 String building = feature.getProperty("building");
                 String name = feature.getProperty("name");
+                String id = feature.getProperty("@id");
                 String operator = feature.getProperty("operator");
 
                 boolean isConcordiaBuilding = buildingClassifier.isConcordiaBuilding(building, name, operator);
@@ -96,6 +110,35 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     polyStyle.setStrokeColor(0x00000000);
                     polyStyle.setStrokeWidth(0f);
                     feature.setPolygonStyle(polyStyle);
+                }
+
+                if(isConcordiaBuilding && feature.hasGeometry()) {
+                    Geometry geometry = feature.getGeometry();
+
+                    if(geometry instanceof GeoJsonPolygon) {
+                            GeoJsonPolygon polygon = (GeoJsonPolygon) feature.getGeometry();
+                            List<LatLng> coordinates = polygon.getCoordinates().get(0);
+
+                            LatLng center = GeofenceManager.getPolygonCenter(coordinates);
+                            float radius = GeofenceManager.getPolygonRadius(center, coordinates);
+
+                            if (id == null || id.isEmpty()) {
+                                id = feature.getId();
+                            }
+                            if (id == null || id.isEmpty()) {
+                                Log.e("Geofence", "Skipping feature, ID is null: " + feature.getProperty("name"));
+                                continue;
+                            }
+
+                            buildingPolygons.put(id, coordinates);
+
+                            geofenceManager.addGeofence(
+                                    id,
+                                    center.latitude,
+                                    center.longitude,
+                                    radius
+                            );
+                    }
                 }
             }
 
