@@ -1,9 +1,15 @@
 package com.example.oncampusapp;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
+import androidx.core.view.WindowCompat;
 import androidx.fragment.app.FragmentActivity;
 
+import android.Manifest;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
 import android.os.Bundle;
 import android.widget.ImageButton;
 import android.widget.TextView;
@@ -33,13 +39,30 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private static final LatLng SGW_COORDS = new LatLng(45.496107243097704, -73.57725834380621);
     private static final LatLng LOY_COORDS = new LatLng(45.4582, -73.6405);
 
+    private ActivityResultLauncher<String[]> locationPermissionRequest;
+
     public GoogleMap getMap() {
         return this.mMap;
+    }
+
+    private void checkLocationPermissions() {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+            // Request the permission
+            locationPermissionRequest.launch(new String[] {
+                Manifest.permission.ACCESS_FINE_LOCATION,
+                Manifest.permission.ACCESS_COARSE_LOCATION
+            });
+        }
     }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
+
+        setContentView(R.layout.activity_main);
+        getWindow().setStatusBarColor(Color.TRANSPARENT);
 
         binding = ActivityMapsBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
@@ -48,7 +71,17 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
+        assert mapFragment != null;
         mapFragment.getMapAsync(this);
+
+        // Initialize the permission launcher
+        locationPermissionRequest = registerForActivityResult(new ActivityResultContracts.RequestMultiplePermissions(), result -> {
+            result.getOrDefault(Manifest.permission.ACCESS_FINE_LOCATION, false);
+            result.getOrDefault(Manifest.permission.ACCESS_COARSE_LOCATION, false);
+        });
+
+        // Check and Request on Startup
+        checkLocationPermissions();
     }
 
     @Override
@@ -125,10 +158,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
             if (currentText.equals("SGW")) {
                 btnSgwLoy.setText(loy);
-                mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(SGW_COORDS, 15f));
+                mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(SGW_COORDS, 16f));
             } else {
                 btnSgwLoy.setText(sgw);
-                mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(LOY_COORDS, 15f));
+                mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(LOY_COORDS, 16f));
             }
         });
 
