@@ -163,7 +163,7 @@ public class BuildingDetailsServiceTest {
         assertEquals("Invalid placeId", captured.getMessage());
     }
 
-    // In case of failure on Google's end, just hav eonFailure called
+    // In case of failure on Google's end, just have onFailure called
     @Test
     public void fetchPlace_failure_handling() {
         //Set up
