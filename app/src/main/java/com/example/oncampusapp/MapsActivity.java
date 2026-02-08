@@ -189,7 +189,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         mMap = googleMap;
 
         try {
-            // Use LITE mode for better emulator compatibility
+            // ...existing code...
             mMap.setMapType(GoogleMap.MAP_TYPE_NORMAL);
 
             LatLng montreal = new LatLng(45.5017, -73.5673);
@@ -209,7 +209,33 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             // Move camera
             mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(montreal, 12f));
             android.util.Log.e("MapsActivity", "✅ Map setup complete - markers added");
-            Toast.makeText(this, "✅ Map loaded - tap markers to see info", Toast.LENGTH_LONG).show();
+            Toast.makeText(this, "✅ Map loaded - tap buildings to see info", Toast.LENGTH_LONG).show();
+
+            // Add polygon click listener to show building information
+            mMap.setOnPolygonClickListener(polygon -> {
+                Log.d("MapsActivity", "Building polygon clicked");
+
+                // Find the building associated with this polygon
+                for (int i = 0; i < buildingPolygons.size(); i++) {
+                    if (buildingPolygons.get(i).equals(polygon)) {
+                        selectedBuilding = currentBuildings.get(i);
+                        Log.d("MapsActivity", "Selected building: " + selectedBuilding.getName());
+
+                        // Show building information
+                        showBuildingInformation(selectedBuilding);
+
+                        // Highlight the selected building
+                        polygon.setStrokeColor(Color.parseColor("#D32F2F"));
+                        polygon.setFillColor(Color.parseColor("#FFCDD2"));
+
+                        if (fabBuildingInfo != null) {
+                            fabBuildingInfo.setVisibility(View.VISIBLE);
+                            fabBuildingInfo.setText(selectedBuilding.getName());
+                        }
+                        break;
+                    }
+                }
+            });
 
             new android.os.Handler().postDelayed(() -> {
                 mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(sgwCampus, 16f));
@@ -310,6 +336,27 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 .setMessage("Building Code: " + selectedBuilding.getBuildingCode() +
                            "\nCampus: " + selectedBuilding.getCampusCode())
                 .setPositiveButton("Close", (d, w) -> d.dismiss())
+                .show();
+    }
+
+    private void showBuildingInformation(CampusData.Building building) {
+        if (building == null) {
+            Toast.makeText(this, "No building information available", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        String buildingInfo = "Building: " + building.getName() +
+                             "\n\nCode: " + building.getBuildingCode() +
+                             "\n\nCampus: " + building.getCampusCode();
+
+        AlertDialog dialog = new AlertDialog.Builder(this)
+                .setTitle("Building Information")
+                .setMessage(buildingInfo)
+                .setPositiveButton("Close", (d, w) -> d.dismiss())
+                .setNegativeButton("More Details", (d, w) -> {
+                    // Could open a more detailed view here
+                    Toast.makeText(this, "More details coming soon", Toast.LENGTH_SHORT).show();
+                })
                 .show();
     }
 
