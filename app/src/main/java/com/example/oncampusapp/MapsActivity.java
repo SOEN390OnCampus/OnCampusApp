@@ -1,6 +1,9 @@
 package com.example.oncampusapp;
 
 import androidx.core.app.ActivityCompat;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.core.view.WindowCompat;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.FragmentActivity;
 import androidx.appcompat.app.AlertDialog;
@@ -27,6 +30,7 @@ import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
@@ -34,6 +38,13 @@ import com.google.android.gms.maps.model.Polygon;
 import com.google.android.gms.maps.model.PolygonOptions;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.example.oncampusapp.databinding.ActivityMapsBinding;
+import com.google.maps.android.data.geojson.GeoJsonFeature;
+import com.google.maps.android.data.geojson.GeoJsonLayer;
+import com.google.maps.android.data.geojson.GeoJsonLineStringStyle;
+import com.google.maps.android.data.geojson.GeoJsonPolygonStyle;
+
+import org.json.JSONException;
+import java.io.IOException;
 
 import java.util.List;
 import java.util.ArrayList;
@@ -58,6 +69,26 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private List<Polygon> buildingPolygons = new ArrayList<>();
     private List<CampusData.Building> currentBuildings = new ArrayList<>();
     private CampusData.Building selectedBuilding;
+    private BuildingClassifier buildingClassifier;
+
+    private static final LatLng SGW_COORDS = new LatLng(45.496107243097704, -73.57725834380621);
+    private static final LatLng LOY_COORDS = new LatLng(45.4582, -73.6405);
+
+    private ActivityResultLauncher<String[]> locationPermissionRequest;
+
+    public GoogleMap getMap() {
+        return this.mMap;
+    }
+
+    private void checkLocationPermissions() {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+            // Request the permission
+            locationPermissionRequest.launch(new String[] {
+                Manifest.permission.ACCESS_FINE_LOCATION,
+                Manifest.permission.ACCESS_COARSE_LOCATION
+            });
+        }
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -68,6 +99,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         buildingDetailsService = new BuildingDetailsService(this);
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
         Log.d("MapsActivity", "Services initialized");
+
+        WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
+
+        setContentView(R.layout.activity_main);
+        getWindow().setStatusBarColor(Color.TRANSPARENT);
 
         binding = ActivityMapsBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
@@ -181,6 +217,21 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             Log.e("MapsActivity", "Error checking Google Play Services: " + e.getMessage());
             updateStatus("Google Play Services Check Error");
         }
+        buildingClassifier = new BuildingClassifier();
+
+        SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
+                .findFragmentById(R.id.map);
+        assert mapFragment != null;
+        mapFragment.getMapAsync(this);
+
+        // Initialize the permission launcher
+        locationPermissionRequest = registerForActivityResult(new ActivityResultContracts.RequestMultiplePermissions(), result -> {
+            result.getOrDefault(Manifest.permission.ACCESS_FINE_LOCATION, false);
+            result.getOrDefault(Manifest.permission.ACCESS_COARSE_LOCATION, false);
+        });
+
+        // Check and Request on Startup
+        checkLocationPermissions();
     }
 
     @Override
