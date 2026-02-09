@@ -10,7 +10,6 @@ import androidx.appcompat.app.AlertDialog;
 
 import android.content.pm.PackageManager;
 import android.graphics.Color;
-import android.location.Location;
 import android.os.Build;
 import android.os.Bundle;
 import android.view.View;
@@ -20,13 +19,8 @@ import android.util.Log;
 import android.widget.ImageButton;
 import android.widget.TextView;
 import android.Manifest;
-import android.util.Log;
-import android.net.ConnectivityManager;
-import android.net.NetworkInfo;
-import android.content.Context;
 
 import com.google.android.gms.location.FusedLocationProviderClient;
-import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
 import com.google.android.gms.maps.CameraUpdateFactory;
@@ -34,15 +28,9 @@ import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.CameraPosition;
-import com.google.android.gms.maps.model.CircleOptions;
 import com.google.android.gms.maps.model.LatLng;
-import com.google.android.gms.maps.model.Marker;
-import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.Polygon;
-import com.google.android.gms.maps.model.PolygonOptions;
-import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.example.oncampusapp.databinding.ActivityMapsBinding;
-import com.google.android.gms.maps.model.PolygonOptions;
 import com.google.maps.android.data.Geometry;
 import com.google.maps.android.data.geojson.GeoJsonFeature;
 import com.google.maps.android.data.geojson.GeoJsonLayer;
@@ -56,7 +44,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import java.util.List;
 import java.util.ArrayList;
 
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback {
@@ -65,7 +52,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     private GoogleMap mMap;
 
-    public static Map<String, CampusData.Building> buildingsMap = new HashMap<>();
+    public static Map<String, Building> buildingsMap = new HashMap<>();
     private ActivityMapsBinding binding;
     private BuildingDetailsService buildingDetailsService;
     private FusedLocationProviderClient fusedLocationClient;
@@ -104,13 +91,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        Log.d("MapsActivity", "=== MapsActivity onCreate started ===");
 
-        // Initialize services
-        buildingDetailsService = new BuildingDetailsService(this);
-        fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
-        Log.d("MapsActivity", "Services initialized");
+        super.onCreate(savedInstanceState);
 
         WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
 
@@ -119,72 +101,253 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         binding = ActivityMapsBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
-        Log.d("MapsActivity", "Layout set successfully");
 
-        // Initialize UI components
-        setupUIComponents();
+        buildingClassifier = new BuildingClassifier();
 
-        // Check Google Play Services availability
-        checkGooglePlayServices();
-
-        // Get map fragment
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
-        if (mapFragment != null) {
-            Log.d("MapsActivity", "Map fragment found, requesting map");
-            updateStatus("Loading Google Maps...");
-            mapFragment.getMapAsync(this);
-        } else {
-            Log.e("MapsActivity", "Map fragment is null!");
-            updateStatus("ERROR: Map fragment not found!");
+        assert mapFragment != null;
+        mapFragment.getMapAsync(this);
+
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
+                != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this,
+                    new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
+                    1001);
         }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            if (ContextCompat.checkSelfPermission(this,
+                    Manifest.permission.ACCESS_BACKGROUND_LOCATION)
+                    != PackageManager.PERMISSION_GRANTED) {
+
+                ActivityCompat.requestPermissions(this,
+                        new String[]{Manifest.permission.ACCESS_BACKGROUND_LOCATION},
+                        3001);
+            }
+        }
+
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+            if (ActivityCompat.checkSelfPermission(
+                    this,
+                    Manifest.permission.POST_NOTIFICATIONS
+            ) != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(
+                        this,
+                        new String[]{Manifest.permission.POST_NOTIFICATIONS},
+                        2001
+                );
+            }
+        }
+
+        createNotificationChannel();
+        // Initialize the permission launcher
+        locationPermissionRequest = registerForActivityResult(new ActivityResultContracts.RequestMultiplePermissions(), result -> {
+            result.getOrDefault(Manifest.permission.ACCESS_FINE_LOCATION, false);
+            result.getOrDefault(Manifest.permission.ACCESS_COARSE_LOCATION, false);
+        });
+
+        // Check and Request on Startup
+        checkLocationPermissions();
     }
 
-    private void setupUIComponents() {
-        Log.d("MapsActivity", "Setting up UI components...");
+    @Override
+    public void onMapReady(GoogleMap googleMap) {
 
-        // Find UI elements
-        btnSGW = findViewById(R.id.btnSGW);
-        btnLoyola = findViewById(R.id.btnLoyola);
-        fabCurrentLocation = findViewById(R.id.fabCurrentLocation);
-        fabBuildingInfo = findViewById(R.id.fabBuildingInfo);
-        tvStatus = findViewById(R.id.tvStatus);
+        mMap = googleMap;
+        // Add a marker in Sydney and move the camera
+        mMap.animateCamera(
+                CameraUpdateFactory.newLatLngZoom(SGW_COORDS, 17f)
+        );;
 
-        updateStatus("UI Components Ready");
+        mMap.setBuildingsEnabled(false);
+        mMap.getUiSettings().setTiltGesturesEnabled(false);
 
-        // Set up button listeners
-        if (btnSGW != null) {
-            btnSGW.setOnClickListener(v -> {
-                Log.d("MapsActivity", "SGW button clicked");
-                switchToCampus(CampusData.CAMPUS_SGW);
-                updateButtonStates(true, false);
+        GeofenceManager geofenceManager = new GeofenceManager(this);
+
+        try {
+            // Load the GeoJSON file
+            GeoJsonLayer layer = new GeoJsonLayer(mMap, R.raw.concordia_buildings, getApplicationContext());
+
+            // Iterate through the GeoJSON file to find the features
+            for (GeoJsonFeature feature : layer.getFeatures()) {
+                String type = feature.getProperty("type");
+                String building = feature.getProperty("building");
+                String name = feature.getProperty("name");
+                String id = feature.getProperty("@id");
+                String operator = feature.getProperty("operator");
+
+                boolean isConcordiaBuilding = buildingClassifier.isConcordiaBuilding(building, name, operator);
+
+                // Check if this is the tunnel (route type)
+                if ("route".equals(type)) {
+                    // Tunnel style - use LineString style, more transparent
+                    GeoJsonLineStringStyle lineStyle = new GeoJsonLineStringStyle();
+                    lineStyle.setColor(0x7F000000);  // 50% transparent black
+                    lineStyle.setWidth(8f);
+                    feature.setLineStringStyle(lineStyle);
+                } else if (isConcordiaBuilding) {
+                    // Building style - darker polygon
+                    GeoJsonPolygonStyle polyStyle = new GeoJsonPolygonStyle();
+                    polyStyle.setFillColor(0xFF912338);  // Fully opaque maroon
+                    polyStyle.setStrokeColor(0xFF5E1624);  // Darker maroon outline
+                    polyStyle.setStrokeWidth(2f);
+                    feature.setPolygonStyle(polyStyle);
+                } else {
+                    // Irrelevant building, make it invisible
+                    GeoJsonPolygonStyle polyStyle = new GeoJsonPolygonStyle();
+                    polyStyle.setFillColor(0x00000000);
+                    polyStyle.setStrokeColor(0x00000000);
+                    polyStyle.setStrokeWidth(0f);
+                    feature.setPolygonStyle(polyStyle);
+                }
+
+                if(isConcordiaBuilding && feature.hasGeometry()) {
+                    Geometry geometry = feature.getGeometry();
+
+                    if(geometry instanceof GeoJsonPolygon) {
+                        GeoJsonPolygon polygon = (GeoJsonPolygon) feature.getGeometry();
+                        List<LatLng> coordinates = polygon.getCoordinates().get(0);
+
+                        LatLng center = GeofenceManager.getPolygonCenter(coordinates);
+                        float radius = GeofenceManager.getPolygonRadius(center, coordinates);
+
+                        if (id == null || id.isEmpty()) {
+                            id = feature.getId();
+                        }
+                        if (id == null || id.isEmpty()) {
+                            Log.e("Geofence", "Skipping feature, ID is null: " + feature.getProperty("name"));
+                            continue;
+                        }
+
+                        Building building1 = new Building(id, name, coordinates);
+
+                        buildingsMap.put(id, building1);
+
+                        geofenceManager.addGeofence(
+                                id,
+                                center.latitude,
+                                center.longitude,
+                                radius
+                        );
+                    }
+                }
+            }
+
+            layer.addLayerToMap();
+            // Click listener for each building
+            layer.setOnFeatureClickListener((GeoJsonLayer.GeoJsonOnFeatureClickListener) feature -> {
+                String name = feature.getProperty("name");
+                String id = feature.getProperty("@id"); // Note: This is not the same as Google's API placeId
+
+                // Sample
+                Toast.makeText(getApplicationContext(),
+                        "Clicked on: " + name + " (ID: " + id + ")",
+                        Toast.LENGTH_SHORT).show();
             });
+        } catch (IOException | JSONException e) {
+            e.printStackTrace();
         }
 
-        if (btnLoyola != null) {
-            btnLoyola.setOnClickListener(v -> {
-                Log.d("MapsActivity", "Loyola button clicked");
-                switchToCampus(CampusData.CAMPUS_LOYOLA);
-                updateButtonStates(false, true);
-            });
+        // Move camera to a wider view of Montreal
+        LatLng montreal = new LatLng(45.47715, -73.6089);
+        mMap.animateCamera(CameraUpdateFactory.newCameraPosition(
+                new CameraPosition.Builder()
+                        .target(montreal)
+                        .zoom(13f)
+                        .tilt(0f)  // Set tilt to 0 to remove 3D buildings
+                        .build()
+        ));
+
+        TextView btnSgwLoy = findViewById(R.id.btn_campus_switch);
+        ImageButton btnLocation = findViewById(R.id.btn_location);
+
+        // Click listener to switch between SGW and loyola campus
+        btnSgwLoy.setOnClickListener(v -> {
+            String currentText = btnSgwLoy.getText().toString();
+            String sgw = getResources().getString(R.string.campus_sgw);
+            String loy = getResources().getString(R.string.campus_loy);
+
+            if (currentText.equals("SGW")) {
+                btnSgwLoy.setText(loy);
+                mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(SGW_COORDS, 16f));
+            } else {
+                btnSgwLoy.setText(sgw);
+                mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(LOY_COORDS, 16f));
+            }
+        });
+
+        // Click listener to navigate to the current location
+        btnLocation.setOnClickListener(v -> {
+            // Check Permissions
+            if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                // Request Permissions if not granted
+                ActivityCompat.requestPermissions(this, new String[]{android.Manifest.permission.ACCESS_FINE_LOCATION}, 1);
+            } else {
+                // If granted, enable location and move camera
+                mMap.setMyLocationEnabled(true);
+
+                // Get the current location from the map's internal "My Location" data
+                android.location.Location myLocation = mMap.getMyLocation();
+
+                LatLng myLatLng = new LatLng(myLocation.getLatitude(), myLocation.getLongitude());
+                mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(myLatLng, 15f));
+            }
+        });
+    }
+
+    private void showBuildingDetails() {
+        if (selectedBuilding == null) {
+            return;
         }
 
-        if (fabCurrentLocation != null) {
-            fabCurrentLocation.setOnClickListener(v -> {
-                Log.d("MapsActivity", "Current location button clicked");
-                showCurrentLocation();
-            });
+        AlertDialog dialog = new AlertDialog.Builder(this)
+                .setTitle(selectedBuilding.getName())
+                .setMessage("Building Code: " + selectedBuilding.getBuildingCode() +
+                           "\nCampus: " + selectedBuilding.getCampusCode())
+                .setPositiveButton("Close", (d, w) -> d.dismiss())
+                .show();
+    }
+
+    private void showBuildingInformation(CampusData.Building building) {
+        if (building == null) {
+            Toast.makeText(this, "No building information available", Toast.LENGTH_SHORT).show();
+            return;
         }
 
-        if (fabBuildingInfo != null) {
-            fabBuildingInfo.setOnClickListener(v -> {
-                Log.d("MapsActivity", "Building info button clicked");
-                showBuildingDetails();
-            });
-        }
+        String buildingInfo = "Building: " + building.getName() +
+                             "\n\nCode: " + building.getBuildingCode() +
+                             "\n\nCampus: " + building.getCampusCode();
 
-        // Set initial button states
-        updateButtonStates(true, false);
+        AlertDialog dialog = new AlertDialog.Builder(this)
+                .setTitle("Building Information")
+                .setMessage(buildingInfo)
+                .setPositiveButton("Close", (d, w) -> d.dismiss())
+                .setNegativeButton("More Details", (d, w) -> {
+                    // Could open a more detailed view here
+                    Toast.makeText(this, "More details coming soon", Toast.LENGTH_SHORT).show();
+                })
+                .show();
+    }
+
+    private String safe(String s) {
+        return (s == null || s.isEmpty()) ? "(not available)" : s;
+    }
+
+    private void createNotificationChannel() {
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            android.app.NotificationChannel channel =
+                    new android.app.NotificationChannel(
+                            "GEOFENCE_CHANNEL",
+                            "Geofence Notifications",
+                            android.app.NotificationManager.IMPORTANCE_HIGH
+                    );
+
+            android.app.NotificationManager manager =
+                    getSystemService(android.app.NotificationManager.class);
+
+            manager.createNotificationChannel(channel);
+        }
     }
 
     private void updateStatus(String message) {
@@ -196,21 +359,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             });
         }
         Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
-    }
-
-    private void hideStatus() {
-        if (tvStatus != null) {
-            runOnUiThread(() -> tvStatus.setVisibility(View.GONE));
-        }
-    }
-
-    private void updateButtonStates(boolean sgwSelected, boolean loyolaSelected) {
-        if (btnSGW != null) {
-            btnSGW.setEnabled(!sgwSelected);
-        }
-        if (btnLoyola != null) {
-            btnLoyola.setEnabled(!loyolaSelected);
-        }
     }
 
     private void checkGooglePlayServices() {
@@ -266,8 +414,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 );
             }
         }
-
-        createNotificationChannel();
         // Initialize the permission launcher
         locationPermissionRequest = registerForActivityResult(new ActivityResultContracts.RequestMultiplePermissions(), result -> {
             result.getOrDefault(Manifest.permission.ACCESS_FINE_LOCATION, false);
@@ -278,239 +424,4 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         checkLocationPermissions();
     }
 
-    @Override
-    public void onMapReady(GoogleMap googleMap) {
-        android.util.Log.e("MapsActivity", "=== onMapReady called ===");
-        mMap = googleMap;
-
-        GeofenceManager geofenceManager = new GeofenceManager(this);
-
-        try {
-            // ...existing code...
-            mMap.setMapType(GoogleMap.MAP_TYPE_NORMAL);
-
-            LatLng montreal = new LatLng(45.5017, -73.5673);
-            LatLng sgwCampus = new LatLng(45.496107243097704, -73.57725834380621);
-
-            // Add markers
-            mMap.addMarker(new MarkerOptions()
-                    .position(montreal)
-                    .title("Montreal")
-                    .snippet("Test location"));
-
-            mMap.addMarker(new MarkerOptions()
-                    .position(sgwCampus)
-                    .title("SGW Campus")
-                    .snippet("Concordia University"));
-
-            // Move camera
-            mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(montreal, 12f));
-            android.util.Log.e("MapsActivity", "✅ Map setup complete - markers added");
-            Toast.makeText(this, "✅ Map loaded - tap buildings to see info", Toast.LENGTH_LONG).show();
-
-            // Add polygon click listener to show building information
-            mMap.setOnPolygonClickListener(polygon -> {
-                Log.d("MapsActivity", "Building polygon clicked");
-
-                // Find the building associated with this polygon
-                for (int i = 0; i < buildingPolygons.size(); i++) {
-                    if (buildingPolygons.get(i).equals(polygon)) {
-                        selectedBuilding = currentBuildings.get(i);
-                        Log.d("MapsActivity", "Selected building: " + selectedBuilding.getName());
-
-                        // Show building information
-                        showBuildingInformation(selectedBuilding);
-
-            // Iterate through the GeoJSON file to find the features
-            for (GeoJsonFeature feature : layer.getFeatures()) {
-                String type = feature.getProperty("type");
-                String building = feature.getProperty("building");
-                String name = feature.getProperty("name");
-                String id = feature.getProperty("@id");
-                String operator = feature.getProperty("operator");
-                        // Highlight the selected building
-                        polygon.setStrokeColor(Color.parseColor("#D32F2F"));
-                        polygon.setFillColor(Color.parseColor("#FFCDD2"));
-
-                        if (fabBuildingInfo != null) {
-                            fabBuildingInfo.setVisibility(View.VISIBLE);
-                            fabBuildingInfo.setText(selectedBuilding.getName());
-                        }
-                        break;
-                    }
-                }
-            });
-
-            new android.os.Handler().postDelayed(() -> {
-                mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(sgwCampus, 16f));
-            }, 4000);
-
-            enableMyLocationIfPermitted();
-            switchToCampus(CampusData.CAMPUS_SGW);
-
-        } catch (Exception e) {
-            android.util.Log.e("MapsActivity", "Error: " + e.getMessage(), e);
-            Toast.makeText(this, "Error: " + e.getMessage(), Toast.LENGTH_LONG).show();
-        }
-    }
-
-    private void switchToCampus(String campusCode) {
-        if (mMap == null) return;
-
-        currentCampus = campusCode;
-        selectedBuilding = null;
-
-        if (fabBuildingInfo != null) {
-            fabBuildingInfo.setVisibility(View.GONE);
-        }
-
-        // Clear existing buildings
-        clearBuildingPolygons();
-
-        // Load campus data
-        LatLng campusCenter;
-        List<CampusData.Building> buildings;
-
-        if (campusCode.equals(CampusData.CAMPUS_SGW)) {
-            campusCenter = CampusData.SGW_CENTER;
-            buildings = CampusData.getSGWBuildings();
-        } else {
-            campusCenter = CampusData.LOYOLA_CENTER;
-            buildings = CampusData.getLoyolaBuildings();
-if(isConcordiaBuilding && feature.hasGeometry()) {
-                    Geometry geometry = feature.getGeometry();
-
-                    if(geometry instanceof GeoJsonPolygon) {
-                            GeoJsonPolygon polygon = (GeoJsonPolygon) feature.getGeometry();
-                            List<LatLng> coordinates = polygon.getCoordinates().get(0);
-
-                            LatLng center = GeofenceManager.getPolygonCenter(coordinates);
-                            float radius = GeofenceManager.getPolygonRadius(center, coordinates);
-
-                            if (id == null || id.isEmpty()) {
-                                id = feature.getId();
-                            }
-                            if (id == null || id.isEmpty()) {
-                                Log.e("Geofence", "Skipping feature, ID is null: " + feature.getProperty("name"));
-                                continue;
-                            }
-
-                            Building building1 = new Building(id, name, coordinates);
-
-                            buildingsMap.put(id, building1);
-
-                            geofenceManager.addGeofence(
-                                    id,
-                                    center.latitude,
-                                    center.longitude,
-                                    radius
-                            );
-                    }
-                }
-            }
-
-        // Move camera to campus
-        mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(campusCenter, 17f));
-
-        // Add building polygons
-        addBuildingPolygons(buildings);
-        currentBuildings = buildings;
-    }
-
-    private void addBuildingPolygons(List<CampusData.Building> buildings) {
-        buildingPolygons.clear();
-
-        for (CampusData.Building building : buildings) {
-            PolygonOptions polygonOptions = new PolygonOptions()
-                    .addAll(building.getPolygonCoordinates())
-                    .strokeColor(Color.parseColor("#1976D2"))
-                    .strokeWidth(3f)
-                    .fillColor(Color.parseColor("#331976D2"))
-                    .clickable(true);
-
-            Polygon polygon = mMap.addPolygon(polygonOptions);
-            buildingPolygons.add(polygon);
-        }
-    }
-
-    private void clearBuildingPolygons() {
-        for (Polygon polygon : buildingPolygons) {
-            polygon.remove();
-        }
-        buildingPolygons.clear();
-    }
-
-    private void enableMyLocationIfPermitted() {
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
-                == PackageManager.PERMISSION_GRANTED) {
-            if (mMap != null) {
-                mMap.setMyLocationEnabled(true);
-            }
-        } else {
-            ActivityCompat.requestPermissions(this,
-                    new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
-                    LOCATION_PERMISSION_REQUEST_CODE);
-        }
-    }
-
-    private void showCurrentLocation() {
-        updateStatus("Getting current location...");
-        // Location functionality would go here
-        Toast.makeText(this, "Current location feature - implementation pending", Toast.LENGTH_SHORT).show();
-    }
-
-    private void showBuildingDetails() {
-        if (selectedBuilding == null) {
-            Toast.makeText(this, "No building selected", Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        AlertDialog dialog = new AlertDialog.Builder(this)
-                .setTitle(selectedBuilding.getName())
-                .setMessage("Building Code: " + selectedBuilding.getBuildingCode() +
-                           "\nCampus: " + selectedBuilding.getCampusCode())
-                .setPositiveButton("Close", (d, w) -> d.dismiss())
-                .show();
-    }
-
-    private void showBuildingInformation(CampusData.Building building) {
-        if (building == null) {
-            Toast.makeText(this, "No building information available", Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        String buildingInfo = "Building: " + building.getName() +
-                             "\n\nCode: " + building.getBuildingCode() +
-                             "\n\nCampus: " + building.getCampusCode();
-
-        AlertDialog dialog = new AlertDialog.Builder(this)
-                .setTitle("Building Information")
-                .setMessage(buildingInfo)
-                .setPositiveButton("Close", (d, w) -> d.dismiss())
-                .setNegativeButton("More Details", (d, w) -> {
-                    // Could open a more detailed view here
-                    Toast.makeText(this, "More details coming soon", Toast.LENGTH_SHORT).show();
-                })
-                .show();
-    }
-
-    private String safe(String s) {
-        return (s == null || s.isEmpty()) ? "(not available)" : s;
-    }
-
-    private void createNotificationChannel() {
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-            android.app.NotificationChannel channel =
-                    new android.app.NotificationChannel(
-                            "GEOFENCE_CHANNEL",
-                            "Geofence Notifications",
-                            android.app.NotificationManager.IMPORTANCE_HIGH
-                    );
-
-            android.app.NotificationManager manager =
-                    getSystemService(android.app.NotificationManager.class);
-
-            manager.createNotificationChannel(channel);
-        }
-    }
 }

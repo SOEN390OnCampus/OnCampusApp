@@ -1,93 +1,69 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <!-- Google Maps Fragment -->
-    <fragment
+    <androidx.fragment.app.FragmentContainerView
         android:id="@+id/map"
         android:name="com.google.android.gms.maps.SupportMapFragment"
         android:layout_width="match_parent"
-        android:layout_height="match_parent" />
+        android:layout_height="match_parent"
+        tools:context=".MapsActivity" />
 
-    <!-- Status Display -->
-    <TextView
-        android:id="@+id/tvStatus"
+    <androidx.cardview.widget.CardView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_centerInParent="true"
-        android:background="#80000000"
-        android:padding="16dp"
-        android:text="Loading Maps..."
-        android:textColor="@android:color/white"
-        android:textSize="18sp"
-        android:visibility="visible" />
+        android:layout_marginStart="16dp"
+        app:cardBackgroundColor="#CC333333"
+        app:cardCornerRadius="25dp"
+        app:cardElevation="4dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
 
-    <!-- Top Controls -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_alignParentTop="true"
-        android:layout_margin="16dp"
-        android:background="#80FFFFFF"
-        android:elevation="8dp"
-        android:orientation="horizontal"
-        android:padding="12dp">
-
-        <TextView
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="Campus Navigator"
-            android:textSize="16sp"
-            android:textStyle="bold"
-            android:textColor="@android:color/black" />
-
-        <!-- Simple Campus Toggle Buttons -->
-        <Button
-            android:id="@+id/btnSGW"
-            android:layout_width="60dp"
-            android:layout_height="40dp"
-            android:layout_marginEnd="4dp"
-            android:text="SGW"
-            android:textSize="10sp" />
-
-        <Button
-            android:id="@+id/btnLoyola"
-            android:layout_width="60dp"
-            android:layout_height="40dp"
-            android:text="LOY"
-            android:textSize="10sp" />
-
-    </LinearLayout>
-
-    <!-- Bottom Buttons -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_alignParentBottom="true"
-        android:layout_margin="16dp"
-        android:orientation="horizontal">
-
-        <Button
-            android:id="@+id/fabBuildingInfo"
+        <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Building Info"
-            android:visibility="gone" />
+            android:orientation="vertical"
+            android:padding="6dp"
+            android:gravity="center_horizontal">
 
-        <View
-            android:layout_width="0dp"
-            android:layout_height="1dp"
-            android:layout_weight="1" />
+            <ImageButton
+                android:id="@+id/btn_info"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/maps_info"
+                android:src="@android:drawable/ic_dialog_info"
+                app:tint="@android:color/white" />
 
-        <Button
-            android:id="@+id/fabCurrentLocation"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="📍 Location" />
+            <TextView
+                android:id="@+id/btn_campus_switch"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:layout_marginTop="4dp"
+                android:background="@android:drawable/presence_online"
+                android:backgroundTint="#912338"
+                android:gravity="center"
+                android:text="@string/campus_loy"
+                android:textColor="@android:color/white"
+                android:textSize="15sp"
+                android:textStyle="bold" />
 
-    </LinearLayout>
+            <ImageButton
+                android:id="@+id/btn_location"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_marginTop="4dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/maps_current_location"
+                android:src="@android:drawable/ic_menu_compass"
+                app:tint="@android:color/white" />
 
-</RelativeLayout>
+        </LinearLayout>
+    </androidx.cardview.widget.CardView>
+
+</androidx.constraintlayout.widget.ConstraintLayout>
