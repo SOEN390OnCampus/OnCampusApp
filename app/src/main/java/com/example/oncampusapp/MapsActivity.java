@@ -11,10 +11,13 @@ import androidx.appcompat.app.AlertDialog;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.location.Location;
+import android.os.Build;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Toast;
 import android.widget.Button;
+import android.util.Log;
+import android.widget.ImageButton;
 import android.widget.TextView;
 import android.Manifest;
 import android.util.Log;
@@ -31,6 +34,7 @@ import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.CameraPosition;
+import com.google.android.gms.maps.model.CircleOptions;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
@@ -38,13 +42,19 @@ import com.google.android.gms.maps.model.Polygon;
 import com.google.android.gms.maps.model.PolygonOptions;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.example.oncampusapp.databinding.ActivityMapsBinding;
+import com.google.android.gms.maps.model.PolygonOptions;
+import com.google.maps.android.data.Geometry;
 import com.google.maps.android.data.geojson.GeoJsonFeature;
 import com.google.maps.android.data.geojson.GeoJsonLayer;
 import com.google.maps.android.data.geojson.GeoJsonLineStringStyle;
+import com.google.maps.android.data.geojson.GeoJsonPolygon;
 import com.google.maps.android.data.geojson.GeoJsonPolygonStyle;
 
 import org.json.JSONException;
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import java.util.List;
 import java.util.ArrayList;
@@ -54,6 +64,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private static final int LOCATION_PERMISSION_REQUEST_CODE = 1001;
 
     private GoogleMap mMap;
+
+    public static Map<String, CampusData.Building> buildingsMap = new HashMap<>();
     private ActivityMapsBinding binding;
     private BuildingDetailsService buildingDetailsService;
     private FusedLocationProviderClient fusedLocationClient;
@@ -224,6 +236,38 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         assert mapFragment != null;
         mapFragment.getMapAsync(this);
 
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
+                != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this,
+                    new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
+                    1001);
+        }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            if (ContextCompat.checkSelfPermission(this,
+                    Manifest.permission.ACCESS_BACKGROUND_LOCATION)
+                    != PackageManager.PERMISSION_GRANTED) {
+
+                ActivityCompat.requestPermissions(this,
+                        new String[]{Manifest.permission.ACCESS_BACKGROUND_LOCATION},
+                        3001);
+            }
+        }
+
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+            if (ActivityCompat.checkSelfPermission(
+                    this,
+                    Manifest.permission.POST_NOTIFICATIONS
+            ) != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(
+                        this,
+                        new String[]{Manifest.permission.POST_NOTIFICATIONS},
+                        2001
+                );
+            }
+        }
+
+        createNotificationChannel();
         // Initialize the permission launcher
         locationPermissionRequest = registerForActivityResult(new ActivityResultContracts.RequestMultiplePermissions(), result -> {
             result.getOrDefault(Manifest.permission.ACCESS_FINE_LOCATION, false);
@@ -238,6 +282,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     public void onMapReady(GoogleMap googleMap) {
         android.util.Log.e("MapsActivity", "=== onMapReady called ===");
         mMap = googleMap;
+
+        GeofenceManager geofenceManager = new GeofenceManager(this);
 
         try {
             // ...existing code...
@@ -275,6 +321,13 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                         // Show building information
                         showBuildingInformation(selectedBuilding);
 
+            // Iterate through the GeoJSON file to find the features
+            for (GeoJsonFeature feature : layer.getFeatures()) {
+                String type = feature.getProperty("type");
+                String building = feature.getProperty("building");
+                String name = feature.getProperty("name");
+                String id = feature.getProperty("@id");
+                String operator = feature.getProperty("operator");
                         // Highlight the selected building
                         polygon.setStrokeColor(Color.parseColor("#D32F2F"));
                         polygon.setFillColor(Color.parseColor("#FFCDD2"));
@@ -324,7 +377,37 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         } else {
             campusCenter = CampusData.LOYOLA_CENTER;
             buildings = CampusData.getLoyolaBuildings();
-        }
+if(isConcordiaBuilding && feature.hasGeometry()) {
+                    Geometry geometry = feature.getGeometry();
+
+                    if(geometry instanceof GeoJsonPolygon) {
+                            GeoJsonPolygon polygon = (GeoJsonPolygon) feature.getGeometry();
+                            List<LatLng> coordinates = polygon.getCoordinates().get(0);
+
+                            LatLng center = GeofenceManager.getPolygonCenter(coordinates);
+                            float radius = GeofenceManager.getPolygonRadius(center, coordinates);
+
+                            if (id == null || id.isEmpty()) {
+                                id = feature.getId();
+                            }
+                            if (id == null || id.isEmpty()) {
+                                Log.e("Geofence", "Skipping feature, ID is null: " + feature.getProperty("name"));
+                                continue;
+                            }
+
+                            Building building1 = new Building(id, name, coordinates);
+
+                            buildingsMap.put(id, building1);
+
+                            geofenceManager.addGeofence(
+                                    id,
+                                    center.latitude,
+                                    center.longitude,
+                                    radius
+                            );
+                    }
+                }
+            }
 
         // Move camera to campus
         mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(campusCenter, 17f));
@@ -413,5 +496,21 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     private String safe(String s) {
         return (s == null || s.isEmpty()) ? "(not available)" : s;
+    }
+
+    private void createNotificationChannel() {
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            android.app.NotificationChannel channel =
+                    new android.app.NotificationChannel(
+                            "GEOFENCE_CHANNEL",
+                            "Geofence Notifications",
+                            android.app.NotificationManager.IMPORTANCE_HIGH
+                    );
+
+            android.app.NotificationManager manager =
+                    getSystemService(android.app.NotificationManager.class);
+
+            manager.createNotificationChannel(channel);
+        }
     }
 }

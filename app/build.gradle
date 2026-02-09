@@ -52,7 +52,7 @@ dependencies {
     implementation libs.activity
     implementation libs.constraintlayout
     implementation libs.play.services.maps
-    implementation 'com.google.android.gms:play-services-location:21.0.1'
+    implementation libs.play.services.location
     testImplementation libs.junit
     testImplementation libs.mockito.core
     androidTestImplementation libs.ext.junit

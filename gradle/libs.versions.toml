@@ -14,6 +14,7 @@ places = "5.1.1"
 mockitoCore = "5.11.0"
 playServicesMaps = "18.1.0"
 rules = "1.7.0"
+playServicesLocation = "21.3.0"
 
 
 [libraries]
@@ -30,6 +31,7 @@ mockito-android = { module = "org.mockito:mockito-android", version.ref = "mocki
 mockito-core = { module = "org.mockito:mockito-core", version.ref = "mockitoCore" }
 play-services-maps = { group = "com.google.android.gms", name = "play-services-maps", version.ref = "playServicesMaps" }
 rules = { module = "androidx.test:rules", version.ref = "rules" }
+play-services-location = { group = "com.google.android.gms", name = "play-services-location", version.ref = "playServicesLocation" }
 
 
 [plugins]
