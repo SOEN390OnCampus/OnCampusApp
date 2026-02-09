@@ -42,9 +42,9 @@ public class GeofenceBroadcastReceiver extends BroadcastReceiver {
 
             String id = geofence.getRequestId();
 
-            List<LatLng> polygon = MapsActivity.buildingPolygons.get(id);
+            Building building = MapsActivity.buildingsMap.get(id);
 
-            if (polygon == null) {
+            if (building.polygon == null) {
                 Log.d("GeofenceBR", "Polygon not found for " + id);
                 continue;
             }
@@ -54,12 +54,12 @@ public class GeofenceBroadcastReceiver extends BroadcastReceiver {
                     event.getTriggeringLocation().getLongitude()
             );
 
-            boolean isUserActuallyInside = PolyUtil.containsLocation(userLocation, polygon, true);
+            boolean isUserActuallyInside = PolyUtil.containsLocation(userLocation, building.polygon, true);
 
             if (isUserActuallyInside) {
                 if (transition == Geofence.GEOFENCE_TRANSITION_ENTER) {
                     Log.d("GeofenceBR", "Entered building ID: " + id);
-                    sendNotification(context, "Notification Works For " + id);
+                    sendNotification(context, "You've entered the  " + building.name + " Building");
                 } else if (transition == Geofence.GEOFENCE_TRANSITION_EXIT) {
                     Log.d("GeofenceBR", "Exited building");
                 }

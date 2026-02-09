@@ -40,7 +40,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     private GoogleMap mMap;
 
-    public static Map<String, List<LatLng>> buildingPolygons = new HashMap<>();
+    public static Map<String, Building> buildingsMap = new HashMap<>();
     private ActivityMapsBinding binding;
     private BuildingClassifier buildingClassifier;
 
@@ -166,7 +166,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                                 continue;
                             }
 
-                            buildingPolygons.put(id, coordinates);
+                            Building building1 = new Building(id, name, coordinates);
+
+                            buildingsMap.put(id, building1);
 
                             geofenceManager.addGeofence(
                                     id,
@@ -174,8 +176,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                                     center.longitude,
                                     radius
                             );
-
-                            geofenceManager.drawGeofenceCircle(center,radius);
                     }
                 }
             }
