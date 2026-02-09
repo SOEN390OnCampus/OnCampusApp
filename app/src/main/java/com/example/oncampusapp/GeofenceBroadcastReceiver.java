@@ -59,10 +59,31 @@ public class GeofenceBroadcastReceiver extends BroadcastReceiver {
             if (isUserActuallyInside) {
                 if (transition == Geofence.GEOFENCE_TRANSITION_ENTER) {
                     Log.d("GeofenceBR", "Entered building ID: " + id);
+                    sendNotification(context, "Notification Works For " + id);
                 } else if (transition == Geofence.GEOFENCE_TRANSITION_EXIT) {
                     Log.d("GeofenceBR", "Exited building");
                 }
             }
         }
+    }
+
+    private void sendNotification(Context context, String message) {
+        androidx.core.app.NotificationCompat.Builder builder =
+                new androidx.core.app.NotificationCompat.Builder(context, "GEOFENCE_CHANNEL")
+                        .setSmallIcon(R.drawable.ic_launcher_foreground)
+                        .setContentTitle("OnCampus App")
+                        .setContentText(message)
+                        .setPriority(androidx.core.app.NotificationCompat.PRIORITY_HIGH);
+
+        androidx.core.app.NotificationManagerCompat notificationManager =
+                androidx.core.app.NotificationManagerCompat.from(context);
+
+        if (ActivityCompat.checkSelfPermission(
+                context,
+                Manifest.permission.POST_NOTIFICATIONS
+        ) == PackageManager.PERMISSION_GRANTED) {
+            notificationManager.notify((int) System.currentTimeMillis(), builder.build());
+        }
+
     }
 }
