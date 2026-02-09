@@ -31,14 +31,25 @@ public class BuildingDetailsService {
         this.placesClient = client;
     }
     private String fetchApiKey(Context context){
+        String apiKey;
         try{
             ApplicationInfo applicationInfo = context.getPackageManager()
                     .getApplicationInfo(context.getPackageName(), PackageManager.GET_META_DATA);
             Bundle bundle = applicationInfo.metaData;
-            return bundle.getString("com.google.android.geo.API_KEY");
+            if (bundle == null) {
+                throw new IllegalStateException(
+                        "Missing application meta-data. Please configure com.google.android.geo.API_KEY in AndroidManifest.xml.");
+            }
+            apiKey = bundle.getString("com.google.android.geo.API_KEY");
+            if (apiKey == null || apiKey.isEmpty()) {
+                throw new IllegalStateException(
+                        "Missing or empty API key. Please configure MAPS_API_KEY in local.properties");
+            }
         } catch (PackageManager.NameNotFoundException e) {
-            throw new RuntimeException(e);
+            throw new IllegalStateException(
+                    "Unable to load application info to read com.google.android.geo.API_KEY from AndroidManifest.xml.", e);
         }
+        return apiKey;
     }
     public void fetchBuildingDetails(String placeId, FetchBuildingDetailsCallback callback){
         if (placeId == null || placeId.isEmpty()){
