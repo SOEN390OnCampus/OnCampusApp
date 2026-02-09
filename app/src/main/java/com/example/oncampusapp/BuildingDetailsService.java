@@ -31,25 +31,14 @@ public class BuildingDetailsService {
         this.placesClient = client;
     }
     private String fetchApiKey(Context context){
-        String apiKey;
         try{
             ApplicationInfo applicationInfo = context.getPackageManager()
                     .getApplicationInfo(context.getPackageName(), PackageManager.GET_META_DATA);
             Bundle bundle = applicationInfo.metaData;
-            if (bundle == null) {
-                throw new IllegalStateException(
-                        "Missing application meta-data. Please configure com.google.android.geo.API_KEY in AndroidManifest.xml.");
-            }
-            apiKey = bundle.getString("com.google.android.geo.API_KEY");
-            if (apiKey == null || apiKey.isEmpty()) {
-                throw new IllegalStateException(
-                        "Missing or empty API key. Please configure MAPS_API_KEY in local.properties");
-            }
+            return bundle.getString("com.google.android.geo.API_KEY");
         } catch (PackageManager.NameNotFoundException e) {
-            throw new IllegalStateException(
-                    "Unable to load application info to read com.google.android.geo.API_KEY from AndroidManifest.xml.", e);
+            throw new RuntimeException(e);
         }
-        return apiKey;
     }
     public void fetchBuildingDetails(String placeId, FetchBuildingDetailsCallback callback){
         if (placeId == null || placeId.isEmpty()){
@@ -88,7 +77,7 @@ public class BuildingDetailsService {
         placesClient.fetchResolvedPhotoUri(photoRequest)
                 .addOnSuccessListener(fetchResolvedPhotoUriResponse -> {
                     Uri uri = fetchResolvedPhotoUriResponse.getUri();
-                    dto.setImgUri(uri.toString());;
+                    dto.setImgUri(uri.toString());
                     callback.onSuccess(dto);
                 })
                 .addOnFailureListener(callback::onFailure);
