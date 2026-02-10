@@ -30,6 +30,10 @@ public class BuildingDetailsService {
     public BuildingDetailsService(PlacesClient client){
         this.placesClient = client;
     }
+    
+    public PlacesClient getPlacesClient() {
+        return placesClient;
+    }
     private String fetchApiKey(Context context){
         String apiKey;
         try{
