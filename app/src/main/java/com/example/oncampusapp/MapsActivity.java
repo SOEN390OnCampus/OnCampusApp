@@ -21,11 +21,9 @@ import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.CameraPosition;
-import com.google.android.gms.maps.model.CircleOptions;
 import com.google.android.gms.maps.model.LatLng;
-import com.google.android.gms.maps.model.MarkerOptions;
 import com.example.oncampusapp.databinding.ActivityMapsBinding;
-import com.google.android.gms.maps.model.PolygonOptions;
+import com.google.maps.android.data.Feature;
 import com.google.maps.android.data.Geometry;
 import com.google.maps.android.data.geojson.GeoJsonFeature;
 import com.google.maps.android.data.geojson.GeoJsonLayer;
@@ -131,6 +129,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         // Check and Request on Startup
         checkLocationPermissions();
+        buildingDetailsService = new BuildingDetailsService(this);
     }
 
     @Override
@@ -139,56 +138,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         // Add a marker in Sydney and move the camera
         mMap.animateCamera(
             CameraUpdateFactory.newLatLngZoom(SGW_COORDS, 17f)
-        );;
-    // A marker to test interaction
-        Marker sgwMarker = mMap.addMarker(
-                new MarkerOptions()
-                        .position(SGW)
-                        .title("SGW Building")
         );
-        if (sgwMarker != null) {
-            // Tag MUST be a Google Place ID for BuildingDetailsService to work
-            // TODO: we have to replace with real Google palce ID/ from API
-            sgwMarker.setTag("PLACE_ID");
-        }
-
-        // Map interaction: clicking a building marker opens a popup and fetches building details
-        mMap.setOnMarkerClickListener(marker -> {
-            String placeId = (marker.getTag() != null) ? marker.getTag().toString() : null;
-
-            AlertDialog dialog = new AlertDialog.Builder(this)
-                    .setTitle(marker.getTitle())
-                    .setMessage("Loading building info...")
-                    .setPositiveButton("Close", (d, w) -> d.dismiss())
-                    .show();
-
-
-            //Safeguard to avoid dummy id while the popup calls the API. Remove later
-            if (place == null || placeID.equals("PLACE_ID")){
-                dialog.setMessage("Building details not configured yet.");
-                return true;
-
-            }
-            buildingDetailsService.fetchBuildingDetails(placeId, new BuildingDetailsService.FetchBuildingDetailsCallback() {
-                @Override
-                public void onSuccess(BuildingDetailsDto dto) {
-                    runOnUiThread(() -> {
-                        dialog.setTitle(safe(dto.getName()));
-                        dialog.setMessage(
-                                "Address: " + safe(dto.getAddress()) + "\n\n" +
-                                "Image URL: " + safe(dto.getImgUri())
-                        );
-                    });
-                }
-
-                @Override
-                public void onFailure(Exception e) {
-                    runOnUiThread(() -> dialog.setMessage("Failed to load building info.\n" + e.getMessage()));
-                }
-            });
-
-            return true;
-        });
 
         mMap.setBuildingsEnabled(false);
         mMap.getUiSettings().setTiltGesturesEnabled(false);
@@ -263,8 +213,14 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     }
                 }
             }
-
             layer.addLayerToMap();
+            layer.setOnFeatureClickListener(new GeoJsonLayer.GeoJsonOnFeatureClickListener() {
+                @Override
+                public void onFeatureClick(Feature feature) {
+
+                }
+            });
+
         } catch (IOException | JSONException e) {
             e.printStackTrace();
         }
