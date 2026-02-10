@@ -15,6 +15,10 @@ import android.os.Bundle;
 import android.util.Log;
 import android.widget.ImageButton;
 import android.widget.TextView;
+import android.widget.Toast;
+import android.app.Dialog;
+import android.view.View;
+import android.widget.ImageView;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
@@ -30,20 +34,30 @@ import com.google.maps.android.data.geojson.GeoJsonLayer;
 import com.google.maps.android.data.geojson.GeoJsonLineStringStyle;
 import com.google.maps.android.data.geojson.GeoJsonPolygon;
 import com.google.maps.android.data.geojson.GeoJsonPolygonStyle;
+import com.google.maps.android.SphericalUtil;
 
 import org.json.JSONException;
+import org.json.JSONObject;
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import com.bumptech.glide.Glide;
 
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback {
 
     private GoogleMap mMap;
 
     public static Map<String, Building> buildingsMap = new HashMap<>();
+    private Map<String, String> geoIdToPlaceIdMap = new HashMap<>();
     private ActivityMapsBinding binding;
     private BuildingClassifier buildingClassifier;
+    private Dialog currentBuildingDialog = null;
+    private boolean isFetchingBuildingDetails = false;
 
     private static final LatLng SGW_COORDS = new LatLng(45.496107243097704, -73.57725834380621);
     private static final LatLng LOY_COORDS = new LatLng(45.4582, -73.6405);
@@ -130,6 +144,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         // Check and Request on Startup
         checkLocationPermissions();
         buildingDetailsService = new BuildingDetailsService(this);
+        
+        // Load the GeoJSON ID to Place ID mapping
+        loadGeoIdToPlaceIdMapping();
     }
 
     @Override
@@ -217,7 +234,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             layer.setOnFeatureClickListener(new GeoJsonLayer.GeoJsonOnFeatureClickListener() {
                 @Override
                 public void onFeatureClick(Feature feature) {
-
+                    handleBuildingClick(feature);
                 }
             });
 
@@ -292,5 +309,160 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     private String safe(String s) {
         return (s == null || s.isEmpty()) ? "(not available)" : s;
+    }
+
+    private void loadGeoIdToPlaceIdMapping() {
+        try {
+            InputStream inputStream = getResources().openRawResource(R.raw.concordia_building_geoid_to_placeid);
+            BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
+            StringBuilder jsonBuilder = new StringBuilder();
+            String line;
+            while ((line = reader.readLine()) != null) {
+                jsonBuilder.append(line);
+            }
+            reader.close();
+
+            JSONObject jsonObject = new JSONObject(jsonBuilder.toString());
+            for (java.util.Iterator<String> it = jsonObject.keys(); it.hasNext(); ) {
+                String key = it.next();
+                String value = jsonObject.getString(key);
+                geoIdToPlaceIdMap.put(key, value);
+            }
+        } catch (IOException | JSONException e) {
+            Log.e("MapsActivity", "Error loading GeoID to PlaceID mapping", e);
+        }
+    }
+
+    private void handleBuildingClick(Feature feature) {
+        // Prevent multiple simultaneous requests
+        if (isFetchingBuildingDetails) {
+            return;
+        }
+        
+        // Get the feature ID
+        String featureId = feature.getProperty("@id");
+        String featureName = feature.getProperty("name");
+        
+        if (featureId == null || featureId.isEmpty()) {
+            featureId = feature.getId();
+        }
+
+        if (featureId == null || featureId.isEmpty()) {
+            Log.e("MapsActivity", "Feature has no ID for: " + featureName);
+            Toast.makeText(this, 
+                "Building ID not found", 
+                Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        // Look up the Place ID from the mapping
+        String placeId = geoIdToPlaceIdMap.get(featureId);
+        if (placeId == null) {
+            Toast.makeText(this, 
+                "No Place ID mapping for: " + featureName, 
+                Toast.LENGTH_LONG).show();
+            return;
+        }
+        
+        // Set flag to prevent multiple requests
+        isFetchingBuildingDetails = true;
+        
+        // Create final reference for lambda
+        final String finalFeatureId = featureId;
+        
+        // Fetch building details and show popup
+        buildingDetailsService.fetchBuildingDetails(placeId, new BuildingDetailsService.FetchBuildingDetailsCallback() {
+            @Override
+            public void onSuccess(BuildingDetailsDto buildingDetailsDto) {
+                isFetchingBuildingDetails = false;
+                runOnUiThread(() -> showBuildingInfoDialog(buildingDetailsDto, finalFeatureId));
+            }
+
+            @Override
+            public void onFailure(Exception e) {
+                Log.e("MapsActivity", "Error fetching building details for placeId: " + placeId, e);
+                isFetchingBuildingDetails = false;
+            }
+        });
+    }
+
+    private void showBuildingInfoDialog(BuildingDetailsDto buildingDetails, String featureId) {
+        // Dismiss any existing dialog first
+        if (currentBuildingDialog != null && currentBuildingDialog.isShowing()) {
+            currentBuildingDialog.dismiss();
+        }
+        
+        // Determine campus based on building location
+        String campus = "Concordia University";
+        Building building = buildingsMap.get(featureId);
+        if (building != null && building.polygon != null && !building.polygon.isEmpty()) {
+            LatLng buildingLocation = building.polygon.get(0);
+            double distToSGW = SphericalUtil.computeDistanceBetween(buildingLocation, SGW_COORDS);
+            double distToLoyola = SphericalUtil.computeDistanceBetween(buildingLocation, LOY_COORDS);
+            campus = (distToSGW < distToLoyola) ? "SGW Campus" : "Loyola Campus";
+        }
+        
+        // Create dialog
+        Dialog dialog = new Dialog(this);
+        dialog.setContentView(R.layout.dialog_building_info);
+        
+        // Set dialog to be full width
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setLayout(
+                (int) (getResources().getDisplayMetrics().widthPixels * 0.9),
+                android.view.ViewGroup.LayoutParams.WRAP_CONTENT
+            );
+            dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
+        }
+
+        // Get views
+        ImageView imgBuilding = dialog.findViewById(R.id.img_building);
+        TextView txtBuildingName = dialog.findViewById(R.id.txt_building_name);
+        TextView txtBuildingAddress = dialog.findViewById(R.id.txt_building_address);
+        TextView txtBuildingDescription = dialog.findViewById(R.id.txt_building_description);
+        TextView txtBuildingDescriptionFr = dialog.findViewById(R.id.txt_building_description_fr);
+        ImageButton btnClose = dialog.findViewById(R.id.btn_close);
+
+        // Set building name (uppercase for title)
+        if (buildingDetails.getName() != null && !buildingDetails.getName().isEmpty()) {
+            txtBuildingName.setText(buildingDetails.getName().toUpperCase());
+            
+            // Set English description
+            String description = buildingDetails.getName() + ", " + campus + ", Concordia University";
+            txtBuildingDescription.setText(description);
+            
+            // Set French description
+            String campusFr = campus.equals("SGW Campus") ? "Campus SGW" : "Campus Loyola";
+            String descriptionFr = "Édifice " + buildingDetails.getName() + " " + campusFr + ", Université Concordia";
+            txtBuildingDescriptionFr.setText(descriptionFr);
+        }
+
+        // Set building address
+        if (buildingDetails.getAddress() != null && !buildingDetails.getAddress().isEmpty()) {
+            txtBuildingAddress.setText(buildingDetails.getAddress());
+        }
+
+        // Load building image using Glide
+        if (buildingDetails.getImgUri() != null && !buildingDetails.getImgUri().isEmpty()) {
+            Glide.with(this)
+                .load(buildingDetails.getImgUri())
+                .placeholder(android.R.color.darker_gray)
+                .error(android.R.color.darker_gray)
+                .into(imgBuilding);
+        } else {
+            imgBuilding.setImageResource(android.R.color.darker_gray);
+        }
+
+        // Close button listener
+        btnClose.setOnClickListener(v -> {
+            dialog.dismiss();
+            currentBuildingDialog = null;
+        });
+        
+        // Dismiss listener to clear reference
+        dialog.setOnDismissListener(d -> currentBuildingDialog = null);
+
+        dialog.show();
+        currentBuildingDialog = dialog;
     }
 }
