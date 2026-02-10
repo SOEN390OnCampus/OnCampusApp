@@ -49,8 +49,6 @@ public class BuildingDetailsServiceTest {
     @Mock
     Task<FetchResolvedPhotoUriResponse> fetchResolvedPhotoUriTask;
     @Mock
-    FetchResolvedPhotoUriResponse fetchResolvedPhotoUriResponse;
-    @Mock
     Place place;
 
     @Mock
@@ -129,7 +127,7 @@ public class BuildingDetailsServiceTest {
         assertEquals(fakeUriLink,dto.getImgUri());
     }
 
-    // Illegal Argument Exception due to null placId
+    // Illegal Argument Exception due to null placeId
     @Test
     public void handling_null_placeId_input() {
         // Call method with null placeId
@@ -163,7 +161,7 @@ public class BuildingDetailsServiceTest {
         assertEquals("Invalid placeId", captured.getMessage());
     }
 
-    // In case of failure on Google's end, just hav eonFailure called
+    // In case of failure on Google's end, just have onFailure called
     @Test
     public void fetchPlace_failure_handling() {
         //Set up
