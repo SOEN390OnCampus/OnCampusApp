@@ -139,6 +139,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         mMap.getUiSettings().setTiltGesturesEnabled(false);
 
         GeofenceManager geofenceManager = new GeofenceManager(this);
+        FeatureStyler featureStyler = new FeatureStyler();
 
         try {
             // Load the GeoJSON file
@@ -152,28 +153,23 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 String id = feature.getProperty("@id");
                 String operator = feature.getProperty("operator");
 
+                // Identify if it is a Concordia Building
                 boolean isConcordiaBuilding = buildingClassifier.isConcordiaBuilding(building, name, operator);
 
-                // Check if this is the tunnel (route type)
-                if ("route".equals(type)) {
-                    // Tunnel style - use LineString style, more transparent
+                // Get the Style Configuration from Helper (Replaces the big if/else block)
+                FeatureStyler.StyleConfig config = featureStyler.getStyle(type, isConcordiaBuilding);
+
+                // 3. Apply the Style
+                if (config.isLineString) {
                     GeoJsonLineStringStyle lineStyle = new GeoJsonLineStringStyle();
-                    lineStyle.setColor(0x7F000000);  // 50% transparent black
-                    lineStyle.setWidth(8f);
+                    lineStyle.setColor(config.strokeColor);
+                    lineStyle.setWidth(config.strokeWidth);
                     feature.setLineStringStyle(lineStyle);
-                } else if (isConcordiaBuilding) {
-                    // Building style - darker polygon
-                    GeoJsonPolygonStyle polyStyle = new GeoJsonPolygonStyle();
-                    polyStyle.setFillColor(0xFF912338);  // Fully opaque maroon
-                    polyStyle.setStrokeColor(0xFF5E1624);  // Darker maroon outline
-                    polyStyle.setStrokeWidth(2f);
-                    feature.setPolygonStyle(polyStyle);
                 } else {
-                    // Irrelevant building, make it invisible
                     GeoJsonPolygonStyle polyStyle = new GeoJsonPolygonStyle();
-                    polyStyle.setFillColor(0x00000000);
-                    polyStyle.setStrokeColor(0x00000000);
-                    polyStyle.setStrokeWidth(0f);
+                    polyStyle.setFillColor(config.fillColor);
+                    polyStyle.setStrokeColor(config.strokeColor);
+                    polyStyle.setStrokeWidth(config.strokeWidth);
                     feature.setPolygonStyle(polyStyle);
                 }
 
