@@ -47,8 +47,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private ActivityMapsBinding binding;
     private BuildingClassifier buildingClassifier;
 
-    private static final LatLng SGW_COORDS = new LatLng(45.496107243097704, -73.57725834380621);
-    private static final LatLng LOY_COORDS = new LatLng(45.4582, -73.6405);
+    public static final LatLng SGW_COORDS = new LatLng(45.496107243097704, -73.57725834380621);
+    public static final LatLng LOY_COORDS = new LatLng(45.4582, -73.6405);
 
     private ActivityResultLauncher<String[]> locationPermissionRequest;
 
