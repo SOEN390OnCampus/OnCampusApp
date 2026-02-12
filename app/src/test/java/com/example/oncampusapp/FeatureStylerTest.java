@@ -12,7 +12,7 @@ public class FeatureStylerTest {
         // Test logic for Tunnels ("route")
         FeatureStyler.StyleConfig style = styler.getStyle("route", false);
         assertTrue(style.isLineString);
-        assertEquals(0x7F000000, style.strokeColor);
+        assertEquals(FeatureStyler.TUNNEL_COLOR, style.strokeColor);
         assertEquals(8f, style.strokeWidth, 0.01);
     }
 
@@ -21,8 +21,8 @@ public class FeatureStylerTest {
         // Test logic for Concordia Buildings
         FeatureStyler.StyleConfig style = styler.getStyle("building", true);
         assertFalse(style.isLineString);
-        assertEquals(0xFF912338, style.fillColor); // Maroon
-        assertEquals(0xFF5E1624, style.strokeColor); // Outline
+        assertEquals(FeatureStyler.CONCORDIA_BUILDING_FILL_COLOR, style.fillColor); // Maroon
+        assertEquals(FeatureStyler.CONCORDIA_BUILDING_STROKE_COLOR, style.strokeColor); // Outline
         assertEquals(2f, style.strokeWidth, 0.01);
     }
 
@@ -31,7 +31,7 @@ public class FeatureStylerTest {
         // Test logic for non-Concordia buildings (should be invisible)
         FeatureStyler.StyleConfig style = styler.getStyle("building", false);
         assertFalse(style.isLineString);
-        assertEquals(0x00000000, style.fillColor); // Transparent
+        assertEquals(FeatureStyler.INVISIBLE_COLOR, style.fillColor); // Transparent
         assertEquals(0f, style.strokeWidth, 0.01);
     }
 
@@ -41,6 +41,6 @@ public class FeatureStylerTest {
         // This test confirms they still get processed as buildings, not tunnels.
         FeatureStyler.StyleConfig style = styler.getStyle(null, true);
         assertFalse(style.isLineString);
-        assertEquals(0xFF912338, style.fillColor); // Maroon
+        assertEquals(FeatureStyler.CONCORDIA_BUILDING_FILL_COLOR, style.fillColor); // Maroon
     }
 }

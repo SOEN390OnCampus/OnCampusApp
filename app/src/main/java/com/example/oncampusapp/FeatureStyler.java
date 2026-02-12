@@ -3,10 +3,10 @@ package com.example.oncampusapp;
 public class FeatureStyler {
 
     // Color constants for better readability
-    private static final int TUNNEL_COLOR = 0x7F000000; // 50% transparent black
-    private static final int CONCORDIA_BUILDING_FILL_COLOR = 0xFF912338; // Opaque Maroon
-    private static final int CONCORDIA_BUILDING_STROKE_COLOR = 0xFF5E1624; // Darker Maroon
-    private static final int INVISIBLE_COLOR = 0x00000000; // Fully transparent
+    public static final int TUNNEL_COLOR = 0x7F000000; // 50% transparent black
+    public static final int CONCORDIA_BUILDING_FILL_COLOR = 0xFF912338; // Opaque Maroon
+    public static final int CONCORDIA_BUILDING_STROKE_COLOR = 0xFF5E1624; // Darker Maroon
+    public static final int INVISIBLE_COLOR = 0x00000000; // Fully transparent
 
     public static class StyleConfig {
         public int fillColor;
