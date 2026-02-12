@@ -2,6 +2,12 @@ package com.example.oncampusapp;
 
 public class FeatureStyler {
 
+    // Color constants for better readability
+    private static final int TUNNEL_COLOR = 0x7F000000; // 50% transparent black
+    private static final int CONCORDIA_BUILDING_FILL_COLOR = 0xFF912338; // Opaque Maroon
+    private static final int CONCORDIA_BUILDING_STROKE_COLOR = 0xFF5E1624; // Darker Maroon
+    private static final int INVISIBLE_COLOR = 0x00000000; // Fully transparent
+
     public static class StyleConfig {
         public int fillColor;
         public int strokeColor;
@@ -24,14 +30,14 @@ public class FeatureStyler {
      */
     public StyleConfig getStyle(String type, boolean isConcordiaBuilding) {
         if ("route".equals(type)) {
-            // Tunnel - 50% transparent black
-            return new StyleConfig(0, 0x7F000000, 8f, true);
+            // Style for tunnels
+            return new StyleConfig(INVISIBLE_COLOR, TUNNEL_COLOR, 8f, true);
         } else if (isConcordiaBuilding) {
-            // Concordia Building - Opaque Maroon with Darker Outline
-            return new StyleConfig(0xFF912338, 0xFF5E1624, 2f, false);
+            // Style for Concordia buildings
+            return new StyleConfig(CONCORDIA_BUILDING_FILL_COLOR, CONCORDIA_BUILDING_STROKE_COLOR, 2f, false);
         } else {
-            // Irrelevant - Invisible
-            return new StyleConfig(0x00000000, 0x00000000, 0f, false);
+            // Style for irrelevant features (invisible)
+            return new StyleConfig(INVISIBLE_COLOR, INVISIBLE_COLOR, 0f, false);
         }
     }
 }
