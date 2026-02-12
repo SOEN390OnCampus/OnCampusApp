@@ -27,7 +27,7 @@ import androidx.annotation.Nullable;
 import androidx.core.app.ActivityCompat;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
-
+// This class is used to track the location of the user, specifically when they are inside a building
 public class LocationTrackingService extends Service {
 
     private FusedLocationProviderClient fusedLocationClient;
