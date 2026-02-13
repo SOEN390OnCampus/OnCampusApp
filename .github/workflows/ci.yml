@@ -29,7 +29,8 @@ jobs:
 
       - name: Build and Generate JaCoCo Report
         # This one command runs tests AND creates the coverage files
-        run: ./gradlew jacocoTestReport 
+        run: ./gradlew clean testDebugUnitTest jacocoCombinedTestReport -x connectedDebugAndroidTest -x createDebugCoverageReport
+
 
       - name: Upload JaCoCo Report as Artifact
         # This is your "Backup" report you can download from GitHub
