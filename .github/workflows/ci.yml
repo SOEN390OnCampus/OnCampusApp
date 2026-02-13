@@ -31,13 +31,16 @@ jobs:
         # This one command runs tests AND creates the coverage files
         run: ./gradlew clean testDebugUnitTest jacocoCombinedTestReport -x connectedDebugAndroidTest -x createDebugCoverageReport
 
+      - name: List JaCoCo outputs
+        run: ls -R app/build/reports/jacoco || true
 
       - name: Upload JaCoCo Report as Artifact
-        # This is your "Backup" report you can download from GitHub
-        uses: actions/upload-artifact@v4 
+        uses: actions/upload-artifact@v4
         with:
           name: jacoco-coverage-report
-          path: app/build/reports/jacoco/jacocoTestReport/html/
+          path: app/build/reports/jacoco/jacocoCombinedTestReport/html/
+          if-no-files-found: error
+
 
       - name: Upload coverage to Codecov
         # This will still try to update your dashboard
