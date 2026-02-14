@@ -8,6 +8,7 @@ import androidx.core.view.WindowCompat;
 import androidx.fragment.app.FragmentActivity;
 
 import android.Manifest;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.os.Build;
@@ -52,6 +53,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     private ActivityResultLauncher<String[]> locationPermissionRequest;
     private TextView btnSgwLoy;
+    private final String sgw = "SGW";
+    private final String loy = "LOY";
 
     public GoogleMap getMap() {
         return this.mMap;
@@ -144,6 +147,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         GeofenceManager geofenceManager = new GeofenceManager(this);
         FeatureStyler featureStyler = new FeatureStyler();
 
+        btnSgwLoy = findViewById(R.id.btn_campus_switch);
+        ImageButton btnLocation = findViewById(R.id.btn_location);
+
         try {
             // Load the GeoJSON file
             GeoJsonLayer layer = new GeoJsonLayer(mMap, R.raw.concordia_buildings, getApplicationContext());
@@ -213,18 +219,26 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             e.printStackTrace();
         }
 
-        // Move camera to a wider view of Montreal
-        LatLng montreal = new LatLng(45.47715, -73.6089);
-        mMap.animateCamera(CameraUpdateFactory.newCameraPosition(
-                new CameraPosition.Builder()
-                        .target(montreal)
-                        .zoom(13f)
-                        .tilt(0f)  // Set tilt to 0 to remove 3D buildings
-                        .build()
-        ));
+        // Get the last accessed campus from memory
+        SharedPreferences sharedPref = getSharedPreferences("OnCampusPrefs", MODE_PRIVATE);
+        String savedCampus = sharedPref.getString("campus", "SGW");
+        LatLng defaultLatLng;
 
-        btnSgwLoy = findViewById(R.id.btn_campus_switch);
-        ImageButton btnLocation = findViewById(R.id.btn_location);
+        if (savedCampus.equals(sgw)) {
+            defaultLatLng = SGW_COORDS;
+            btnSgwLoy.setText(loy);
+        } else {
+            defaultLatLng = LOY_COORDS;
+            btnSgwLoy.setText(sgw);
+        }
+
+        mMap.animateCamera(CameraUpdateFactory.newCameraPosition(
+            new CameraPosition.Builder()
+                .target(defaultLatLng)
+                .zoom(16f)
+                .tilt(0f)  // Set tilt to 0 to remove 3D buildings
+                .build()
+        ));
 
         btnSgwLoy.setOnClickListener(v -> switchCampus());
         btnLocation.setOnClickListener(v -> goToCurrentLocation());
@@ -233,16 +247,21 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     // Switch between SGW and Loyola campus on the map
     private void switchCampus() {
         String currentText = btnSgwLoy.getText().toString();
-        String sgw = "SGW";
-        String loy = "LOY";
+
+        SharedPreferences sharedPref = getSharedPreferences("OnCampusPrefs", MODE_PRIVATE);
+        SharedPreferences.Editor editor = sharedPref.edit();
 
         if (currentText.equals(sgw)) {
             btnSgwLoy.setText(loy);
             mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(SGW_COORDS, 16f));
+            editor.putString("campus", "SGW");
         } else {
             btnSgwLoy.setText(sgw);
             mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(LOY_COORDS, 16f));
+            editor.putString("campus", "LOY");
         }
+
+        editor.apply();
     }
 
     // Set the map view to the current location
