@@ -14,8 +14,8 @@
     <string name="loyola_campus_fr">Campus Loyola</string>
     
     <!-- Building descriptions -->
-    <string name="building_description_en">%1$s is located at %2$s.</string>
-    <string name="building_description_fr">%1$s est situé au %2$s.</string>
+    <string name="building_description_en">%1$s, %2$s, Concordia University</string>
+    <string name="building_description_fr">Édifice %1$s %2$s, Université Concordia</string>
     
     <!-- Accessibility -->
     <string name="content_description_close_button">Close</string>

@@ -419,11 +419,14 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         // Set building name (uppercase for title)
         if (buildingDetails.getName() != null && !buildingDetails.getName().isEmpty()) {
-            txtBuildingName.setText(buildingDetails.getName().toUpperCase());
+            // Extract just the building name (before the first comma)
+            String fullName = buildingDetails.getName();
+            String buildingName = fullName.contains(",") ? fullName.substring(0, fullName.indexOf(",")).trim() : fullName;
+            txtBuildingName.setText(buildingName.toUpperCase());
 
             String description = getString(
                     R.string.building_description_en,
-                    buildingDetails.getName(),
+                    buildingName,
                     campus
             );
             txtBuildingDescription.setText(description);
@@ -432,9 +435,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     ? getString(R.string.sgw_campus_fr)
                     : getString(R.string.loyola_campus_fr);
 
+            // For French, remove "Building" suffix if present since "Édifice" is used in the template
+            String buildingNameFr = buildingName.replace(" Building", "").replace(" building", "");
+
             String descriptionFr = getString(
                     R.string.building_description_fr,
-                    buildingDetails.getName(),
+                    buildingNameFr,
                     campusFr
             );
             txtBuildingDescriptionFr.setText(descriptionFr);
