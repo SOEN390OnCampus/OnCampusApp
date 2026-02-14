@@ -37,13 +37,7 @@ public class MapsActivityTest {
     }
 
     @Test
-    public void testCampusToggle_SwitchesText() {
-        // Coordinates from MapsActivity
-        double sgwLat = 45.496107243097704;
-        double sgwLng = -73.57725834380621;
-        double loyLat = 45.4582;
-        double loyLng = -73.6405;
-
+    public void testCampusToggle_SwitchesCampus() {
         // 1. Initial state: Button text is LOY
         onView(withId(R.id.btn_campus_switch)).check(matches(withText("LOY")));
 
@@ -57,13 +51,12 @@ public class MapsActivityTest {
             LatLng cameraPos = activity.getMap().getCameraPosition().target;
             float zoom = activity.getMap().getCameraPosition().zoom;
 
-            assertEquals(loyLat, cameraPos.latitude, 0.001);
-            assertEquals(loyLng, cameraPos.longitude, 0.001);
+            assertEquals(MapsActivity.LOY_COORDS.latitude, cameraPos.latitude, 0.001);
+            assertEquals(MapsActivity.LOY_COORDS.longitude, cameraPos.longitude, 0.001);
             assertEquals(16f, zoom, 0.1f);
         });
 
         // 3. Second click: Should move to SGW and change text back to LOY
-        sleep(1000);
         onView(withId(R.id.btn_campus_switch)).perform(click());
         sleep(1000);
 
@@ -72,8 +65,22 @@ public class MapsActivityTest {
             LatLng cameraPos = activity.getMap().getCameraPosition().target;
             float zoom = activity.getMap().getCameraPosition().zoom;
 
-            assertEquals(sgwLat, cameraPos.latitude, 0.001);
-            assertEquals(sgwLng, cameraPos.longitude, 0.001);
+            assertEquals(MapsActivity.SGW_COORDS.latitude, cameraPos.latitude, 0.001);
+            assertEquals(MapsActivity.SGW_COORDS.longitude, cameraPos.longitude, 0.001);
+            assertEquals(16f, zoom, 0.1f);
+        });
+
+        // 4. Third click: Should move to LOY and change text back to SGW
+        onView(withId(R.id.btn_campus_switch)).perform(click());
+        sleep(1000);
+
+        onView(withId(R.id.btn_campus_switch)).check(matches(withText("SGW")));
+        activityRule.getScenario().onActivity(activity -> {
+            LatLng cameraPos = activity.getMap().getCameraPosition().target;
+            float zoom = activity.getMap().getCameraPosition().zoom;
+
+            assertEquals(MapsActivity.LOY_COORDS.latitude, cameraPos.latitude, 0.001);
+            assertEquals(MapsActivity.LOY_COORDS.longitude, cameraPos.longitude, 0.001);
             assertEquals(16f, zoom, 0.1f);
         });
     }
