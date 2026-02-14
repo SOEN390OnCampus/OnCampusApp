@@ -17,7 +17,6 @@ import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.app.Dialog;
-import android.view.View;
 import android.widget.ImageView;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
@@ -42,6 +41,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -84,7 +84,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        //initialize buildingDetailsService
+        // Initialize buildingDetailsService
         buildingDetailsService = new BuildingDetailsService(this);
 
 
@@ -143,7 +143,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         // Check and Request on Startup
         checkLocationPermissions();
-        buildingDetailsService = new BuildingDetailsService(this);
         
         // Load the GeoJSON ID to Place ID mapping
         loadGeoIdToPlaceIdMapping();
@@ -152,7 +151,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     @Override
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
-        // Add a marker in Sydney and move the camera
+        // Move camera to SGW campus
         mMap.animateCamera(
             CameraUpdateFactory.newLatLngZoom(SGW_COORDS, 17f)
         );
@@ -255,7 +254,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         TextView btnSgwLoy = findViewById(R.id.btn_campus_switch);
         ImageButton btnLocation = findViewById(R.id.btn_location);
 
-        // Click listener to switch between SGW and loyola campus
+        // Click listener to switch between SGW and Loyola campus
         btnSgwLoy.setOnClickListener(v -> {
             String currentText = btnSgwLoy.getText().toString();
             String sgw = getResources().getString(R.string.campus_sgw);
@@ -307,20 +306,15 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
     }
 
-    private String safe(String s) {
-        return (s == null || s.isEmpty()) ? "(not available)" : s;
-    }
-
     private void loadGeoIdToPlaceIdMapping() {
-        try {
-            InputStream inputStream = getResources().openRawResource(R.raw.concordia_building_geoid_to_placeid);
-            BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
+        try (InputStream inputStream = getResources().openRawResource(R.raw.concordia_building_geoid_to_placeid);
+             BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8))) {
+            
             StringBuilder jsonBuilder = new StringBuilder();
             String line;
             while ((line = reader.readLine()) != null) {
                 jsonBuilder.append(line);
             }
-            reader.close();
 
             JSONObject jsonObject = new JSONObject(jsonBuilder.toString());
             for (java.util.Iterator<String> it = jsonObject.keys(); it.hasNext(); ) {
@@ -350,7 +344,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         if (featureId == null || featureId.isEmpty()) {
             Log.e("MapsActivity", "Feature has no ID for: " + featureName);
             Toast.makeText(this, 
-                "Building ID not found", 
+                R.string.toast_building_id_not_found, 
                 Toast.LENGTH_SHORT).show();
             return;
         }
@@ -359,7 +353,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         String placeId = geoIdToPlaceIdMap.get(featureId);
         if (placeId == null) {
             Toast.makeText(this, 
-                "No Place ID mapping for: " + featureName, 
+                getString(R.string.toast_no_place_id_mapping, featureName), 
                 Toast.LENGTH_LONG).show();
             return;
         }
@@ -393,13 +387,13 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
         
         // Determine campus based on building location
-        String campus = "Concordia University";
+        String campus = getString(R.string.concordia_university);
         Building building = buildingsMap.get(featureId);
         if (building != null && building.polygon != null && !building.polygon.isEmpty()) {
             LatLng buildingLocation = building.polygon.get(0);
             double distToSGW = SphericalUtil.computeDistanceBetween(buildingLocation, SGW_COORDS);
             double distToLoyola = SphericalUtil.computeDistanceBetween(buildingLocation, LOY_COORDS);
-            campus = (distToSGW < distToLoyola) ? "SGW Campus" : "Loyola Campus";
+            campus = (distToSGW < distToLoyola) ? getString(R.string.sgw_campus_en) : getString(R.string.loyola_campus_en);
         }
         
         // Create dialog
@@ -427,7 +421,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         if (buildingDetails.getName() != null && !buildingDetails.getName().isEmpty()) {
             txtBuildingName.setText(buildingDetails.getName().toUpperCase());
 
-            // Set English description using formatted string resource
             String description = getString(
                     R.string.building_description_en,
                     buildingDetails.getName(),
@@ -435,7 +428,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             );
             txtBuildingDescription.setText(description);
 
-            // Set French description using formatted string resources
             String campusFr = campus.equals(getString(R.string.sgw_campus_en))
                     ? getString(R.string.sgw_campus_fr)
                     : getString(R.string.loyola_campus_fr);

@@ -16,7 +16,7 @@
         android:layout_alignParentTop="true"
         android:layout_margin="8dp"
         android:background="?attr/selectableItemBackgroundBorderless"
-        android:contentDescription="Close"
+        android:contentDescription="@string/content_description_close_button"
         android:src="@android:drawable/ic_menu_close_clear_cancel"
         app:tint="#666666" />
 
@@ -70,7 +70,7 @@
             android:layout_width="match_parent"
             android:layout_height="180dp"
             android:scaleType="centerCrop"
-            android:contentDescription="Building image"
+            android:contentDescription="@string/content_description_building_image"
             android:background="#F0F0F0"
             android:layout_marginBottom="16dp" />
 
