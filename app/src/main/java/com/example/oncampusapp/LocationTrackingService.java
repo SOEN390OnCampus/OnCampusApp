@@ -136,7 +136,7 @@ public class LocationTrackingService extends Service {
                 building.currentlyInside = true;
             }
 
-            if (userWasInside && !userIsCurrentlyInside) {
+            else if (userWasInside && !userIsCurrentlyInside) {
                 Log.d("Building", "Exited " + building.name);
                 sendNotification("You have exited " + building.name);
                 building.currentlyInside = false;

@@ -1,9 +1,10 @@
 package com.example.oncampusapp;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-import androidx.test.ext.junit.runners.AndroidJUnit4;
+import org.mockito.junit.MockitoJUnitRunner;
 
 import com.google.android.gms.maps.model.LatLng;
 import com.google.maps.android.PolyUtil;
@@ -15,7 +16,7 @@ import org.junit.runner.RunWith;
 import java.util.Arrays;
 import java.util.List;
 
-@RunWith(AndroidJUnit4.class)
+@RunWith(MockitoJUnitRunner.class)
 public class PolygonTest {
 
     LatLng insideBuilding;
@@ -66,6 +67,7 @@ public class PolygonTest {
         assertFalse(entered);
     }
 
+    @Test
     public void buildingState_switchStates() {
         // user enters
         boolean entered = PolyUtil.containsLocation(insideBuilding, building_polygon, true);
@@ -84,6 +86,11 @@ public class PolygonTest {
         }
 
         assertFalse(HBuilding.currentlyInside);
+    }
+
+    @Test
+    public void buildingState_checkBuildingId() {
+        assertEquals("H", HBuilding.getId());
     }
 
 
