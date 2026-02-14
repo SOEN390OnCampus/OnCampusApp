@@ -1,9 +1,14 @@
 package com.example.oncampusapp;
 
+import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertEquals;
 import static androidx.test.espresso.Espresso.onView;
+import static androidx.test.espresso.Espresso.pressBack;
 import static androidx.test.espresso.action.ViewActions.click;
+import static androidx.test.espresso.action.ViewActions.closeSoftKeyboard;
+import static androidx.test.espresso.action.ViewActions.typeText;
 import static androidx.test.espresso.assertion.ViewAssertions.matches;
+import static androidx.test.espresso.matcher.ViewMatchers.isDisplayed;
 import static androidx.test.espresso.matcher.ViewMatchers.withId;
 import static androidx.test.espresso.matcher.ViewMatchers.withText;
 
@@ -100,5 +105,35 @@ public class MapsActivityTest {
             org.junit.Assert.assertNotEquals(0.0, cameraPos.latitude, 0.0001);
             org.junit.Assert.assertNotEquals(0.0, cameraPos.longitude, 0.0001);
         });
+    }
+
+    @Test
+    public void testSearchToRoutePickerFlow() {
+        sleep(5000);
+
+        // Verify initial state: Search Bar is visible, Route Picker is hidden
+        onView(withId(R.id.search_bar_container)).check(matches(isDisplayed()));
+        onView(withId(R.id.route_picker_container)).check(matches(not(isDisplayed())));
+
+        // Click Search Bar to open Route Picker
+        onView(withId(R.id.search_bar_container)).perform(click());
+
+        // Verify Route Picker is now visible and Search Bar is hidden
+        // Note: If animations are enabled, you might need a short delay here
+        onView(withId(R.id.route_picker_container)).check(matches(isDisplayed()));
+        onView(withId(R.id.search_bar_container)).check(matches(not(isDisplayed())));
+
+        // Type into the fields
+        onView(withId(R.id.et_start))
+                .perform(typeText("Hall Building"), closeSoftKeyboard());
+        onView(withId(R.id.et_destination))
+                .perform(typeText("John Molson School of Business"), closeSoftKeyboard());
+
+        // Test the device back press Button
+        pressBack();
+
+        // Verify it closed via the animation logic
+        onView(withId(R.id.search_bar_container)).check(matches(isDisplayed()));
+        onView(withId(R.id.route_picker_container)).check(matches(not(isDisplayed())));
     }
 }
