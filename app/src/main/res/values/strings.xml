@@ -5,4 +5,10 @@
     <string name="campus_loy">LOY</string>
     <string name="maps_info">Info</string>
     <string name="maps_current_location">Current location</string>
+    <string name="search_image">Search image</string>
+    <string name="search">Search</string>
+    <string name="swap_address_image">Swap address image</string>
+    <string name="select_or_input_starting_point">Select or input starting point...</string>
+    <string name="select_or_input_destination_point">Select or input destination point...</string>
+    <string name="go">GO</string>
 </resources>
