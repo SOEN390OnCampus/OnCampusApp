@@ -1,6 +1,7 @@
 package com.example.oncampusapp;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static androidx.test.espresso.Espresso.onView;
 import static androidx.test.espresso.action.ViewActions.click;
 import static androidx.test.espresso.assertion.ViewAssertions.matches;
@@ -18,6 +19,9 @@ import com.google.android.gms.maps.model.LatLng;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 @RunWith(AndroidJUnit4.class)
 public class MapsActivityTest {
@@ -86,7 +90,10 @@ public class MapsActivityTest {
     }
 
     @Test
-    public void testLocationButton_MovesCameraToCurrentPosition() {
+    public void testLocationButton_MovesCameraToCurrentPosition() throws InterruptedException {
+        // Initialize the latch
+        CountDownLatch latch = new CountDownLatch(1);
+
         // Click the location button
         sleep(5000);
         onView(withId(R.id.btn_location)).perform(click());
@@ -98,20 +105,28 @@ public class MapsActivityTest {
             float zoom = activity.getMap().getCameraPosition().zoom;
 
             activity.fusedLocationClient
-                .getLastLocation()
-                .addOnSuccessListener(location -> {
-                    // Check if the location is not null
-                    if (location != null) {
-                        // Get the Latitude (as a double)
-                        double currentLat = location.getLatitude();
-                        double currentLng = location.getLongitude();
+                    .getLastLocation()
+                    .addOnSuccessListener(location -> {
+                        try {
+                            // Check if the location is not null
+                            if (location != null) {
+                                double currentLat = location.getLatitude();
+                                double currentLng = location.getLongitude();
 
-                        // Ensure the map moved to a valid coordinate
-                        assertEquals(currentLat, cameraPos.latitude, 0.0001);
-                        assertEquals(currentLng, cameraPos.longitude, 0.0001);
-                        assertEquals(16f, zoom, 0.1f);
-                    }
-                });
+                                // Ensure the map moved to a valid coordinate
+                                assertEquals(currentLat, cameraPos.latitude, 0.0001);
+                                assertEquals(currentLng, cameraPos.longitude, 0.0001);
+                                assertEquals(16f, zoom, 0.1f);
+                            }
+                        } finally {
+                            // Release the latch so the test thread can continue
+                            latch.countDown();
+                        }
+                    });
         });
+
+        // Wait for the asynchronous block to finish (timeout after 5 seconds)
+        boolean completed = latch.await(5, TimeUnit.SECONDS);
+        assertTrue("Timed out waiting for Location Success Listener", completed);
     }
 }

@@ -53,8 +53,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     private ActivityResultLauncher<String[]> locationPermissionRequest;
     private TextView btnSgwLoy;
-    private final String sgw = "SGW";
-    private final String loy = "LOY";
+    private static final String sgw = "SGW";
+    private static final String loy = "LOY";
 
     public GoogleMap getMap() {
         return this.mMap;
@@ -254,11 +254,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         if (currentText.equals(sgw)) {
             btnSgwLoy.setText(loy);
             mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(SGW_COORDS, 16f));
-            editor.putString("campus", "SGW");
+            editor.putString("campus", sgw);
         } else {
             btnSgwLoy.setText(sgw);
             mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(LOY_COORDS, 16f));
-            editor.putString("campus", "LOY");
+            editor.putString("campus", loy);
         }
 
         editor.apply();
@@ -288,6 +288,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                         mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(currentLatLng, 16f));
 
                         Log.d("Location", "Current Latitude: " + lat);
+                    } else {
+                        Log.d("Location", "The location is null");
                     }
                 });
         }
