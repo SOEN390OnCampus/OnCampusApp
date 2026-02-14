@@ -92,7 +92,9 @@ public class BuildingDetailsService {
         placesClient.fetchResolvedPhotoUri(photoRequest)
                 .addOnSuccessListener(fetchResolvedPhotoUriResponse -> {
                     Uri uri = fetchResolvedPhotoUriResponse.getUri();
-                    dto.setImgUri(uri.toString());;
+                    if (uri != null) {  
+                        dto.setImgUri(uri.toString());  
+                    }
                     callback.onSuccess(dto);
                 })
                 .addOnFailureListener(callback::onFailure);
