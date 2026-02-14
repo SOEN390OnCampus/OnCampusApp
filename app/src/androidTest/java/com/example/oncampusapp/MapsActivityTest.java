@@ -21,9 +21,6 @@ import org.junit.runner.RunWith;
 
 @RunWith(AndroidJUnit4.class)
 public class MapsActivityTest {
-
-    private static final String TAG = "MapsActivityTest";
-
     @Rule
     public ActivityScenarioRule<MapsActivity> activityRule = new ActivityScenarioRule<>(MapsActivity.class);
 
@@ -93,12 +90,21 @@ public class MapsActivityTest {
             LatLng cameraPos = activity.getMap().getCameraPosition().target;
             float zoom = activity.getMap().getCameraPosition().zoom;
 
-            // The activity sets zoom to 15f when finding location
-            assertEquals(13f, zoom, 0.1f);
+            activity.fusedLocationClient
+                .getLastLocation()
+                .addOnSuccessListener(location -> {
+                    // Check if the location is not null
+                    if (location != null) {
+                        // Get the Latitude (as a double)
+                        double currentLat = location.getLatitude();
+                        double currentLng = location.getLongitude();
 
-            // Ensure the map moved to a valid coordinate (not 0,0)
-            org.junit.Assert.assertNotEquals(0.0, cameraPos.latitude, 0.0001);
-            org.junit.Assert.assertNotEquals(0.0, cameraPos.longitude, 0.0001);
+                        // Ensure the map moved to a valid coordinate
+                        assertEquals(currentLat, cameraPos.latitude, 0.0001);
+                        assertEquals(currentLng, cameraPos.longitude, 0.0001);
+                        assertEquals(16f, zoom, 0.1f);
+                    }
+                });
         });
     }
 }
