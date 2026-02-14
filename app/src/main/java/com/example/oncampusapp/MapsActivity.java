@@ -426,14 +426,25 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         // Set building name (uppercase for title)
         if (buildingDetails.getName() != null && !buildingDetails.getName().isEmpty()) {
             txtBuildingName.setText(buildingDetails.getName().toUpperCase());
-            
-            // Set English description
-            String description = buildingDetails.getName() + ", " + campus + ", Concordia University";
+
+            // Set English description using formatted string resource
+            String description = getString(
+                    R.string.building_description_en,
+                    buildingDetails.getName(),
+                    campus
+            );
             txtBuildingDescription.setText(description);
-            
-            // Set French description
-            String campusFr = campus.equals("SGW Campus") ? "Campus SGW" : "Campus Loyola";
-            String descriptionFr = "Édifice " + buildingDetails.getName() + " " + campusFr + ", Université Concordia";
+
+            // Set French description using formatted string resources
+            String campusFr = campus.equals(getString(R.string.sgw_campus_en))
+                    ? getString(R.string.sgw_campus_fr)
+                    : getString(R.string.loyola_campus_fr);
+
+            String descriptionFr = getString(
+                    R.string.building_description_fr,
+                    buildingDetails.getName(),
+                    campusFr
+            );
             txtBuildingDescriptionFr.setText(descriptionFr);
         }
 
