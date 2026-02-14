@@ -1,7 +1,9 @@
 package com.example.oncampusapp;
 
+import androidx.activity.OnBackPressedCallback;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.cardview.widget.CardView;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.core.view.WindowCompat;
@@ -13,7 +15,11 @@ import android.graphics.Color;
 import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.View;
+import android.view.animation.Animation;
+import android.view.animation.AnimationUtils;
 import android.widget.ImageButton;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
@@ -140,6 +146,55 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         GeofenceManager geofenceManager = new GeofenceManager(this);
         FeatureStyler featureStyler = new FeatureStyler();
+
+        CardView searchBar = findViewById(R.id.search_bar_container);
+        LinearLayout routePicker = findViewById(R.id.route_picker_container);
+        ImageButton btnSwapAddress = findViewById(R.id.btn_swap_address);
+
+        Animation slideDown = AnimationUtils.loadAnimation(this, R.anim.slide_down);
+        Animation slideUp = AnimationUtils.loadAnimation(this, R.anim.slide_up);
+
+        // Helper method for the "Close" action on the search bar
+        Runnable closeRoutePicker = () -> {
+            slideUp.setAnimationListener(new Animation.AnimationListener() {
+                @Override
+                public void onAnimationStart(Animation animation) {}
+
+                @Override
+                public void onAnimationEnd(Animation animation) {
+                    routePicker.setVisibility(View.GONE);
+                    searchBar.setVisibility(View.VISIBLE);
+                    // Reset listener so it doesn't trigger on other animations
+                    slideUp.setAnimationListener(null);
+                }
+
+                @Override
+                public void onAnimationRepeat(Animation animation) {}
+            });
+            routePicker.startAnimation(slideUp);
+        };
+
+        // Handle Search Bar Click (Open)
+        searchBar.setOnClickListener(v -> {
+            searchBar.setVisibility(View.GONE);
+            routePicker.setVisibility(View.VISIBLE);
+            routePicker.startAnimation(slideDown);
+        });
+
+        // Handle Device/System Back Press
+        getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+                // If the route picker is open, slide it up
+                if (routePicker.getVisibility() == View.VISIBLE) {
+                    closeRoutePicker.run();
+                } else {
+                    // If it's already closed, perform normal back action (exit app)
+                    setEnabled(false);
+                    getOnBackPressedDispatcher().onBackPressed();
+                }
+            }
+        });
 
         try {
             // Load the GeoJSON file
