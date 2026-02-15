@@ -5,4 +5,23 @@
     <string name="campus_loy">LOY</string>
     <string name="maps_info">Info</string>
     <string name="maps_current_location">Current location</string>
+    
+    <!-- Campus labels -->
+    <string name="concordia_university">Concordia University</string>
+    <string name="sgw_campus_en">SGW Campus</string>
+    <string name="loyola_campus_en">Loyola Campus</string>
+    <string name="sgw_campus_fr">Campus SGW</string>
+    <string name="loyola_campus_fr">Campus Loyola</string>
+    
+    <!-- Building descriptions -->
+    <string name="building_description_en">%1$s, %2$s, Concordia University</string>
+    <string name="building_description_fr">Édifice %1$s %2$s, Université Concordia</string>
+    
+    <!-- Accessibility -->
+    <string name="content_description_close_button">Close</string>
+    <string name="content_description_building_image">Building image</string>
+    
+    <!-- Toast messages -->
+    <string name="toast_building_id_not_found">Building ID not found</string>
+    <string name="toast_no_place_id_mapping">No Place ID mapping for: %s</string>
 </resources>
