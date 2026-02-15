@@ -274,24 +274,25 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         btnLocation.setOnClickListener(v -> goToCurrentLocation());
     }
 
-        // Click listener to switch between SGW and Loyola campus
-        btnSgwLoy.setOnClickListener(v -> {
-            String currentText = btnSgwLoy.getText().toString();
-            String sgw = getResources().getString(R.string.campus_sgw);
-            String loy = getResources().getString(R.string.campus_loy);
+    // Switch between SGW and Loyola campus on the map
+    private void switchCampus() {
+        String currentText = btnSgwLoy.getText().toString();
 
-            if (currentText.equals("SGW")) {
-                btnSgwLoy.setText(loy);
-                mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(SGW_COORDS, 16f));
-            } else {
-                btnSgwLoy.setText(sgw);
-                mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(LOY_COORDS, 16f));
-            }
-        });
+        SharedPreferences sharedPref = getSharedPreferences("OnCampusPrefs", MODE_PRIVATE);
+        SharedPreferences.Editor editor = sharedPref.edit();
+
+        if (currentText.equals(sgw)) {
+            btnSgwLoy.setText(loy);
+            mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(SGW_COORDS, 16f));
+            editor.putString("campus", sgw);
+        } else {
+            btnSgwLoy.setText(sgw);
+            mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(LOY_COORDS, 16f));
+            editor.putString("campus", loy);
+        }
 
         editor.apply();
     }
-
     // Set the map view to the current location
     private void goToCurrentLocation() {
         // Check Permissions
