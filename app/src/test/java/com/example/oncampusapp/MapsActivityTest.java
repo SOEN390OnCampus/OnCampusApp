@@ -160,4 +160,31 @@ public class MapsActivityTest {
         building.currentlyInside = false;
         assertEquals("currentlyInside should be updated back to false", false, building.currentlyInside);
     }
+
+    //Test that buildingsMap uses the SAME key as the Building's ID.
+    //This will prevents mismatches where clicking a building fetches info for another ID
+    @Test
+    public void testBuildingsMap_IdMappingIsConsistent() {
+        MapsActivity.buildingsMap.clear();
+
+        List<LatLng> coords = new ArrayList<>();
+        coords.add(new LatLng(45.0, -73.0));
+
+        // Simulate many buildings
+        for (int i = 0; i < 50; i++) {
+            String id = "way/" + i;
+            Building building = new Building(id, "Building " + i, coords);
+            MapsActivity.buildingsMap.put(id, building);
+        }
+
+        // Verify all are correctly retrievable
+        for (int i = 0; i < 50; i++) {
+            String id = "way/" + i;
+            Building retrieved = MapsActivity.buildingsMap.get(id);
+
+            assertNotNull("Building missing for id " + id, retrieved);
+            assertEquals(id, retrieved.getId());
+            assertEquals("Building " + i, retrieved.name);
+        }
+    }
 }
