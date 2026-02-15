@@ -19,4 +19,8 @@ public class Building {
     public String getId() {
         return id;
     }
+
+    public String getName() {
+        return name;
+    }
 }

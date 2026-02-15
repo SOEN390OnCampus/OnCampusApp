@@ -1,7 +1,9 @@
 package com.example.oncampusapp;
 
+import static org.hamcrest.Matchers.anything;
 import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertEquals;
+import static androidx.test.espresso.Espresso.onData;
 import static androidx.test.espresso.Espresso.onView;
 import static androidx.test.espresso.Espresso.pressBack;
 import static androidx.test.espresso.action.ViewActions.click;
@@ -15,6 +17,7 @@ import static androidx.test.espresso.matcher.ViewMatchers.withText;
 
 import android.Manifest;
 
+import androidx.test.espresso.matcher.RootMatchers;
 import androidx.test.ext.junit.rules.ActivityScenarioRule;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.rule.GrantPermissionRule;
@@ -124,11 +127,25 @@ public class MapsActivityTest {
         onView(withId(R.id.search_bar_container)).check(matches(not(isDisplayed())));
         onView(withId(R.id.et_start)).check(matches(hasFocus()));
 
-        // Type into the fields
+        // Type into et_start
         onView(withId(R.id.et_start))
-                .perform(typeText("Hall Building"), closeSoftKeyboard());
+            .perform(typeText("Building"), closeSoftKeyboard());
+
+        // Check if suggestions are displayed and click the first one
+        onData(anything())
+            .inRoot(RootMatchers.isPlatformPopup())
+            .atPosition(0)
+            .perform(click());
+
+        // Type into et_destination
         onView(withId(R.id.et_destination))
-                .perform(typeText("John Molson School of Business"), closeSoftKeyboard());
+            .perform(typeText("Business"), closeSoftKeyboard());
+
+        // Click the first suggestion for the destination
+        onData(anything())
+            .inRoot(RootMatchers.isPlatformPopup())
+            .atPosition(0)
+            .perform(click());
 
         // Test the device back press Button
         pressBack();
