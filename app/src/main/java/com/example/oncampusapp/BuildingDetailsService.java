@@ -31,10 +31,6 @@ public class BuildingDetailsService {
         this.placesClient = client;
     }
     
-    public PlacesClient getPlacesClient() {
-        return placesClient;
-    }
-    
     /**
      * Retrieves the Google Maps API key from the application's AndroidManifest.xml metadata.
      * 

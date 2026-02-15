@@ -8,11 +8,6 @@ public class BuildingDetailsDto {
     public BuildingDetailsDto() {
     }
 
-    public BuildingDetailsDto(String name, String address, String imgUri) {
-        this.name = name;
-        this.address = address;
-        this.imgUri = imgUri;
-    }
 
     public String getName() {
         return name;
