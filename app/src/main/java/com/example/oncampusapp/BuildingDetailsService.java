@@ -42,7 +42,7 @@ public class BuildingDetailsService {
      * @return the API key string
      * @throws IllegalStateException if the API key is missing, empty, or metadata cannot be read
      */
-    private String fetchApiKey(Context context){
+    protected String fetchApiKey(Context context){
         String apiKey;
         try{
             ApplicationInfo applicationInfo = context.getPackageManager()
