@@ -10,10 +10,13 @@ public class Building {
     public String name;
     List<LatLng> polygon;
 
+    boolean currentlyInside;
+
     public Building(String id, String name, List<LatLng> polygon) {
         this.id = id;
         this.name = name;
         this.polygon = polygon;
+        currentlyInside = false;
     }
 
     public String getId() {

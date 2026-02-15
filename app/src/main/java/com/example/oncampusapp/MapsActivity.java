@@ -8,6 +8,7 @@ import androidx.core.view.WindowCompat;
 import androidx.fragment.app.FragmentActivity;
 
 import android.Manifest;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.os.Build;
@@ -19,6 +20,8 @@ import android.widget.Toast;
 import android.app.Dialog;
 import android.widget.ImageView;
 
+import com.google.android.gms.location.FusedLocationProviderClient;
+import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
@@ -61,8 +64,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     public static final LatLng SGW_COORDS = new LatLng(45.496107243097704, -73.57725834380621);
     public static final LatLng LOY_COORDS = new LatLng(45.4582, -73.6405);
+    public FusedLocationProviderClient fusedLocationClient;
 
     private ActivityResultLauncher<String[]> locationPermissionRequest;
+    private TextView btnSgwLoy;
+    private static final String sgw = "SGW";
+    private static final String loy = "LOY";
 
     public GoogleMap getMap() {
         return this.mMap;
@@ -97,6 +104,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         setContentView(binding.getRoot());
 
         buildingClassifier = new BuildingClassifier();
+
+        fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
 
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
@@ -161,6 +170,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         GeofenceManager geofenceManager = new GeofenceManager(this);
         FeatureStyler featureStyler = new FeatureStyler();
+
+        btnSgwLoy = findViewById(R.id.btn_campus_switch);
+        ImageButton btnLocation = findViewById(R.id.btn_location);
 
         try {
             // Load the GeoJSON file
@@ -237,18 +249,30 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             e.printStackTrace();
         }
 
-        // Move camera to a wider view of Montreal
-        LatLng montreal = new LatLng(45.47715, -73.6089);
+        // Get the last accessed campus from memory
+        SharedPreferences sharedPref = getSharedPreferences("OnCampusPrefs", MODE_PRIVATE);
+        String savedCampus = sharedPref.getString("campus", "SGW");
+        LatLng defaultLatLng;
+
+        if (savedCampus.equals(sgw)) {
+            defaultLatLng = SGW_COORDS;
+            btnSgwLoy.setText(loy);
+        } else {
+            defaultLatLng = LOY_COORDS;
+            btnSgwLoy.setText(sgw);
+        }
+
         mMap.animateCamera(CameraUpdateFactory.newCameraPosition(
-                new CameraPosition.Builder()
-                        .target(montreal)
-                        .zoom(13f)
-                        .tilt(0f)  // Set tilt to 0 to remove 3D buildings
-                        .build()
+            new CameraPosition.Builder()
+                .target(defaultLatLng)
+                .zoom(16f)
+                .tilt(0f)  // Set tilt to 0 to remove 3D buildings
+                .build()
         ));
 
-        TextView btnSgwLoy = findViewById(R.id.btn_campus_switch);
-        ImageButton btnLocation = findViewById(R.id.btn_location);
+        btnSgwLoy.setOnClickListener(v -> switchCampus());
+        btnLocation.setOnClickListener(v -> goToCurrentLocation());
+    }
 
         // Click listener to switch between SGW and Loyola campus
         btnSgwLoy.setOnClickListener(v -> {
@@ -265,25 +289,38 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             }
         });
 
-        // Click listener to navigate to the current location
-        btnLocation.setOnClickListener(v -> {
-            // Check Permissions
-            if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-                // Request Permissions if not granted
-                ActivityCompat.requestPermissions(this, new String[]{android.Manifest.permission.ACCESS_FINE_LOCATION}, 1);
-            } else {
-                // If granted, enable location and move camera
-                mMap.setMyLocationEnabled(true);
+        editor.apply();
+    }
 
-                // Get the current location from the map's internal "My Location" data
-                android.location.Location myLocation = mMap.getMyLocation();
+    // Set the map view to the current location
+    private void goToCurrentLocation() {
+        // Check Permissions
+        if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            // Request Permissions if not granted
+            ActivityCompat.requestPermissions(this, new String[]{android.Manifest.permission.ACCESS_FINE_LOCATION}, 1);
+        } else {
+            // If granted, enable location and move camera
+            mMap.setMyLocationEnabled(true);
 
-                if (myLocation != null) {
-                    LatLng myLatLng = new LatLng(myLocation.getLatitude(), myLocation.getLongitude());
-                    mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(myLatLng, 15f));
-                }
-            }
-        });
+            // Get the current location from the device and set it on the map
+            fusedLocationClient.getLastLocation()
+                .addOnSuccessListener(this, location -> {
+                    // Check if the location is not null
+                    if (location != null) {
+                        // Get the Latitude (as a double)
+                        double lat = location.getLatitude();
+                        double lng = location.getLongitude();
+
+                        // Use it! (e.g., move the camera)
+                        LatLng currentLatLng = new LatLng(lat, lng);
+                        mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(currentLatLng, 16f));
+
+                        Log.d("Location", "Current Latitude: " + lat);
+                    } else {
+                        Log.d("Location", "The location is null");
+                    }
+                });
+        }
     }
 
     private void createNotificationChannel() {
