@@ -5,16 +5,6 @@ plugins {
     id "org.sonarqube"
 }
 
-sonarqube {
-    properties {
-        property "sonar.projectKey", "OnCampusApp"
-        property "sonar.projectName", "OnCampusApp"
-        property "sonar.host.url", "http://localhost:9000"
-        property "sonar.login", "sqp_YOUR_SONARQUBE_TOKEN"
-        property "sonar.coverage.jacoco.xmlReportPaths", "${buildDir}/reports/jacoco/jacocoTestReport/jacocoTestReport.xml"
-    }
-}
-
 android {
     namespace 'com.example.oncampusapp'
     compileSdk 35
@@ -30,17 +20,20 @@ android {
 
     buildTypes {
         debug {
-            enableUnitTestCoverage true // Required for data collection
+            // Enables createDebugCoverageReport and produces coverage.ec for connectedAndroidTest
+            testCoverageEnabled true
         }
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
+
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_17 // Matches your CI JDK
+        sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
     }
+
     buildFeatures {
         viewBinding true
     }
@@ -54,33 +47,83 @@ dependencies {
     implementation libs.play.services.maps
     implementation libs.play.services.location
     implementation libs.androidx.junit
+    implementation libs.android.maps.utils
+
     testImplementation libs.junit
     testImplementation libs.mockito.core
+
     androidTestImplementation libs.ext.junit
     androidTestImplementation libs.espresso.core
-    implementation libs.android.maps.utils
-    testImplementation libs.mockito.core
     androidTestImplementation libs.mockito.android
     androidTestImplementation libs.rules
 }
-// JaCoCo Task for Sprint 1
-tasks.register('jacocoTestReport', JacocoReport) {
-    dependsOn 'testDebugUnitTest'
+
+sonarqube {
+    properties {
+        property "sonar.projectKey", "OnCampusApp"
+        property "sonar.projectName", "OnCampusApp"
+        property "sonar.host.url", "http://localhost:9000"
+
+        // JaCoCo XML that you generate with jacocoCombinedTestReport
+        property "sonar.coverage.jacoco.xmlReportPaths",
+                "${buildDir}/reports/jacoco/jacocoCombinedTestReport/jacocoCombinedTestReport.xml"
+
+        // IMPORTANT: only point to directories that actually exist
+        property "sonar.java.binaries",
+                "${buildDir}/intermediates/javac/debug/compileDebugJavaWithJavac/classes"
+    }
+}
+
+
+tasks.withType(Test).configureEach {
+    jacoco.includeNoLocationClasses = true
+    jacoco.excludes = ['jdk.internal.*']
+}
+
+tasks.register("jacocoCombinedTestReport", JacocoReport) {
+    dependsOn("testDebugUnitTest", "createDebugCoverageReport")
+
+    def fileFilter = [
+            '**/R.class', '**/R$*.class', '**/BuildConfig.*', '**/Manifest*.*',
+            '**/*Test*.*', 'android/**/*.*'
+    ]
+
+    // Java classes (AGP commonly outputs here)
+    def javaClassesMain = fileTree(
+            dir: "$buildDir/intermediates/javac/debug/compileDebugJavaWithJavac/classes",
+            excludes: fileFilter
+    )
+
+    // Fallback (some setups differ; harmless if empty)
+    def javaClassesFallback = fileTree(
+            dir: "$buildDir/intermediates/javac/debug",
+            excludes: fileFilter
+    )
+
+    // Kotlin classes (if you have Kotlin)
+    def kotlinClasses = fileTree(
+            dir: "$buildDir/tmp/kotlin-classes/debug",
+            excludes: fileFilter
+    )
+
+    classDirectories.setFrom(files(javaClassesMain, javaClassesFallback, kotlinClasses))
+
+    sourceDirectories.setFrom(files(
+            "$projectDir/src/main/java",
+            "$projectDir/src/main/kotlin"
+    ))
+
+    // Unit test + connectedAndroidTest execution data
+    executionData.setFrom(fileTree(dir: buildDir, includes: [
+            "outputs/unit_test_code_coverage/debugUnitTest/testDebugUnitTest.exec",
+            "outputs/code_coverage/debugAndroidTest/connected/**/*.ec"
+    ]))
 
     reports {
         xml.required = true
         html.required = true
+
+        xml.outputLocation = file("$buildDir/reports/jacoco/jacocoCombinedTestReport/jacocoCombinedTestReport.xml")
+        html.outputLocation = layout.buildDirectory.dir("reports/jacoco/jacocoCombinedTestReport/html")
     }
-
-    def fileFilter = ['**/R.class', '**/R$*.class', '**/BuildConfig.*', '**/Manifest*.*', '**/*Test*.*', 'android/**/*.*']
-
-    // BROADENED PATH: This ensures it finds your compiled Java files
-    def debugTree = fileTree(dir: "${buildDir}/intermediates/javac/debug", excludes: fileFilter)
-    def mainSrc = "${project.projectDir}/src/main/java"
-
-    sourceDirectories.setFrom(files([mainSrc]))
-    classDirectories.setFrom(files([debugTree]))
-    executionData.setFrom(fileTree(dir: "$buildDir", includes: [
-            "outputs/unit_test_code_coverage/debugUnitTest/testDebugUnitTest.exec"
-    ]))
 }
