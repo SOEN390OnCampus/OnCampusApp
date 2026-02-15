@@ -361,6 +361,13 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
     }
 
+    /**
+     * Handles click events on building features in the map.
+     * Validates the feature ID, retrieves the corresponding Place ID, and fetches building details
+     * from the Google Places API. Includes safeguards against multiple simultaneous requests.
+     * 
+     * @param feature the GeoJSON feature representing the clicked building
+     */
     private void handleBuildingClick(Feature feature) {
         // Prevent multiple simultaneous requests
         if (isFetchingBuildingDetails) {
@@ -414,15 +421,39 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         });
     }
 
+    /**
+     * Displays a dialog containing detailed information about a building.
+     * Dismisses any existing dialog before showing the new one. Coordinates the creation,
+     * population, and display of the building information dialog.
+     * 
+     * @param buildingDetails the building details retrieved from the Places API
+     * @param featureId the building's feature ID used for campus determination
+     */
     private void showBuildingInfoDialog(BuildingDetailsDto buildingDetails, String featureId) {
         // Dismiss any existing dialog first
         if (currentBuildingDialog != null && currentBuildingDialog.isShowing()) {
             currentBuildingDialog.dismiss();
         }
         
-        // Determine campus based on building location
+        String campus = determineCampus(featureId);
+        Dialog dialog = createAndConfigureDialog();
+        populateDialogViews(dialog, buildingDetails, campus);
+        setupDialogListeners(dialog);
+        
+        dialog.show();
+        currentBuildingDialog = dialog;
+    }
+
+    /**
+     * Determines which campus a building belongs to based on its location.
+     * 
+     * @param featureId the building's feature ID
+     * @return the campus name as a string resource
+     */
+    private String determineCampus(String featureId) {
         String campus = getString(R.string.concordia_university);
         Building building = buildingsMap.get(featureId);
+        
         if (building != null && building.polygon != null && !building.polygon.isEmpty()) {
             LatLng buildingLocation = building.polygon.get(0);
             double distToSGW = SphericalUtil.computeDistanceBetween(buildingLocation, SGW_COORDS);
@@ -430,7 +461,15 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             campus = (distToSGW < distToLoyola) ? getString(R.string.sgw_campus_en) : getString(R.string.loyola_campus_en);
         }
         
-        // Create dialog
+        return campus;
+    }
+
+    /**
+     * Creates and configures the building info dialog window.
+     * 
+     * @return the configured Dialog instance
+     */
+    private Dialog createAndConfigureDialog() {
         Dialog dialog = new Dialog(this);
         dialog.setContentView(R.layout.dialog_building_info);
         
@@ -442,41 +481,39 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             );
             dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
         }
+        
+        return dialog;
+    }
 
-        // Get views
+    /**
+     * Populates the dialog views with building details including name, address, description, and image.
+     * 
+     * @param dialog the Dialog to populate
+     * @param buildingDetails the building details data
+     * @param campus the campus name
+     */
+    private void populateDialogViews(Dialog dialog, BuildingDetailsDto buildingDetails, String campus) {
         ImageView imgBuilding = dialog.findViewById(R.id.img_building);
         TextView txtBuildingName = dialog.findViewById(R.id.txt_building_name);
         TextView txtBuildingAddress = dialog.findViewById(R.id.txt_building_address);
         TextView txtBuildingDescription = dialog.findViewById(R.id.txt_building_description);
         TextView txtBuildingDescriptionFr = dialog.findViewById(R.id.txt_building_description_fr);
-        ImageButton btnClose = dialog.findViewById(R.id.btn_close);
 
-        // Set building name (uppercase for title)
+        // Set building name and bilingual descriptions
         if (buildingDetails.getName() != null && !buildingDetails.getName().isEmpty()) {
-            // Extract just the building name (before the first comma)
             String fullName = buildingDetails.getName();
             String buildingName = fullName.contains(",") ? fullName.substring(0, fullName.indexOf(",")).trim() : fullName;
             txtBuildingName.setText(buildingName.toUpperCase());
 
-            String description = getString(
-                    R.string.building_description_en,
-                    buildingName,
-                    campus
-            );
+            String description = getString(R.string.building_description_en, buildingName, campus);
             txtBuildingDescription.setText(description);
 
             String campusFr = campus.equals(getString(R.string.sgw_campus_en))
                     ? getString(R.string.sgw_campus_fr)
                     : getString(R.string.loyola_campus_fr);
 
-            // For French, remove "Building" suffix if present since "Édifice" is used in the template
             String buildingNameFr = buildingName.replace(" Building", "").replace(" building", "");
-
-            String descriptionFr = getString(
-                    R.string.building_description_fr,
-                    buildingNameFr,
-                    campusFr
-            );
+            String descriptionFr = getString(R.string.building_description_fr, buildingNameFr, campusFr);
             txtBuildingDescriptionFr.setText(descriptionFr);
         }
 
@@ -485,7 +522,17 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             txtBuildingAddress.setText(buildingDetails.getAddress());
         }
 
-        // Load building image using Glide
+        // Load building image
+        loadBuildingImage(imgBuilding, buildingDetails);
+    }
+
+    /**
+     * Loads the building image into the ImageView using Glide.
+     * 
+     * @param imgBuilding ImageView for the building image
+     * @param buildingDetails the building details data
+     */
+    private void loadBuildingImage(ImageView imgBuilding, BuildingDetailsDto buildingDetails) {
         if (buildingDetails.getImgUri() != null && !buildingDetails.getImgUri().isEmpty()) {
             Glide.with(this)
                 .load(buildingDetails.getImgUri())
@@ -495,17 +542,20 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         } else {
             imgBuilding.setImageResource(android.R.color.darker_gray);
         }
+    }
 
-        // Close button listener
+    /**
+     * Sets up dialog event listeners for close and dismiss actions.
+     * 
+     * @param dialog the Dialog to set up listeners for
+     */
+    private void setupDialogListeners(Dialog dialog) {
+        ImageButton btnClose = dialog.findViewById(R.id.btn_close);
         btnClose.setOnClickListener(v -> {
             dialog.dismiss();
             currentBuildingDialog = null;
         });
         
-        // Dismiss listener to clear reference
         dialog.setOnDismissListener(d -> currentBuildingDialog = null);
-
-        dialog.show();
-        currentBuildingDialog = dialog;
     }
 }
