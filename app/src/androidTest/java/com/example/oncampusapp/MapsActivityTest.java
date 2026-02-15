@@ -8,6 +8,7 @@ import static androidx.test.espresso.action.ViewActions.click;
 import static androidx.test.espresso.action.ViewActions.closeSoftKeyboard;
 import static androidx.test.espresso.action.ViewActions.typeText;
 import static androidx.test.espresso.assertion.ViewAssertions.matches;
+import static androidx.test.espresso.matcher.ViewMatchers.hasFocus;
 import static androidx.test.espresso.matcher.ViewMatchers.isDisplayed;
 import static androidx.test.espresso.matcher.ViewMatchers.withId;
 import static androidx.test.espresso.matcher.ViewMatchers.withText;
@@ -119,9 +120,9 @@ public class MapsActivityTest {
         onView(withId(R.id.search_bar_container)).perform(click());
 
         // Verify Route Picker is now visible and Search Bar is hidden
-        // Note: If animations are enabled, you might need a short delay here
         onView(withId(R.id.route_picker_container)).check(matches(isDisplayed()));
         onView(withId(R.id.search_bar_container)).check(matches(not(isDisplayed())));
+        onView(withId(R.id.et_start)).check(matches(hasFocus()));
 
         // Type into the fields
         onView(withId(R.id.et_start))
