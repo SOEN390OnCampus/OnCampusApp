@@ -46,7 +46,6 @@ dependencies {
     implementation libs.constraintlayout
     implementation libs.play.services.maps
     implementation libs.play.services.location
-    implementation libs.androidx.junit
     implementation libs.android.maps.utils
 
     testImplementation libs.junit
