@@ -34,6 +34,14 @@ public class BuildingDetailsService {
     public PlacesClient getPlacesClient() {
         return placesClient;
     }
+    
+    /**
+     * Retrieves the Google Maps API key from the application's AndroidManifest.xml metadata.
+     * 
+     * @param context the application context
+     * @return the API key string
+     * @throws IllegalStateException if the API key is missing, empty, or metadata cannot be read
+     */
     private String fetchApiKey(Context context){
         String apiKey;
         try{
@@ -55,6 +63,14 @@ public class BuildingDetailsService {
         }
         return apiKey;
     }
+    
+    /**
+     * Fetches building details from Google Places API using a place ID.
+     * Retrieves the building's name, address, and photo (if available), then returns them via callback.
+     * 
+     * @param placeId the Google Places ID of the building
+     * @param callback the callback to invoke with results or errors
+     */
     public void fetchBuildingDetails(String placeId, FetchBuildingDetailsCallback callback){
         if (placeId == null || placeId.isEmpty()){
             callback.onFailure(new IllegalArgumentException("Invalid placeId"));
@@ -71,6 +87,14 @@ public class BuildingDetailsService {
                 .addOnSuccessListener(fetchPlaceResponse -> processFetchPlaceResponse(fetchPlaceResponse, callback))
                 .addOnFailureListener(callback::onFailure);
     }
+
+    /**
+     * Processes the response from the Places API fetch request.
+     * Extracts place details and fetches the first photo URI if available, then invokes the callback.
+     * 
+     * @param response the FetchPlaceResponse containing place information
+     * @param callback the callback to invoke with the constructed BuildingDetailsDto
+     */
     private void processFetchPlaceResponse(FetchPlaceResponse response, FetchBuildingDetailsCallback callback){
 
         final Place place = response.getPlace();
@@ -99,6 +123,13 @@ public class BuildingDetailsService {
                 })
                 .addOnFailureListener(callback::onFailure);
     }
+
+    /**
+     * Builds a request to fetch a resolved photo URI with specified dimensions.
+     * 
+     * @param photoMetadata the photo metadata from the place details
+     * @return a FetchResolvedPhotoUriRequest configured with max width and height
+     */
     protected FetchResolvedPhotoUriRequest buildPhotoRequest(PhotoMetadata photoMetadata) {
         return FetchResolvedPhotoUriRequest.builder(photoMetadata)
                 .setMaxWidth(1200)
@@ -106,7 +137,10 @@ public class BuildingDetailsService {
                 .build();
     }
 
-
+    /**
+     * Callback interface for handling building details fetch results.
+     * Provides methods to handle both successful and failed fetch operations.
+     */
     public interface FetchBuildingDetailsCallback {
         void onSuccess(BuildingDetailsDto buildingDetailsDto);
         void onFailure(Exception e);
