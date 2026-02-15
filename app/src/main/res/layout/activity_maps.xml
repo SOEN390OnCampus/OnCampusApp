@@ -18,7 +18,7 @@
         android:layout_width="0dp"
         android:layout_height="50dp"
         android:layout_marginHorizontal="24dp"
-        android:layout_marginTop="52dp"
+        android:layout_marginTop="65dp"
         app:cardCornerRadius="25dp"
         app:cardElevation="8dp"
         app:layout_constraintEnd_toEndOf="parent"
@@ -29,7 +29,8 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:gravity="center_vertical"
-            android:paddingHorizontal="16dp">
+            android:paddingHorizontal="16dp"
+            android:background="@android:color/white">
 
             <ImageView
                 android:layout_width="24dp"
@@ -56,7 +57,7 @@
         android:elevation="10dp"
         android:orientation="vertical"
         android:paddingHorizontal="12dp"
-        android:paddingBottom="12dp"
+        android:paddingBottom="25dp"
         android:visibility="gone"
         app:layout_constraintTop_toTopOf="parent">
 
@@ -65,7 +66,7 @@
             android:layout_height="wrap_content"
             android:gravity="center_vertical"
             android:orientation="horizontal"
-            android:layout_marginTop="60dp">
+            android:layout_marginTop="80dp">
 
             <ImageButton
                 android:id="@+id/btn_swap_address"
@@ -90,10 +91,12 @@
                     android:autofillHints=""
                     android:background="@drawable/rounded_edittext"
                     android:hint="@string/select_or_input_starting_point"
+                    android:textColorHint="@android:color/darker_gray"
+                    android:textColor="@android:color/black"
                     android:inputType="textNoSuggestions"
                     android:imeOptions="actionNext"
                     android:paddingHorizontal="12dp"
-                    android:textSize="14sp" />
+                    android:textSize="16sp" />
 
                 <EditText
                     android:id="@+id/et_destination"
@@ -103,10 +106,12 @@
                     android:autofillHints=""
                     android:background="@drawable/rounded_edittext"
                     android:hint="@string/select_or_input_destination_point"
+                    android:textColorHint="@android:color/darker_gray"
+                    android:textColor="@android:color/black"
                     android:inputType="textNoSuggestions"
                     android:imeOptions="actionDone"
                     android:paddingHorizontal="12dp"
-                    android:textSize="14sp" />
+                    android:textSize="16sp" />
             </LinearLayout>
 
             <Button

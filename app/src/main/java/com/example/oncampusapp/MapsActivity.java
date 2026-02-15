@@ -10,6 +10,7 @@ import androidx.core.view.WindowCompat;
 import androidx.fragment.app.FragmentActivity;
 
 import android.Manifest;
+import android.content.Context;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.os.Build;
@@ -18,6 +19,8 @@ import android.util.Log;
 import android.view.View;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
+import android.view.inputmethod.InputMethodManager;
+import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -148,6 +151,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         CardView searchBar = findViewById(R.id.search_bar_container);
         LinearLayout routePicker = findViewById(R.id.route_picker_container);
         ImageButton btnSwapAddress = findViewById(R.id.btn_swap_address);
+        EditText startDestinationText = findViewById(R.id.et_start);
 
         Animation slideDown = AnimationUtils.loadAnimation(this, R.anim.slide_down);
         Animation slideUp = AnimationUtils.loadAnimation(this, R.anim.slide_up);
@@ -177,6 +181,15 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             searchBar.setVisibility(View.GONE);
             routePicker.setVisibility(View.VISIBLE);
             routePicker.startAnimation(slideDown);
+            startDestinationText.setFocusableInTouchMode(true);
+            startDestinationText.requestFocus();
+
+            startDestinationText.post(() -> {
+                InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+                if (imm != null) {
+                    imm.showSoftInput(startDestinationText, InputMethodManager.SHOW_IMPLICIT);
+                }
+            });
         });
 
         // Handle Device/System Back Press
