@@ -20,7 +20,8 @@ import android.view.View;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
 import android.view.inputmethod.InputMethodManager;
-import android.widget.EditText;
+import android.widget.ArrayAdapter;
+import android.widget.AutoCompleteTextView;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -45,6 +46,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback {
 
@@ -151,7 +153,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         CardView searchBar = findViewById(R.id.search_bar_container);
         LinearLayout routePicker = findViewById(R.id.route_picker_container);
         ImageButton btnSwapAddress = findViewById(R.id.btn_swap_address);
-        EditText startDestinationText = findViewById(R.id.et_start);
+        AutoCompleteTextView startDestinationText = findViewById(R.id.et_start);
+        AutoCompleteTextView endDestinationText = findViewById(R.id.et_destination);
 
         Animation slideDown = AnimationUtils.loadAnimation(this, R.anim.slide_down);
         Animation slideUp = AnimationUtils.loadAnimation(this, R.anim.slide_up);
@@ -275,6 +278,21 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         } catch (IOException | JSONException e) {
             e.printStackTrace();
         }
+
+        // String array for building suggestions
+        String[] buildingSuggestions = buildingsMap.values()
+            .stream()
+            .map(Building::getName)
+            .filter(Objects::nonNull)
+            .toArray(String[]::new);
+
+        // Create the adapter for building suggestions
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(this,
+            android.R.layout.simple_dropdown_item_1line, buildingSuggestions);
+
+        // Set the adapter to both views
+        startDestinationText.setAdapter(adapter);
+        endDestinationText.setAdapter(adapter);
 
         // Move camera to a wider view of Montreal
         LatLng montreal = new LatLng(45.47715, -73.6089);
