@@ -17,17 +17,17 @@ import com.google.android.libraries.places.api.net.PlacesClient;
 import java.util.Arrays;
 import java.util.List;
 
-public class BuildingDetailsService {
+public class PlaceDetailsService {
     private final PlacesClient placesClient;
 
-    public BuildingDetailsService(Context context) {
+    public PlaceDetailsService(Context context) {
         Context appContext = context.getApplicationContext();
         if (!Places.isInitialized()){
             Places.initializeWithNewPlacesApiEnabled(appContext, fetchApiKey(appContext));
         }
         placesClient = Places.createClient(appContext);
     }
-    public BuildingDetailsService(PlacesClient client){
+    public PlaceDetailsService(PlacesClient client){
         this.placesClient = client;
     }
     
