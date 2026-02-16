@@ -72,6 +72,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private BuildingClassifier buildingClassifier;
     private Dialog currentBuildingDialog = null;
     private boolean isFetchingBuildingDetails = false;
+    private AutoCompleteTextView startDestinationText;
+    private AutoCompleteTextView endDestinationText;
+    private LinearLayout routePicker;
 
     public static final LatLng SGW_COORDS = new LatLng(45.496107243097704, -73.57725834380621);
     public static final LatLng LOY_COORDS = new LatLng(45.4582, -73.6405);
@@ -186,10 +189,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         ImageButton btnLocation = findViewById(R.id.btn_location);
 
         CardView searchBar = findViewById(R.id.search_bar_container);
-        LinearLayout routePicker = findViewById(R.id.route_picker_container);
+        routePicker = findViewById(R.id.route_picker_container);
         ImageButton btnSwapAddress = findViewById(R.id.btn_swap_address);
-        AutoCompleteTextView startDestinationText = findViewById(R.id.et_start);
-        AutoCompleteTextView endDestinationText = findViewById(R.id.et_destination);
+        startDestinationText = findViewById(R.id.et_start);
+        endDestinationText = findViewById(R.id.et_destination);
+
 
         Animation slideDown = AnimationUtils.loadAnimation(this, R.anim.slide_down);
         Animation slideUp = AnimationUtils.loadAnimation(this, R.anim.slide_up);
@@ -457,6 +461,25 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
      * @param feature the GeoJSON feature representing the clicked building
      */
     private void handleBuildingClick(Feature feature) {
+
+        String buildingName = feature.getProperty("name");
+
+        // ✅ If search view is open, autofill instead of showing dialog
+        if (routePicker != null && routePicker.getVisibility() == View.VISIBLE) {
+
+            if (startDestinationText != null && startDestinationText.hasFocus()) {
+                startDestinationText.setText(buildingName);
+                startDestinationText.dismissDropDown();
+                return;
+            }
+
+            if (endDestinationText != null && endDestinationText.hasFocus()) {
+                endDestinationText.setText(buildingName);
+                endDestinationText.dismissDropDown();
+                return;
+            }
+        }
+
         // Prevent multiple simultaneous requests
         if (isFetchingBuildingDetails) {
             return;
@@ -465,6 +488,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         // Get the feature ID
         String featureId = feature.getProperty("@id");
         String featureName = feature.getProperty("name");
+
 
         if (featureId == null || featureId.isEmpty()) {
             featureId = feature.getId();
