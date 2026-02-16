@@ -43,11 +43,11 @@ import org.mockito.junit.MockitoJUnitRunner;
 import java.util.Collections;
 
 @RunWith(MockitoJUnitRunner.class)
-public class BuildingDetailsServiceTest {
+public class PlaceDetailsServiceTest {
     @Mock
     PlacesClient placesClient;
     @Mock
-    BuildingDetailsService.FetchBuildingDetailsCallback callback;
+    PlaceDetailsService.FetchBuildingDetailsCallback callback;
     @Mock
     Task<FetchPlaceResponse> fetchPlaceTask;
     @Mock
@@ -73,7 +73,7 @@ public class BuildingDetailsServiceTest {
     @Mock
     Bundle bundle;
 
-    private BuildingDetailsService service;
+    private PlaceDetailsService service;
 
     private final String fakePlaceId = "1234567890";
     private final String fakePlaceName = "Fake Building";
@@ -84,7 +84,7 @@ public class BuildingDetailsServiceTest {
     @Before
     public void setUp() {
         // Initialize service
-        service = spy(new BuildingDetailsService(placesClient));
+        service = spy(new PlaceDetailsService(placesClient));
     }
     // Normal full data response
     @Test
@@ -273,8 +273,8 @@ public class BuildingDetailsServiceTest {
     }
     @Test
     public void buildPhotoRequest_invalidMetadata_throwsException() {
-        BuildingDetailsService service =
-                new BuildingDetailsService(mock(PlacesClient.class));
+        PlaceDetailsService service =
+                new PlaceDetailsService(mock(PlacesClient.class));
 
         assertThrows(IllegalArgumentException.class, () ->
                 service.buildPhotoRequest(photoMetadata)
@@ -291,8 +291,8 @@ public class BuildingDetailsServiceTest {
             mockedPlaces.when(() -> Places.createClient(context))
                     .thenReturn(mock(PlacesClient.class));
 
-            BuildingDetailsService service =
-                    new BuildingDetailsService(context);
+            PlaceDetailsService service =
+                    new PlaceDetailsService(context);
 
             assertNotNull(service);
         }
