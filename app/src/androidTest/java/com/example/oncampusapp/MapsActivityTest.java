@@ -3,6 +3,7 @@ package com.example.oncampusapp;
 import static org.hamcrest.Matchers.anything;
 import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static androidx.test.espresso.Espresso.onData;
 import static androidx.test.espresso.Espresso.onView;
 import static androidx.test.espresso.Espresso.pressBack;
@@ -28,11 +29,11 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+
 @RunWith(AndroidJUnit4.class)
 public class MapsActivityTest {
-
-    private static final String TAG = "MapsActivityTest";
-
     @Rule
     public ActivityScenarioRule<MapsActivity> activityRule = new ActivityScenarioRule<>(MapsActivity.class);
 
@@ -49,13 +50,7 @@ public class MapsActivityTest {
     }
 
     @Test
-    public void testCampusToggle_SwitchesText() {
-        // Coordinates from MapsActivity
-        double sgwLat = 45.496107243097704;
-        double sgwLng = -73.57725834380621;
-        double loyLat = 45.4582;
-        double loyLng = -73.6405;
-
+    public void testCampusToggle_SwitchesCampus() {
         // 1. Initial state: Button text is LOY
         onView(withId(R.id.btn_campus_switch)).check(matches(withText("LOY")));
 
@@ -69,13 +64,12 @@ public class MapsActivityTest {
             LatLng cameraPos = activity.getMap().getCameraPosition().target;
             float zoom = activity.getMap().getCameraPosition().zoom;
 
-            assertEquals(loyLat, cameraPos.latitude, 0.001);
-            assertEquals(loyLng, cameraPos.longitude, 0.001);
+            assertEquals(MapsActivity.LOY_COORDS.latitude, cameraPos.latitude, 0.001);
+            assertEquals(MapsActivity.LOY_COORDS.longitude, cameraPos.longitude, 0.001);
             assertEquals(16f, zoom, 0.1f);
         });
 
         // 3. Second click: Should move to SGW and change text back to LOY
-        sleep(1000);
         onView(withId(R.id.btn_campus_switch)).perform(click());
         sleep(1000);
 
@@ -84,14 +78,31 @@ public class MapsActivityTest {
             LatLng cameraPos = activity.getMap().getCameraPosition().target;
             float zoom = activity.getMap().getCameraPosition().zoom;
 
-            assertEquals(sgwLat, cameraPos.latitude, 0.001);
-            assertEquals(sgwLng, cameraPos.longitude, 0.001);
+            assertEquals(MapsActivity.SGW_COORDS.latitude, cameraPos.latitude, 0.001);
+            assertEquals(MapsActivity.SGW_COORDS.longitude, cameraPos.longitude, 0.001);
+            assertEquals(16f, zoom, 0.1f);
+        });
+
+        // 4. Third click: Should move to LOY and change text back to SGW
+        onView(withId(R.id.btn_campus_switch)).perform(click());
+        sleep(1000);
+
+        onView(withId(R.id.btn_campus_switch)).check(matches(withText("SGW")));
+        activityRule.getScenario().onActivity(activity -> {
+            LatLng cameraPos = activity.getMap().getCameraPosition().target;
+            float zoom = activity.getMap().getCameraPosition().zoom;
+
+            assertEquals(MapsActivity.LOY_COORDS.latitude, cameraPos.latitude, 0.001);
+            assertEquals(MapsActivity.LOY_COORDS.longitude, cameraPos.longitude, 0.001);
             assertEquals(16f, zoom, 0.1f);
         });
     }
 
     @Test
-    public void testLocationButton_MovesCameraToCurrentPosition() {
+    public void testLocationButton_MovesCameraToCurrentPosition() throws InterruptedException {
+        // Initialize the latch
+        CountDownLatch latch = new CountDownLatch(1);
+
         // Click the location button
         sleep(5000);
         onView(withId(R.id.btn_location)).perform(click());
@@ -102,13 +113,30 @@ public class MapsActivityTest {
             LatLng cameraPos = activity.getMap().getCameraPosition().target;
             float zoom = activity.getMap().getCameraPosition().zoom;
 
-            // The activity sets zoom to 15f when finding location
-            assertEquals(13f, zoom, 0.1f);
+            activity.fusedLocationClient
+                    .getLastLocation()
+                    .addOnSuccessListener(location -> {
+                        try {
+                            // Check if the location is not null
+                            if (location != null) {
+                                double currentLat = location.getLatitude();
+                                double currentLng = location.getLongitude();
 
-            // Ensure the map moved to a valid coordinate (not 0,0)
-            org.junit.Assert.assertNotEquals(0.0, cameraPos.latitude, 0.0001);
-            org.junit.Assert.assertNotEquals(0.0, cameraPos.longitude, 0.0001);
+                                // Ensure the map moved to a valid coordinate
+                                assertEquals(currentLat, cameraPos.latitude, 0.0001);
+                                assertEquals(currentLng, cameraPos.longitude, 0.0001);
+                                assertEquals(16f, zoom, 0.1f);
+                            }
+                        } finally {
+                            // Release the latch so the test thread can continue
+                            latch.countDown();
+                        }
+                    });
         });
+
+        // Wait for the asynchronous block to finish (timeout after 5 seconds)
+        boolean completed = latch.await(5, TimeUnit.SECONDS);
+        assertTrue("Timed out waiting for Location Success Listener", completed);
     }
 
     @Test

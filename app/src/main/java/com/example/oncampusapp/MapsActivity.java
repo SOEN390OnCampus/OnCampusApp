@@ -11,6 +11,7 @@ import androidx.fragment.app.FragmentActivity;
 
 import android.Manifest;
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.os.Build;
@@ -25,7 +26,12 @@ import android.widget.AutoCompleteTextView;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
+import android.app.Dialog;
+import android.widget.ImageView;
 
+import com.google.android.gms.location.FusedLocationProviderClient;
+import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
@@ -33,33 +39,48 @@ import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.LatLng;
 import com.example.oncampusapp.databinding.ActivityMapsBinding;
-import com.google.android.gms.maps.model.PolygonOptions;
+import com.google.maps.android.data.Feature;
 import com.google.maps.android.data.Geometry;
 import com.google.maps.android.data.geojson.GeoJsonFeature;
 import com.google.maps.android.data.geojson.GeoJsonLayer;
 import com.google.maps.android.data.geojson.GeoJsonLineStringStyle;
 import com.google.maps.android.data.geojson.GeoJsonPolygon;
 import com.google.maps.android.data.geojson.GeoJsonPolygonStyle;
+import com.google.maps.android.SphericalUtil;
 
 import org.json.JSONException;
+import org.json.JSONObject;
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+
+import com.bumptech.glide.Glide;
 
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback {
 
     private GoogleMap mMap;
 
     public static Map<String, Building> buildingsMap = new HashMap<>();
+    private Map<String, String> geoIdToPlaceIdMap = new HashMap<>();
     private ActivityMapsBinding binding;
     private BuildingClassifier buildingClassifier;
+    private Dialog currentBuildingDialog = null;
+    private boolean isFetchingBuildingDetails = false;
 
     public static final LatLng SGW_COORDS = new LatLng(45.496107243097704, -73.57725834380621);
     public static final LatLng LOY_COORDS = new LatLng(45.4582, -73.6405);
+    public FusedLocationProviderClient fusedLocationClient;
 
     private ActivityResultLauncher<String[]> locationPermissionRequest;
+    private TextView btnSgwLoy;
+    private static final String sgw = "SGW";
+    private static final String loy = "LOY";
 
     public GoogleMap getMap() {
         return this.mMap;
@@ -74,10 +95,16 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             });
         }
     }
+    private BuildingDetailsService buildingDetailsService;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        // Initialize buildingDetailsService
+        buildingDetailsService = new BuildingDetailsService(this);
+
 
         WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
 
@@ -88,6 +115,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         setContentView(binding.getRoot());
 
         buildingClassifier = new BuildingClassifier();
+
+        fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
 
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
@@ -134,21 +163,27 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         // Check and Request on Startup
         checkLocationPermissions();
+
+        // Load the GeoJSON ID to Place ID mapping
+        loadGeoIdToPlaceIdMapping();
     }
 
     @Override
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
-        // Add a marker in Sydney and move the camera
+        // Move camera to SGW campus
         mMap.animateCamera(
             CameraUpdateFactory.newLatLngZoom(SGW_COORDS, 17f)
-        );;
+        );
 
         mMap.setBuildingsEnabled(false);
         mMap.getUiSettings().setTiltGesturesEnabled(false);
 
         GeofenceManager geofenceManager = new GeofenceManager(this);
         FeatureStyler featureStyler = new FeatureStyler();
+
+        btnSgwLoy = findViewById(R.id.btn_campus_switch);
+        ImageButton btnLocation = findViewById(R.id.btn_location);
 
         CardView searchBar = findViewById(R.id.search_bar_container);
         LinearLayout routePicker = findViewById(R.id.route_picker_container);
@@ -273,10 +308,29 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     }
                 }
             }
-
             layer.addLayerToMap();
+            layer.setOnFeatureClickListener(new GeoJsonLayer.GeoJsonOnFeatureClickListener() {
+                @Override
+                public void onFeatureClick(Feature feature) {
+                    handleBuildingClick(feature);
+                }
+            });
+
         } catch (IOException | JSONException e) {
             e.printStackTrace();
+        }
+
+        // Get the last accessed campus from memory
+        SharedPreferences sharedPref = getSharedPreferences("OnCampusPrefs", MODE_PRIVATE);
+        String savedCampus = sharedPref.getString("campus", "SGW");
+        LatLng defaultLatLng;
+
+        if (savedCampus.equals(sgw)) {
+            defaultLatLng = SGW_COORDS;
+            btnSgwLoy.setText(loy);
+        } else {
+            defaultLatLng = LOY_COORDS;
+            btnSgwLoy.setText(sgw);
         }
 
         // String array for building suggestions
@@ -297,50 +351,65 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         // Move camera to a wider view of Montreal
         LatLng montreal = new LatLng(45.47715, -73.6089);
         mMap.animateCamera(CameraUpdateFactory.newCameraPosition(
-                new CameraPosition.Builder()
-                        .target(montreal)
-                        .zoom(13f)
-                        .tilt(0f)  // Set tilt to 0 to remove 3D buildings
-                        .build()
+            new CameraPosition.Builder()
+                .target(defaultLatLng)
+                .zoom(16f)
+                .tilt(0f)  // Set tilt to 0 to remove 3D buildings
+                .build()
         ));
 
-        TextView btnSgwLoy = findViewById(R.id.btn_campus_switch);
-        ImageButton btnLocation = findViewById(R.id.btn_location);
+        btnSgwLoy.setOnClickListener(v -> switchCampus());
+        btnLocation.setOnClickListener(v -> goToCurrentLocation());
+    }
 
-        // Click listener to switch between SGW and loyola campus
-        btnSgwLoy.setOnClickListener(v -> {
-            String currentText = btnSgwLoy.getText().toString();
-            String sgw = getResources().getString(R.string.campus_sgw);
-            String loy = getResources().getString(R.string.campus_loy);
+    // Switch between SGW and Loyola campus on the map
+    private void switchCampus() {
+        String currentText = btnSgwLoy.getText().toString();
 
-            if (currentText.equals("SGW")) {
-                btnSgwLoy.setText(loy);
-                mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(SGW_COORDS, 16f));
-            } else {
-                btnSgwLoy.setText(sgw);
-                mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(LOY_COORDS, 16f));
-            }
-        });
+        SharedPreferences sharedPref = getSharedPreferences("OnCampusPrefs", MODE_PRIVATE);
+        SharedPreferences.Editor editor = sharedPref.edit();
 
-        // Click listener to navigate to the current location
-        btnLocation.setOnClickListener(v -> {
-            // Check Permissions
-            if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-                // Request Permissions if not granted
-                ActivityCompat.requestPermissions(this, new String[]{android.Manifest.permission.ACCESS_FINE_LOCATION}, 1);
-            } else {
-                // If granted, enable location and move camera
-                mMap.setMyLocationEnabled(true);
+        if (currentText.equals(sgw)) {
+            btnSgwLoy.setText(loy);
+            mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(SGW_COORDS, 16f));
+            editor.putString("campus", sgw);
+        } else {
+            btnSgwLoy.setText(sgw);
+            mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(LOY_COORDS, 16f));
+            editor.putString("campus", loy);
+        }
 
-                // Get the current location from the map's internal "My Location" data
-                android.location.Location myLocation = mMap.getMyLocation();
+        editor.apply();
+    }
+    // Set the map view to the current location
+    private void goToCurrentLocation() {
+        // Check Permissions
+        if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            // Request Permissions if not granted
+            ActivityCompat.requestPermissions(this, new String[]{android.Manifest.permission.ACCESS_FINE_LOCATION}, 1);
+        } else {
+            // If granted, enable location and move camera
+            mMap.setMyLocationEnabled(true);
 
-                if (myLocation != null) {
-                    LatLng myLatLng = new LatLng(myLocation.getLatitude(), myLocation.getLongitude());
-                    mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(myLatLng, 15f));
-                }
-            }
-        });
+            // Get the current location from the device and set it on the map
+            fusedLocationClient.getLastLocation()
+                .addOnSuccessListener(this, location -> {
+                    // Check if the location is not null
+                    if (location != null) {
+                        // Get the Latitude (as a double)
+                        double lat = location.getLatitude();
+                        double lng = location.getLongitude();
+
+                        // Use it! (e.g., move the camera)
+                        LatLng currentLatLng = new LatLng(lat, lng);
+                        mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(currentLatLng, 16f));
+
+                        Log.d("Location", "Current Latitude: " + lat);
+                    } else {
+                        Log.d("Location", "The location is null");
+                    }
+                });
+        }
     }
 
     private void createNotificationChannel() {
@@ -357,5 +426,224 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
             manager.createNotificationChannel(channel);
         }
+    }
+
+    private void loadGeoIdToPlaceIdMapping() {
+        try (InputStream inputStream = getResources().openRawResource(R.raw.concordia_building_geoid_to_placeid);
+             BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8))) {
+
+            StringBuilder jsonBuilder = new StringBuilder();
+            String line;
+            while ((line = reader.readLine()) != null) {
+                jsonBuilder.append(line);
+            }
+
+            JSONObject jsonObject = new JSONObject(jsonBuilder.toString());
+            for (java.util.Iterator<String> it = jsonObject.keys(); it.hasNext(); ) {
+                String key = it.next();
+                String value = jsonObject.getString(key);
+                geoIdToPlaceIdMap.put(key, value);
+            }
+        } catch (IOException | JSONException e) {
+            Log.e("MapsActivity", "Error loading GeoID to PlaceID mapping", e);
+        }
+    }
+
+    /**
+     * Handles click events on building features in the map.
+     * Validates the feature ID, retrieves the corresponding Place ID, and fetches building details
+     * from the Google Places API. Includes safeguards against multiple simultaneous requests.
+     *
+     * @param feature the GeoJSON feature representing the clicked building
+     */
+    private void handleBuildingClick(Feature feature) {
+        // Prevent multiple simultaneous requests
+        if (isFetchingBuildingDetails) {
+            return;
+        }
+
+        // Get the feature ID
+        String featureId = feature.getProperty("@id");
+        String featureName = feature.getProperty("name");
+
+        if (featureId == null || featureId.isEmpty()) {
+            featureId = feature.getId();
+        }
+
+        if (featureId == null || featureId.isEmpty()) {
+            Log.e("MapsActivity", "Feature has no ID for: " + featureName);
+            Toast.makeText(this,
+                R.string.toast_building_id_not_found,
+                Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        // Look up the Place ID from the mapping
+        String placeId = geoIdToPlaceIdMap.get(featureId);
+        if (placeId == null) {
+            Toast.makeText(this,
+                getString(R.string.toast_no_place_id_mapping, featureName),
+                Toast.LENGTH_LONG).show();
+            return;
+        }
+
+        // Set flag to prevent multiple requests
+        isFetchingBuildingDetails = true;
+
+        // Create final reference for lambda
+        final String finalFeatureId = featureId;
+
+        // Fetch building details and show popup
+        buildingDetailsService.fetchBuildingDetails(placeId, new BuildingDetailsService.FetchBuildingDetailsCallback() {
+            @Override
+            public void onSuccess(BuildingDetailsDto buildingDetailsDto) {
+                isFetchingBuildingDetails = false;
+                runOnUiThread(() -> showBuildingInfoDialog(buildingDetailsDto, finalFeatureId));
+            }
+
+            @Override
+            public void onFailure(Exception e) {
+                Log.e("MapsActivity", "Error fetching building details for placeId: " + placeId, e);
+                isFetchingBuildingDetails = false;
+            }
+        });
+    }
+
+    /**
+     * Displays a dialog containing detailed information about a building.
+     * Dismisses any existing dialog before showing the new one. Coordinates the creation,
+     * population, and display of the building information dialog.
+     *
+     * @param buildingDetails the building details retrieved from the Places API
+     * @param featureId the building's feature ID used for campus determination
+     */
+    private void showBuildingInfoDialog(BuildingDetailsDto buildingDetails, String featureId) {
+        // Dismiss any existing dialog first
+        if (currentBuildingDialog != null && currentBuildingDialog.isShowing()) {
+            currentBuildingDialog.dismiss();
+        }
+
+        String campus = determineCampus(featureId);
+        Dialog dialog = createAndConfigureDialog();
+        populateDialogViews(dialog, buildingDetails, campus);
+        setupDialogListeners(dialog);
+
+        dialog.show();
+        currentBuildingDialog = dialog;
+    }
+
+    /**
+     * Determines which campus a building belongs to based on its location.
+     *
+     * @param featureId the building's feature ID
+     * @return the campus name as a string resource
+     */
+    private String determineCampus(String featureId) {
+        String campus = getString(R.string.concordia_university);
+        Building building = buildingsMap.get(featureId);
+
+        if (building != null && building.polygon != null && !building.polygon.isEmpty()) {
+            LatLng buildingLocation = building.polygon.get(0);
+            double distToSGW = SphericalUtil.computeDistanceBetween(buildingLocation, SGW_COORDS);
+            double distToLoyola = SphericalUtil.computeDistanceBetween(buildingLocation, LOY_COORDS);
+            campus = (distToSGW < distToLoyola) ? getString(R.string.sgw_campus_en) : getString(R.string.loyola_campus_en);
+        }
+
+        return campus;
+    }
+
+    /**
+     * Creates and configures the building info dialog window.
+     *
+     * @return the configured Dialog instance
+     */
+    private Dialog createAndConfigureDialog() {
+        Dialog dialog = new Dialog(this);
+        dialog.setContentView(R.layout.dialog_building_info);
+
+        // Set dialog to be full width
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setLayout(
+                (int) (getResources().getDisplayMetrics().widthPixels * 0.9),
+                android.view.ViewGroup.LayoutParams.WRAP_CONTENT
+            );
+            dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
+        }
+
+        return dialog;
+    }
+
+    /**
+     * Populates the dialog views with building details including name, address, description, and image.
+     *
+     * @param dialog the Dialog to populate
+     * @param buildingDetails the building details data
+     * @param campus the campus name
+     */
+    private void populateDialogViews(Dialog dialog, BuildingDetailsDto buildingDetails, String campus) {
+        ImageView imgBuilding = dialog.findViewById(R.id.img_building);
+        TextView txtBuildingName = dialog.findViewById(R.id.txt_building_name);
+        TextView txtBuildingAddress = dialog.findViewById(R.id.txt_building_address);
+        TextView txtBuildingDescription = dialog.findViewById(R.id.txt_building_description);
+        TextView txtBuildingDescriptionFr = dialog.findViewById(R.id.txt_building_description_fr);
+
+        // Set building name and bilingual descriptions
+        if (buildingDetails.getName() != null && !buildingDetails.getName().isEmpty()) {
+            String fullName = buildingDetails.getName();
+            String buildingName = fullName.contains(",") ? fullName.substring(0, fullName.indexOf(",")).trim() : fullName;
+            txtBuildingName.setText(buildingName.toUpperCase());
+
+            String description = getString(R.string.building_description_en, buildingName, campus);
+            txtBuildingDescription.setText(description);
+
+            String campusFr = campus.equals(getString(R.string.sgw_campus_en))
+                    ? getString(R.string.sgw_campus_fr)
+                    : getString(R.string.loyola_campus_fr);
+
+            String buildingNameFr = buildingName.replace(" Building", "").replace(" building", "");
+            String descriptionFr = getString(R.string.building_description_fr, buildingNameFr, campusFr);
+            txtBuildingDescriptionFr.setText(descriptionFr);
+        }
+
+        // Set building address
+        if (buildingDetails.getAddress() != null && !buildingDetails.getAddress().isEmpty()) {
+            txtBuildingAddress.setText(buildingDetails.getAddress());
+        }
+
+        // Load building image
+        loadBuildingImage(imgBuilding, buildingDetails);
+    }
+
+    /**
+     * Loads the building image into the ImageView using Glide.
+     *
+     * @param imgBuilding ImageView for the building image
+     * @param buildingDetails the building details data
+     */
+    private void loadBuildingImage(ImageView imgBuilding, BuildingDetailsDto buildingDetails) {
+        if (buildingDetails.getImgUri() != null && !buildingDetails.getImgUri().isEmpty()) {
+            Glide.with(this)
+                .load(buildingDetails.getImgUri())
+                .placeholder(android.R.color.darker_gray)
+                .error(android.R.color.darker_gray)
+                .into(imgBuilding);
+        } else {
+            imgBuilding.setImageResource(android.R.color.darker_gray);
+        }
+    }
+
+    /**
+     * Sets up dialog event listeners for close and dismiss actions.
+     *
+     * @param dialog the Dialog to set up listeners for
+     */
+    private void setupDialogListeners(Dialog dialog) {
+        ImageButton btnClose = dialog.findViewById(R.id.btn_close);
+        btnClose.setOnClickListener(v -> {
+            dialog.dismiss();
+            currentBuildingDialog = null;
+        });
+
+        dialog.setOnDismissListener(d -> currentBuildingDialog = null);
     }
 }
