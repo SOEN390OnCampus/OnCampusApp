@@ -10,6 +10,7 @@ import androidx.fragment.app.FragmentActivity;
 import android.Manifest;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.content.res.Resources;
 import android.graphics.Color;
 import android.os.Build;
 import android.os.Bundle;
@@ -26,10 +27,13 @@ import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.CameraPosition;
+import com.google.android.gms.maps.model.GroundOverlayOptions;
 import com.google.android.gms.maps.model.LatLng;
 import com.example.oncampusapp.databinding.ActivityMapsBinding;
-import com.google.maps.android.data.Feature;
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 import com.google.maps.android.data.Geometry;
 import com.google.maps.android.data.geojson.GeoJsonFeature;
 import com.google.maps.android.data.geojson.GeoJsonLayer;
@@ -39,12 +43,13 @@ import com.google.maps.android.data.geojson.GeoJsonPolygonStyle;
 import com.google.maps.android.SphericalUtil;
 
 import org.json.JSONException;
-import org.json.JSONObject;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
+import java.lang.reflect.Type;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -56,11 +61,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private GoogleMap mMap;
 
     public static Map<String, Building> buildingsMap = new HashMap<>();
-    private Map<String, String> geoIdToPlaceIdMap = new HashMap<>();
+    private Map<String, BuildingDetails> geoIdToBuildingDetailsMap;
     private ActivityMapsBinding binding;
     private BuildingClassifier buildingClassifier;
     private Dialog currentBuildingDialog = null;
-    private boolean isFetchingBuildingDetails = false;
 
     public static final LatLng SGW_COORDS = new LatLng(45.496107243097704, -73.57725834380621);
     public static final LatLng LOY_COORDS = new LatLng(45.4582, -73.6405);
@@ -84,16 +88,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             });
         }
     }
-    private BuildingDetailsService buildingDetailsService;
 
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
-        // Initialize buildingDetailsService
-        buildingDetailsService = new BuildingDetailsService(this);
-
 
         WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
 
@@ -154,7 +153,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         checkLocationPermissions();
         
         // Load the GeoJSON ID to Place ID mapping
-        loadGeoIdToPlaceIdMapping();
+
+        // Load building details
+        loadBuildingDetails();
     }
 
     @Override
@@ -177,6 +178,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         try {
             // Load the GeoJSON file
             GeoJsonLayer layer = new GeoJsonLayer(mMap, R.raw.concordia_buildings, getApplicationContext());
+
+
+            List<GeoJsonFeature> pointFeatures = new ArrayList<>();
 
             // Iterate through the GeoJSON file to find the features
             for (GeoJsonFeature feature : layer.getFeatures()) {
@@ -210,38 +214,58 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     Geometry geometry = feature.getGeometry();
 
                     if(geometry instanceof GeoJsonPolygon) {
-                            GeoJsonPolygon polygon = (GeoJsonPolygon) feature.getGeometry();
-                            List<LatLng> coordinates = polygon.getCoordinates().get(0);
+                        GeoJsonPolygon polygon = (GeoJsonPolygon) feature.getGeometry();
+                        List<LatLng> coordinates = polygon.getCoordinates().get(0);
 
-                            LatLng center = GeofenceManager.getPolygonCenter(coordinates);
-                            float radius = GeofenceManager.getPolygonRadius(center, coordinates);
+                        LatLng center = GeofenceManager.getPolygonCenter(coordinates);
+                        float radius = GeofenceManager.getPolygonRadius(center, coordinates);
 
-                            if (id == null || id.isEmpty()) {
-                                id = feature.getId();
-                            }
-                            if (id == null || id.isEmpty()) {
-                                Log.e("Geofence", "Skipping feature, ID is null: " + feature.getProperty("name"));
-                                continue;
-                            }
+                        if (id == null || id.isEmpty()) {
+                            id = feature.getId();
+                        }
+                        if (id == null || id.isEmpty()) {
+                            Log.e("Geofence", "Skipping feature, ID is null: " + feature.getProperty("name"));
+                            continue;
+                        }
 
-                            Building building1 = new Building(id, name, coordinates);
+                        Building building1 = new Building(id, name, coordinates);
 
-                            buildingsMap.put(id, building1);
+                        buildingsMap.put(id, building1);
 
-                            geofenceManager.addGeofence(
-                                    id,
-                                    center.latitude,
-                                    center.longitude,
-                                    radius
-                            );
+                        geofenceManager.addGeofence(
+                                id,
+                                center.latitude,
+                                center.longitude,
+                                radius
+                        );
+
+                        // Create a feature to allow click
+                        pointFeatures.add(createSquareFeature(center,id));
+
+                        // Ground overlay to visually show the button
+                        mMap.addGroundOverlay(new GroundOverlayOptions()
+                                .image(BitmapDescriptorFactory.fromResource(R.drawable.ic_building_details))
+                                .position(center, 5f, 5f)
+                                .zIndex(100));
                     }
                 }
             }
             layer.addLayerToMap();
-            layer.setOnFeatureClickListener(new GeoJsonLayer.GeoJsonOnFeatureClickListener() {
-                @Override
-                public void onFeatureClick(Feature feature) {
-                    handleBuildingClick(feature);
+            // Add the clickable features
+            for (GeoJsonFeature pf : pointFeatures) {
+                layer.addFeature(pf);
+            }
+
+            layer.setOnFeatureClickListener(feature -> {
+                if (feature.getGeometry() instanceof GeoJsonPolygon) {
+                    String clickedLayer = feature.getProperty("layer");
+                    if (clickedLayer == null) {
+                        return;
+                    }
+                    if (clickedLayer.equals("detailButton")){ // Clicked on the button
+                        String clickedId = feature.getProperty("id");
+                        handleBuildingDetailsButtonClick(clickedId);
+                    }
                 }
             });
 
@@ -274,6 +298,57 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         btnLocation.setOnClickListener(v -> goToCurrentLocation());
     }
 
+    /**
+     * Helper function used to create a invisible square feature on the map to allow clicking
+     * @param center center LatLng coordinate of the feature
+     * @param id geojson id of the building feature is bound to
+     * @return GeoJsonFeature representing the square feature
+     */
+    private GeoJsonFeature createSquareFeature(LatLng center, String id){
+        // Optional: clickable polygon for “details button”
+        List<LatLng> squareCorners = createSquareCorners(center, 5); // 10 meters
+        List<List<LatLng>> coords = new ArrayList<>();
+        coords.add(squareCorners);
+        GeoJsonPolygon detailsButtonPolygon = new GeoJsonPolygon(coords);
+
+        HashMap<String, String> props = new HashMap<>();
+        props.put("id", id);
+        props.put("layer", "detailButton");
+        GeoJsonFeature feature = new GeoJsonFeature(
+                detailsButtonPolygon,
+                id,
+                props,
+                null
+        );
+        GeoJsonPolygonStyle invisibleStyle = new GeoJsonPolygonStyle();
+        invisibleStyle.setFillColor(Color.TRANSPARENT);
+        invisibleStyle.setStrokeColor(Color.TRANSPARENT);
+        invisibleStyle.setStrokeWidth(0f);
+
+        feature.setPolygonStyle(invisibleStyle);
+        return feature;
+
+    }
+
+    /**
+     * Helper function for createSquareFeature to calculate the corner coordinates of the feature
+     * @param center center LatLng coordinate of the button
+     * @param sideMeters side length of the button
+     * @return List of LatLng coordinates representing the corners of the button
+     */
+    private List<LatLng> createSquareCorners(LatLng center, float sideMeters) {
+        // Calculate offset in latlng
+        double latOffset = (sideMeters / 2.0) / 111000f;
+        double lngOffset = (sideMeters / 2.0) / (111000f * Math.cos(Math.toRadians(center.latitude)));
+
+        List<LatLng> corners = new ArrayList<>();
+        corners.add(new LatLng(center.latitude + latOffset, center.longitude - lngOffset)); // NW
+        corners.add(new LatLng(center.latitude + latOffset, center.longitude + lngOffset)); // NE
+        corners.add(new LatLng(center.latitude - latOffset, center.longitude + lngOffset)); // SE
+        corners.add(new LatLng(center.latitude - latOffset, center.longitude - lngOffset)); // SW
+        corners.add(new LatLng(center.latitude + latOffset, center.longitude - lngOffset)); // back to NW
+        return corners;
+    }
     // Switch between SGW and Loyola campus on the map
     private void switchCampus() {
         String currentText = btnSgwLoy.getText().toString();
@@ -340,85 +415,21 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
     }
 
-    private void loadGeoIdToPlaceIdMapping() {
-        try (InputStream inputStream = getResources().openRawResource(R.raw.concordia_building_geoid_to_placeid);
-             BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8))) {
-            
-            StringBuilder jsonBuilder = new StringBuilder();
-            String line;
-            while ((line = reader.readLine()) != null) {
-                jsonBuilder.append(line);
-            }
-
-            JSONObject jsonObject = new JSONObject(jsonBuilder.toString());
-            for (java.util.Iterator<String> it = jsonObject.keys(); it.hasNext(); ) {
-                String key = it.next();
-                String value = jsonObject.getString(key);
-                geoIdToPlaceIdMap.put(key, value);
-            }
-        } catch (IOException | JSONException e) {
-            Log.e("MapsActivity", "Error loading GeoID to PlaceID mapping", e);
-        }
-    }
-
     /**
-     * Handles click events on building features in the map.
-     * Validates the feature ID, retrieves the corresponding Place ID, and fetches building details
-     * from the Google Places API. Includes safeguards against multiple simultaneous requests.
-     * 
-     * @param feature the GeoJSON feature representing the clicked building
+     * Handle on click for the information icon on buildings
+     * @param geojsonId geojson id of the building
      */
-    private void handleBuildingClick(Feature feature) {
-        // Prevent multiple simultaneous requests
-        if (isFetchingBuildingDetails) {
+    private void handleBuildingDetailsButtonClick(String geojsonId) {
+        BuildingDetails details = geoIdToBuildingDetailsMap.get(geojsonId);
+        if (details == null){
+            Toast.makeText(this, "No details found for this building", Toast.LENGTH_SHORT).show();
             return;
         }
-        
-        // Get the feature ID
-        String featureId = feature.getProperty("@id");
-        String featureName = feature.getProperty("name");
-        
-        if (featureId == null || featureId.isEmpty()) {
-            featureId = feature.getId();
-        }
-
-        if (featureId == null || featureId.isEmpty()) {
-            Log.e("MapsActivity", "Feature has no ID for: " + featureName);
-            Toast.makeText(this, 
-                R.string.toast_building_id_not_found, 
-                Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        // Look up the Place ID from the mapping
-        String placeId = geoIdToPlaceIdMap.get(featureId);
-        if (placeId == null) {
-            Toast.makeText(this, 
-                getString(R.string.toast_no_place_id_mapping, featureName), 
-                Toast.LENGTH_LONG).show();
-            return;
-        }
-        
-        // Set flag to prevent multiple requests
-        isFetchingBuildingDetails = true;
-        
-        // Create final reference for lambda
-        final String finalFeatureId = featureId;
-        
-        // Fetch building details and show popup
-        buildingDetailsService.fetchBuildingDetails(placeId, new BuildingDetailsService.FetchBuildingDetailsCallback() {
-            @Override
-            public void onSuccess(BuildingDetailsDto buildingDetailsDto) {
-                isFetchingBuildingDetails = false;
-                runOnUiThread(() -> showBuildingInfoDialog(buildingDetailsDto, finalFeatureId));
-            }
-
-            @Override
-            public void onFailure(Exception e) {
-                Log.e("MapsActivity", "Error fetching building details for placeId: " + placeId, e);
-                isFetchingBuildingDetails = false;
-            }
-        });
+        BuildingDetailsDto buildingDetailsDto = new BuildingDetailsDto();
+        buildingDetailsDto.setName(details.name);
+        buildingDetailsDto.setAddress(details.address);
+        buildingDetailsDto.setImgUri(details.image);
+        showBuildingInfoDialog(buildingDetailsDto, geojsonId);
     }
 
     /**
@@ -557,5 +568,24 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         });
         
         dialog.setOnDismissListener(d -> currentBuildingDialog = null);
+    }
+
+    private void loadBuildingDetails(){
+        try {
+            InputStream is = this.getResources().openRawResource(R.raw.concordia_building_details);
+            BufferedReader reader = new BufferedReader(new InputStreamReader(is));
+            StringBuilder jsonBuilder = new StringBuilder();
+            String line;
+            while ((line = reader.readLine()) != null) {
+                jsonBuilder.append(line);
+            }
+            String json = jsonBuilder.toString();
+
+            Gson gson = new Gson();
+            Type type = new TypeToken<Map<String, BuildingDetails>>(){}.getType();
+            geoIdToBuildingDetailsMap = gson.fromJson(json, type);
+        } catch (Resources.NotFoundException | IOException e) {
+            throw new RuntimeException("File not found:" + e.getMessage());
+        }
     }
 }
