@@ -1,5 +1,8 @@
 package com.example.oncampusapp;
 
+import static android.view.View.GONE;
+import static android.view.View.INVISIBLE;
+
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.core.app.ActivityCompat;
@@ -15,6 +18,7 @@ import android.graphics.Color;
 import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.View;
 import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -239,14 +243,16 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                                 radius
                         );
 
-                        // Create a feature to allow click
-                        pointFeatures.add(createSquareFeature(center,id));
+                        if (geoIdToBuildingDetailsMap.containsKey(id)) { // Check if building has additional details
+                            // Create a feature to allow click
+                            pointFeatures.add(createSquareFeature(center,id));
 
-                        // Ground overlay to visually show the button
-                        mMap.addGroundOverlay(new GroundOverlayOptions()
-                                .image(BitmapDescriptorFactory.fromResource(R.drawable.ic_building_details))
-                                .position(center, 5f, 5f)
-                                .zIndex(100));
+                            // Ground overlay to visually show the button
+                            mMap.addGroundOverlay(new GroundOverlayOptions()
+                                    .image(BitmapDescriptorFactory.fromResource(R.drawable.ic_building_details))
+                                    .position(center, 10f, 10f)
+                                    .zIndex(100));
+                        }
                     }
                 }
             }
@@ -306,7 +312,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
      */
     private GeoJsonFeature createSquareFeature(LatLng center, String id){
         // Optional: clickable polygon for “details button”
-        List<LatLng> squareCorners = createSquareCorners(center, 5); // 10 meters
+        List<LatLng> squareCorners = createSquareCorners(center, 10); // 10 meters
         List<List<LatLng>> coords = new ArrayList<>();
         coords.add(squareCorners);
         GeoJsonPolygon detailsButtonPolygon = new GeoJsonPolygon(coords);
@@ -429,6 +435,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         buildingDetailsDto.setName(details.name);
         buildingDetailsDto.setAddress(details.address);
         buildingDetailsDto.setImgUri(details.image);
+        buildingDetailsDto.setAccessibility(details.accessibility);
         showBuildingInfoDialog(buildingDetailsDto, geojsonId);
     }
 
@@ -509,6 +516,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         TextView txtBuildingAddress = dialog.findViewById(R.id.txt_building_address);
         TextView txtBuildingDescription = dialog.findViewById(R.id.txt_building_description);
         TextView txtBuildingDescriptionFr = dialog.findViewById(R.id.txt_building_description_fr);
+        ImageView imgAccessibility = dialog.findViewById(R.id.img_accessibility);
+        TextView txtAccessibility = dialog.findViewById(R.id.txt_accessibility);
+
 
         // Set building name and bilingual descriptions
         if (buildingDetails.getName() != null && !buildingDetails.getName().isEmpty()) {
@@ -532,6 +542,14 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         if (buildingDetails.getAddress() != null && !buildingDetails.getAddress().isEmpty()) {
             txtBuildingAddress.setText(buildingDetails.getAddress());
         }
+        if (buildingDetails.getAccessibility()) {
+            imgAccessibility.setVisibility(View.VISIBLE);
+            txtAccessibility.setText(R.string.building_accessible);
+        } else {
+            imgAccessibility.setVisibility(View.GONE);
+            txtAccessibility.setText(R.string.building_not_accessible);
+        }
+
 
         // Load building image
         loadBuildingImage(imgBuilding, buildingDetails);

@@ -4,6 +4,7 @@
     "name": "B Annex",
     "address": "2160 Bishop St.",
     "image": "https://www.concordia.ca/content/concordia/en/maps/buildings/b/_jcr_content/content-main/grid_container_307846512/grid-container-parsys/box_427340212/box-parsys/image.img.jpg/1750701724050.jpg",
+    "accessibility": false,
     "link": "https://www.concordia.ca/maps/buildings/b.html"
   },
   "CI": {
@@ -11,6 +12,7 @@
     "name": "CI Annex",
     "address": "2149 Mackay St.",
     "image": "https://www.concordia.ca/content/concordia/en/maps/buildings/ci/_jcr_content/content-main/grid_container_307846512/grid-container-parsys/box_427340212/box-parsys/image.img.jpg/1750700006681.jpg",
+    "accessibility": false,
     "link": "https://www.concordia.ca/maps/buildings/ci.html"
   },
   "way/103248055": {
@@ -18,6 +20,7 @@
     "name": "CL Annex",
     "address": "1665 Ste-Catherine St. W.",
     "image": "https://www.concordia.ca/content/concordia/en/maps/buildings/cl/_jcr_content/content-main/grid_container_307846512/grid-container-parsys/box_427340212/box-parsys/image.img.jpg/1750702106400.jpg",
+    "accessibility": true,
     "link": "https://www.concordia.ca/maps/buildings/cl.html"
   },
   "D": {
@@ -25,6 +28,7 @@
     "name": "D Annex",
     "address": "2140 Bishop St.",
     "image": "https://www.concordia.ca/content/concordia/en/maps/buildings/d/_jcr_content/content-main/grid_container_307846512/grid-container-parsys/box_427340212/box-parsys/image.img.jpg/1750702147171.jpg",
+    "accessibility": false,
     "link": "https://www.concordia.ca/maps/buildings/d.html"
   },
   "EN": {
@@ -32,6 +36,7 @@
     "name": "EN Annex",
     "address": "2070 Mackay St.",
     "image": "https://www.concordia.ca/content/concordia/en/maps/buildings/en/_jcr_content/content-main/grid_container_307846512/grid-container-parsys/box_427340212/box-parsys/image.img.jpg/1750702290723.jpg",
+    "accessibility": false,
     "link": "https://www.concordia.ca/maps/buildings/en.html"
   },
   "way/103896385": {
@@ -39,6 +44,7 @@
     "name": "ER Building",
     "address": "2155 Guy St.",
     "image": "https://www.concordia.ca/content/concordia/en/maps/buildings/er/_jcr_content/content-main/grid_container_307846512/grid-container-parsys/box_427340212/box-parsys/image.img.jpg/1750702362372.jpg",
+    "accessibility": true,
     "link": "https://www.concordia.ca/maps/buildings/er.html"
   },
   "way/103248064": {
@@ -46,6 +52,7 @@
     "name": "Engineering, Computer Science and Visual Arts Integrated Complex",
     "address": "1515 Ste-Catherine St. W.",
     "image": "https://www.concordia.ca/content/concordia/en/maps/buildings/ev/_jcr_content/content-main/grid_container_307846512/grid-container-parsys/box_427340212/box-parsys/image.img.jpg/1750702823530.jpg",
+    "accessibility": true,
     "link": "https://www.concordia.ca/maps/buildings/ev.html"
   },
   "FA": {
@@ -53,6 +60,7 @@
     "name": "FA Annex",
     "address": "2060 Mackay St.",
     "image": "https://www.concordia.ca/content/concordia/en/maps/buildings/fa/_jcr_content/content-main/grid_container_307846512/grid-container-parsys/box_427340212/box-parsys/image.img.jpg/1750702940372.jpg",
+    "accessibility": false,
     "link": "https://www.concordia.ca/maps/buildings/fa.html"
   },
   "way/103248058": {
@@ -60,6 +68,7 @@
     "name": "Faubourg Building",
     "address": "1250 Guy St. (main entrance)\n1600 Ste-Catherine St. W.",
     "image": "https://www.concordia.ca/content/concordia/en/maps/buildings/fb/_jcr_content/content-main/grid_container_307846512/grid-container-parsys/box_427340212/box-parsys/image.img.jpg/1750703069703.jpg",
+    "accessibility": true,
     "link": "https://www.concordia.ca/maps/buildings/fb.html"
   },
   "way/103248050": {
@@ -67,6 +76,7 @@
     "name": "Faubourg Ste-Catherine Building",
     "address": "1610 Ste-Catherine St. W.",
     "image": "https://www.concordia.ca/content/concordia/en/maps/buildings/fg/_jcr_content/content-main/grid_container_307846512/grid-container-parsys/box_427340212/box-parsys/image.img.jpg/1750703205424.jpg",
+    "accessibility": true,
     "link": "https://www.concordia.ca/maps/buildings/fg.html"
   },
   "GA": {
@@ -74,6 +84,7 @@
     "name": "Grey Nuns Annex",
     "address": "1211-1215 St-Mathieu St.",
     "image": "https://www.concordia.ca/content/concordia/en/maps/buildings/ga/_jcr_content/content-main/grid_container_307846512/grid-container-parsys/box_427340212/box-parsys/image.img.jpg/1750703691368.jpg",
+    "accessibility": true,
     "link": "https://www.concordia.ca/maps/buildings/ga.html"
   },
   "way/86068897": {
@@ -81,6 +92,7 @@
     "name": "Guy-De Maisonneuve Building",
     "address": "1550 De Maisonneuve Blvd.\u00a0W.",
     "image": "https://www.concordia.ca/content/concordia/en/maps/buildings/gm/_jcr_content/content-main/grid_container_307846512/grid-container-parsys/box_427340212/box-parsys/image.img.jpg/1750703493618.jpg",
+    "accessibility": true,
     "link": "https://www.concordia.ca/maps/buildings/gm.html"
   },
   "way/1369689991": {
@@ -88,6 +100,7 @@
     "name": "Grey Nuns Building",
     "address": "1190 Guy St. (main entrance)\n1175 St-Mathieu St.\n1185 St-Mathieu St.",
     "image": "https://www.concordia.ca/content/concordia/en/maps/buildings/gn/_jcr_content/content-main/grid_container_307846512/grid-container-parsys/box_427340212/box-parsys/image.img.jpg/1750703536218.jpg",
+    "accessibility": true,
     "link": "https://www.concordia.ca/maps/buildings/gn.html"
   },
   "GS": {
@@ -95,6 +108,7 @@
     "name": "GS Building",
     "address": "1538 Sherbrooke St. W.",
     "image": "https://www.concordia.ca/content/concordia/en/maps/buildings/gs/_jcr_content/content-main/grid_container_307846512/grid-container-parsys/box_427340212/box-parsys/image.img.jpg/1753390286932.jpg",
+    "accessibility": false,
     "link": "https://www.concordia.ca/maps/buildings/gs.html"
   },
   "way/22080570": {
@@ -102,6 +116,7 @@
     "name": "Henry F. Hall Building",
     "address": "1455 De Maisonneuve Blvd.\u00a0W.",
     "image": "https://www.concordia.ca/content/concordia/en/maps/buildings/h/_jcr_content/content-main/grid_container_307846512/grid-container-parsys/box_427340212/box-parsys/image.img.jpg/1750703745830.jpg",
+    "accessibility": true,
     "link": "https://www.concordia.ca/maps/buildings/h.html"
   },
   "K": {
@@ -109,6 +124,7 @@
     "name": "K Annex",
     "address": "2150 Bishop St.",
     "image": "https://www.concordia.ca/content/concordia/en/maps/buildings/k/_jcr_content/content-main/grid_container_307846512/grid-container-parsys/box_427340212/box-parsys/image.img.jpg/1750704193887.jpg",
+    "accessibility": false,
     "link": "https://www.concordia.ca/maps/buildings/k.html"
   },
   "way/22080572": {
@@ -116,6 +132,7 @@
     "name": "J.W. McConnell Building",
     "address": "1400 De Maisonneuve Blvd.\u00a0W.",
     "image": "https://www.concordia.ca/content/concordia/en/maps/buildings/lb/_jcr_content/content-main/grid_container_307846512/grid-container-parsys/box_427340212/box-parsys/image.img.jpg/1750706334758.jpg",
+    "accessibility": true,
     "link": "https://www.concordia.ca/maps/buildings/lb.html"
   },
   "LD": {
@@ -123,6 +140,7 @@
     "name": "LD Building",
     "address": "1424 Bishop St.",
     "image": "https://www.concordia.ca/content/concordia/en/maps/buildings/ld/_jcr_content/content-main/grid_container_307846512/grid-container-parsys/box_427340212/box-parsys/image.img.jpg/1750704279111.jpg",
+    "accessibility": false,
     "link": "https://www.concordia.ca/maps/buildings/ld.html"
   },
   "way/979438074": {
@@ -130,6 +148,7 @@
     "name": "Learning Square",
     "address": "1535 De Maisonneuve Blvd.\u00a0W.",
     "image": "https://www.concordia.ca/content/concordia/en/maps/buildings/ls/_jcr_content/content-main/grid_container_307846512/grid-container-parsys/box_427340212/box-parsys/image.img.jpg/1750704406530.jpg",
+    "accessibility": true,
     "link": "https://www.concordia.ca/maps/buildings/ls.html"
   },
   "M": {
@@ -137,6 +156,7 @@
     "name": "M Annex",
     "address": "2135 Mackay St.",
     "image": "https://www.concordia.ca/content/concordia/en/maps/buildings/m/_jcr_content/content-main/grid_container_307846512/grid-container-parsys/box_427340212/box-parsys/image.img.jpg/1750704516786.jpg",
+    "accessibility": false,
     "link": "https://www.concordia.ca/maps/buildings/m.html"
   },
   "way/22080581": {
@@ -144,13 +164,15 @@
     "name": "John Molson Building",
     "address": "1450 Guy St.",
     "image": "https://www.concordia.ca/content/concordia/en/maps/buildings/mb/_jcr_content/content-main/grid_container_307846512/grid-container-parsys/box_427340212/box-parsys/image.img.jpg/1752848969887.jpg",
-    "link": "https://www.concoFGMrdia.ca/maps/buildings/mb.html"
+    "accessibility": true,
+    "link": "https://www.concordia.ca/maps/buildings/mb.html"
   },
   "MI": {
     "code": "MI",
     "name": "MI Annex",
     "address": "2130 Bishop St.",
     "image": "https://www.concordia.ca/content/concordia/en/maps/buildings/mi/_jcr_content/content-main/grid_container_307846512/grid-container-parsys/box_427340212/box-parsys/image.img.jpg/1750706431105.jpg",
+    "accessibility": false,
     "link": "https://www.concordia.ca/maps/buildings/mi.html"
   },
   "MU": {
@@ -158,6 +180,7 @@
     "name": "MU Annex",
     "address": "2170 Bishop St.",
     "image": "https://www.concordia.ca/content/concordia/en/maps/buildings/mu/_jcr_content/content-main/grid_container_307846512/grid-container-parsys/box_427340212/box-parsys/image.img.jpg/1750706503707.jpg",
+    "accessibility": false,
     "link": "https://www.concordia.ca/maps/buildings/mu.html"
   },
   "P": {
@@ -165,6 +188,7 @@
     "name": "P Annex",
     "address": "2020 Mackay St.",
     "image": "https://www.concordia.ca/content/concordia/en/maps/buildings/p/_jcr_content/content-main/grid_container_307846512/grid-container-parsys/box_427340212/box-parsys/image.img.jpg/1750706979083.jpg",
+    "accessibility": false,
     "link": "https://www.concordia.ca/maps/buildings/p.html"
   },
   "PR": {
@@ -172,6 +196,7 @@
     "name": "PR Annex",
     "address": "2100 Mackay St.",
     "image": "https://www.concordia.ca/content/concordia/en/maps/buildings/pr/_jcr_content/content-main/grid_container_307846512/grid-container-parsys/box_427340212/box-parsys/image.img.jpg/1750707056205.jpg",
+    "accessibility": false,
     "link": "https://www.concordia.ca/maps/buildings/pr.html"
   },
   "Q": {
@@ -179,6 +204,7 @@
     "name": "Q Annex",
     "address": "2010 Mackay St.",
     "image": "https://www.concordia.ca/content/concordia/en/maps/buildings/q/_jcr_content/content-main/grid_container_307846512/grid-container-parsys/box_427340212/box-parsys/image.img.jpg/1750707299714.jpg",
+    "accessibility": false,
     "link": "https://www.concordia.ca/maps/buildings/q.html"
   },
   "R": {
@@ -186,6 +212,7 @@
     "name": "R Annex",
     "address": "2050 Mackay St.",
     "image": "https://www.concordia.ca/content/concordia/en/maps/buildings/r/_jcr_content/content-main/grid_container_307846512/grid-container-parsys/box_427340212/box-parsys/image.img.jpg/1750712426828.jpg",
+    "accessibility": false,
     "link": "https://www.concordia.ca/maps/buildings/r.html"
   },
   "way/103892971": {
@@ -193,6 +220,7 @@
     "name": "RR Annex",
     "address": "2040 Mackay St.",
     "image": "https://www.concordia.ca/content/concordia/en/maps/buildings/rr/_jcr_content/content-main/grid_container_307846512/grid-container-parsys/box_427340212/box-parsys/image.img.jpg/1750773247509.jpg",
+    "accessibility": false,
     "link": "https://www.concordia.ca/maps/buildings/rr.html"
   },
   "S": {
@@ -200,6 +228,7 @@
     "name": "S Annex",
     "address": "2145 Mackay St.",
     "image": "https://www.concordia.ca/content/concordia/en/maps/buildings/s/_jcr_content/content-main/grid_container_307846512/grid-container-parsys/box_427340212/box-parsys/image.img.jpg/1750774186296.jpg",
+    "accessibility": false,
     "link": "https://www.concordia.ca/maps/buildings/s.html"
   },
   "SB": {
@@ -207,6 +236,7 @@
     "name": "Samuel Bronfman Building",
     "address": "1590 Docteur Penfield",
     "image": "https://www.concordia.ca/content/concordia/en/maps/buildings/sb/_jcr_content/content-main/grid_container_307846512/grid-container-parsys/box_427340212/box-parsys/image.img.jpg/1750774358727.jpg",
+    "accessibility": true,
     "link": "https://www.concordia.ca/maps/buildings/sb.html"
   },
   "T": {
@@ -214,6 +244,7 @@
     "name": "T Annex",
     "address": "2030 Mackay St.",
     "image": "https://www.concordia.ca/content/concordia/en/maps/buildings/t/_jcr_content/content-main/grid_container_307846512/grid-container-parsys/box_427340212/box-parsys/image.img.jpg/1750775449149.jpg",
+    "accessibility": false,
     "link": "https://www.concordia.ca/maps/buildings/t.html"
   },
   "way/103248049": {
@@ -221,6 +252,7 @@
     "name": "Toronto-Dominion Building",
     "address": "1410 Guy St.",
     "image": "https://www.concordia.ca/content/concordia/en/maps/buildings/td/_jcr_content/content-main/grid_container_307846512/grid-container-parsys/box_427340212/box-parsys/image.img.jpg/1753213459658.jpg",
+    "accessibility": false,
     "link": "https://www.concordia.ca/maps/buildings/td.html"
   },
   "V": {
@@ -228,6 +260,7 @@
     "name": "V Annex",
     "address": "2110 Mackay St.",
     "image": "https://www.concordia.ca/content/concordia/en/maps/buildings/v/_jcr_content/content-main/grid_container_307846512/grid-container-parsys/box_427340212/box-parsys/image.img.jpg/1750775826854.jpg",
+    "accessibility": false,
     "link": "https://www.concordia.ca/maps/buildings/v.html"
   },
   "VA": {
@@ -235,6 +268,7 @@
     "name": "Visual Arts Building",
     "address": "1395 Ren\u00c3\u00a9-L\u00c3\u00a9vesque Blvd.\u00a0W.",
     "image": "https://www.concordia.ca/content/concordia/en/maps/buildings/va/_jcr_content/content-main/grid_container_307846512/grid-container-parsys/box_427340212/box-parsys/image.img.jpg/1750775886127.jpg",
+    "accessibility": true,
     "link": "https://www.concordia.ca/maps/buildings/va.html"
   },
   "X": {
@@ -242,6 +276,7 @@
     "name": "X Annex",
     "address": "2080 Mackay St.",
     "image": "https://www.concordia.ca/content/concordia/en/maps/buildings/x/_jcr_content/content-main/grid_container_307846512/grid-container-parsys/box_427340212/box-parsys/image.img.jpg/1750776118230.jpg",
+    "accessibility": false,
     "link": "https://www.concordia.ca/maps/buildings/x.html"
   },
   "Z": {
@@ -249,6 +284,7 @@
     "name": "Z Annex",
     "address": "2090 Mackay St.",
     "image": "https://www.concordia.ca/content/concordia/en/maps/buildings/z/_jcr_content/content-main/grid_container_307846512/grid-container-parsys/box_427340212/box-parsys/image.img.jpg/1750776165500.jpg",
+    "accessibility": false,
     "link": "https://www.concordia.ca/maps/buildings/z.html"
   },
   "way/604324457": {
@@ -256,6 +292,7 @@
     "name": "Administration Building",
     "address": "7141 Sherbrooke St. W.",
     "image": "https://www.concordia.ca/content/concordia/en/maps/buildings/ad/_jcr_content/content-main/grid_container_307846512/grid-container-parsys/box_427340212/box-parsys/image.img.jpg/1750701647513.jpg",
+    "accessibility": true,
     "link": "https://www.concordia.ca/maps/buildings/ad.html"
   },
   "way/604324439": {
@@ -263,6 +300,7 @@
     "name": "BB Annex",
     "address": "3502 Av. Belmore",
     "image": "https://www.concordia.ca/content/concordia/en/maps/buildings/bb/_jcr_content/content-main/grid_container_307846512/grid-container-parsys/box_427340212/box-parsys/image.img.jpg/1754505281032.jpg",
+    "accessibility": false,
     "link": "https://www.concordia.ca/maps/buildings/bb.html"
   },
   "way/604324440": {
@@ -270,6 +308,7 @@
     "name": "BH Annex",
     "address": "3500 Av. Belmore",
     "image": "https://www.concordia.ca/content/concordia/en/maps/buildings/bh/_jcr_content/content-main/grid_container_307846512/grid-container-parsys/box_427340212/box-parsys/image.img.jpg/1754505255461.jpg",
+    "accessibility": false,
     "link": "https://www.concordia.ca/maps/buildings/bh.html"
   },
   "way/604324456": {
@@ -277,6 +316,7 @@
     "name": "Central Building",
     "address": "7141 Sherbrooke St. W.",
     "image": "https://www.concordia.ca/content/concordia/en/maps/buildings/cc/_jcr_content/content-main/grid_container_307846512/grid-container-parsys/box_427340212/box-parsys/image.img.jpg/1750701910958.jpg",
+    "accessibility": true,
     "link": "https://www.concordia.ca/maps/buildings/cc.html"
   },
   "way/47332007": {
@@ -284,6 +324,7 @@
     "name": "Communication Studies and Journalism Building",
     "address": "7141 Sherbrooke St. W.",
     "image": "https://www.concordia.ca/content/concordia/en/maps/buildings/cj/_jcr_content/content-main/grid_container_307846512/grid-container-parsys/box_427340212/box-parsys/image.img.jpg/1750702027234.jpg",
+    "accessibility": true,
     "link": "https://www.concordia.ca/maps/buildings/cj.html"
   },
   "DO": {
@@ -291,6 +332,7 @@
     "name": "Stinger Dome",
     "address": "7141 Sherbrooke St. W.",
     "image": "https://www.concordia.ca/content/concordia/en/maps/buildings/do/_jcr_content/content-main/grid_container_307846512/grid-container-parsys/box_427340212/box-parsys/image.img.jpg/1750702189668.jpg",
+    "accessibility": false,
     "link": "https://www.concordia.ca/maps/buildings/do.html"
   },
   "way/47332003": {
@@ -298,6 +340,7 @@
     "name": "F.C. Smith Building",
     "address": "7141 Sherbrooke St. W.",
     "image": "https://www.concordia.ca/content/concordia/en/maps/buildings/fc/_jcr_content/content-main/grid_container_307846512/grid-container-parsys/box_427340212/box-parsys/image.img.jpg/1750703132721.jpg",
+    "accessibility": true,
     "link": "https://www.concordia.ca/maps/buildings/fc.html"
   },
   "way/545014554": {
@@ -305,6 +348,7 @@
     "name": "Centre for Structural and Functional Genomics",
     "address": "7141 Sherbrooke St. W.",
     "image": "https://www.concordia.ca/content/concordia/en/maps/buildings/ge/_jcr_content/content-main/grid_container_307846512/grid-container-parsys/box_427340212/box-parsys/image.img.jpg/1752776070279.jpg",
+    "accessibility": true,
     "link": "https://www.concordia.ca/maps/buildings/ge.html"
   },
   "relation/17887803": {
@@ -312,6 +356,7 @@
     "name": "Hingston Hall, wing HA",
     "address": "7141 Sherbrooke St. W.",
     "image": "https://www.concordia.ca/content/concordia/en/maps/buildings/ha/_jcr_content/content-main/grid_container_307846512/grid-container-parsys/box_427340212/box-parsys/image.img.jpg/1750703805691.jpg",
+    "accessibility": true,
     "link": "https://www.concordia.ca/maps/buildings/ha.html"
   },
   "relation/17887804": {
@@ -319,6 +364,7 @@
     "name": "Hingston Hall, wing HB",
     "address": "7141 Sherbrooke St. W.",
     "image": "https://www.concordia.ca/content/concordia/en/maps/buildings/hb/_jcr_content/content-main/grid_container_307846512/grid-container-parsys/box_427340212/box-parsys/image.img.jpg/1750703951339.jpg",
+    "accessibility": true,
     "link": "https://www.concordia.ca/maps/buildings/hb.html"
   },
   "way/604324438": {
@@ -326,6 +372,7 @@
     "name": "Hingston Hall, wing HC",
     "address": "7141 Sherbrooke St. W.",
     "image": "https://www.concordia.ca/content/concordia/en/maps/buildings/hc/_jcr_content/content-main/grid_container_307846512/grid-container-parsys/box_427340212/box-parsys/image.img.jpg/1750703989751.jpg",
+    "accessibility": true,
     "link": "https://www.concordia.ca/maps/buildings/hc.html"
   },
   "way/795012497": {
@@ -333,6 +380,7 @@
     "name": "Applied Science Hub",
     "address": "7141 Sherbrooke St. W.",
     "image": "https://www.concordia.ca/content/concordia/en/maps/buildings/hu/_jcr_content/content-main/grid_container_307846512/grid-container-parsys/box_427340212/box-parsys/image.img.jpg/1752777007725.jpg",
+    "accessibility": true,
     "link": "https://www.concordia.ca/maps/buildings/hu.html"
   },
   "way/129437733": {
@@ -340,6 +388,7 @@
     "name": "Jesuit Residence",
     "address": "7141 Sherbrooke St. W.",
     "image": "https://www.concordia.ca/content/concordia/en/maps/buildings/jr/_jcr_content/content-main/grid_container_307846512/grid-container-parsys/box_427340212/box-parsys/image.img.jpg/1752775378408.jpg",
+    "accessibility": true,
     "link": "https://www.concordia.ca/maps/buildings/jr.html"
   },
   "way/604019520": {
@@ -347,6 +396,7 @@
     "name": "PERFORM Centre",
     "address": "7200 Sherbrooke St. W.",
     "image": "https://www.concordia.ca/content/concordia/en/maps/buildings/pc/_jcr_content/content-main/grid_container_307846512/grid-container-parsys/box_427340212/box-parsys/image.img.jpg/1754056606860.jpg",
+    "accessibility": true,
     "link": "https://www.concordia.ca/maps/buildings/pc.html"
   },
   "way/47332006": {
@@ -354,6 +404,7 @@
     "name": "Physical Services Building",
     "address": "7141 Sherbrooke St. W.",
     "image": "https://www.concordia.ca/content/concordia/en/maps/buildings/ps/_jcr_content/content-main/grid_container_307846512/grid-container-parsys/box_427340212/box-parsys/image.img.jpg/1753211858581.jpg",
+    "accessibility": false,
     "link": "https://www.concordia.ca/maps/buildings/ps.html"
   },
   "way/604324443": {
@@ -361,6 +412,7 @@
     "name": "Oscar Peterson Concert Hall",
     "address": "7141 Sherbrooke St. W.",
     "image": "https://www.concordia.ca/content/concordia/en/maps/buildings/pt/_jcr_content/content-main/grid_container_307846512/grid-container-parsys/box_427340212/box-parsys/image.img.jpg/1750712426795.jpg",
+    "accessibility": true,
     "link": "https://www.concordia.ca/maps/buildings/pt.html"
   },
   "relation/17887805": {
@@ -368,6 +420,7 @@
     "name": "Psychology Building",
     "address": "7141 Sherbrooke St. W.",
     "image": "https://www.concordia.ca/content/concordia/en/maps/buildings/py/_jcr_content/content-main/grid_container_307846512/grid-container-parsys/box_427340212/box-parsys/image.img.jpg/1750712426337.jpg",
+    "accessibility": true,
     "link": "https://www.concordia.ca/maps/buildings/py.html"
   },
   "QA": {
@@ -375,6 +428,7 @@
     "name": "Quadrangle",
     "address": "7141 Sherbrooke St. W.",
     "image": "https://www.concordia.ca/content/concordia/en/maps/buildings/qa/_jcr_content/content-main/grid_container_307846512/grid-container-parsys/box_427340212/box-parsys/image.img.jpg/1750712426399.jpg",
+    "accessibility": false,
     "link": "https://www.concordia.ca/maps/buildings/qa.html"
   },
   "way/47332005": {
@@ -382,6 +436,7 @@
     "name": "Recreation and Athletics Complex",
     "address": "7200 Sherbrooke St. W.",
     "image": "https://www.concordia.ca/content/concordia/en/maps/buildings/ra/_jcr_content/content-main/grid_container_307846512/grid-container-parsys/box_427340212/box-parsys/image.img.jpg/1753387180607.jpg",
+    "accessibility": true,
     "link": "https://www.concordia.ca/maps/buildings/ra.html"
   },
   "way/604324455": {
@@ -389,6 +444,7 @@
     "name": "Loyola Jesuit Hall and Conference Centre",
     "address": "7141 Sherbrooke St. W.",
     "image": "https://www.concordia.ca/content/concordia/en/maps/buildings/rf/_jcr_content/content-main/grid_container_307846512/grid-container-parsys/box_427340212/box-parsys/image.img.jpg/1754321077294.jpg",
+    "accessibility": true,
     "link": "https://www.concordia.ca/maps/buildings/rf.html"
   },
   "way/47332009": {
@@ -396,6 +452,7 @@
     "name": "Student Centre",
     "address": "7141 Sherbrooke St. W.",
     "image": "https://www.concordia.ca/content/concordia/en/maps/buildings/sc/_jcr_content/content-main/grid_container_307846512/grid-container-parsys/box_427340212/box-parsys/image.img.jpg/1750774420596.jpg",
+    "accessibility": true,
     "link": "https://www.concordia.ca/maps/buildings/sc.html"
   },
   "way/129437736": {
@@ -403,6 +460,7 @@
     "name": "Stinger Dome",
     "address": "7200 Sherbrooke St. W.",
     "image": "https://www.concordia.ca/content/concordia/en/campus-life/recreation/facilities/stinger-dome/jcr:content/content-main/hero/adaptiveimage.img.768.medium.jpg/1759324707165.jpg",
+    "accessibility": false,
     "link": "https://www.concordia.ca/campus-life/recreation/facilities/stinger-dome.html"
   }
   ,
@@ -411,6 +469,7 @@
     "name": "Future Buildings Laboratory",
     "address": "7141 Sherbrooke St. W.",
     "image": "https://www.concordia.ca/content/concordia/en/maps/buildings/sh/_jcr_content/content-main/grid_container_307846512/grid-container-parsys/box_427340212/box-parsys/image.img.jpg/1750774494391.jpg",
+    "accessibility": true,
     "link": "https://www.concordia.ca/maps/buildings/sh.html"
   },
   "way/47331997": {
@@ -418,6 +477,7 @@
     "name": "St. Ignatius of Loyola Church",
     "address": "4455 Broadway St.",
     "image": "https://www.concordia.ca/content/concordia/en/maps/buildings/si/_jcr_content/content-main/grid_container_307846512/grid-container-parsys/box_427340212/box-parsys/image.img.jpg/1750774594857.jpg",
+    "accessibility": false,
     "link": "https://www.concordia.ca/maps/buildings/si.html"
   },
   "way/47331993": {
@@ -425,6 +485,7 @@
     "name": "Richard J. Renaud Science Complex",
     "address": "7141 Sherbrooke St. W.",
     "image": "https://www.concordia.ca/content/concordia/en/maps/buildings/sp/_jcr_content/content-main/grid_container_307846512/grid-container-parsys/box_427340212/box-parsys/image.img.jpg/1753215175111.jpg",
+    "accessibility": true,
     "link": "https://www.concordia.ca/maps/buildings/sp.html"
   },
   "way/352622559": {
@@ -432,6 +493,7 @@
     "name": "Terrebonne Building",
     "address": "7079 Terrebonne St.",
     "image": "https://www.concordia.ca/content/concordia/en/maps/buildings/ta/_jcr_content/content-main/grid_container_307846512/grid-container-parsys/box_427340212/box-parsys/image.img.jpg/1759152574654.jpg",
+    "accessibility": false,
     "link": "https://www.concordia.ca/maps/buildings/ta.html"
   },
   "VE": {
@@ -439,6 +501,7 @@
     "name": "Vanier Extension",
     "address": "7141 Sherbrooke St. W.",
     "image": "https://www.concordia.ca/content/concordia/en/maps/buildings/ve/_jcr_content/content-main/grid_container_307846512/grid-container-parsys/box_427340212/box-parsys/image.img.jpg/1754323922442.jpg",
+    "accessibility": true,
     "link": "https://www.concordia.ca/maps/buildings/ve.html"
   },
   "way/1362724471": {
@@ -446,6 +509,7 @@
     "name": "Vanier Library Building",
     "address": "7141 Sherbrooke St. W.",
     "image": "https://www.concordia.ca/content/concordia/en/maps/buildings/vl/_jcr_content/content-main/grid_container_307846512/grid-container-parsys/box_427340212/box-parsys/image.img.jpg/1750775944461.jpg",
+    "accessibility": true,
     "link": "https://www.concordia.ca/maps/buildings/vl.html"
   }
 }

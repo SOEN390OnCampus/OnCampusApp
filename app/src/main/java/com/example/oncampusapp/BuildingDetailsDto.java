@@ -4,10 +4,10 @@ public class BuildingDetailsDto {
     private String name;
     private String address;
     private String imgUri;
+    private boolean accessibility;
 
     public BuildingDetailsDto() {
     }
-
 
     public String getName() {
         return name;
@@ -31,5 +31,13 @@ public class BuildingDetailsDto {
 
     public void setImgUri(String imgUri) {
         this.imgUri = imgUri;
+    }
+
+    public boolean getAccessibility() {
+        return accessibility;
+    }
+
+    public void setAccessibility(boolean accessibility) {
+        this.accessibility = accessibility;
     }
 }
