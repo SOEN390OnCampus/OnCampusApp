@@ -109,17 +109,16 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         // Initialize buildingDetailsService
         buildingDetailsService = new BuildingDetailsService(this);
 
-
         WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
-
-        setContentView(R.layout.activity_main);
         getWindow().setStatusBarColor(Color.TRANSPARENT);
 
+// ViewBinding: inflate, then set content view ONCE [web:83]
         binding = ActivityMapsBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
+        setupRoutePickerUi();
+
 
         buildingClassifier = new BuildingClassifier();
-
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
 
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
@@ -171,6 +170,64 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         // Load the GeoJSON ID to Place ID mapping
         loadGeoIdToPlaceIdMapping();
     }
+    private void setupRoutePickerUi() {
+        CardView searchBar = findViewById(R.id.search_bar_container);
+        routePicker = findViewById(R.id.route_picker_container);
+        startDestinationText = findViewById(R.id.et_start);
+        endDestinationText = findViewById(R.id.et_destination);
+
+        btnSwapAddress = findViewById(R.id.btn_swap_address);
+
+        Animation slideDown = AnimationUtils.loadAnimation(this, R.anim.slide_down);
+        Animation slideUp = AnimationUtils.loadAnimation(this, R.anim.slide_up);
+
+        Runnable closeRoutePicker = () -> {
+            slideUp.setAnimationListener(new Animation.AnimationListener() {
+                @Override public void onAnimationStart(Animation animation) {}
+                @Override public void onAnimationEnd(Animation animation) {
+                    routePicker.setVisibility(View.GONE);
+                    searchBar.setVisibility(View.VISIBLE);
+                    slideUp.setAnimationListener(null);
+                }
+                @Override public void onAnimationRepeat(Animation animation) {}
+            });
+            routePicker.startAnimation(slideUp);
+        };
+
+        searchBar.setOnClickListener(v -> {
+            searchBar.setVisibility(View.GONE);
+            routePicker.setVisibility(View.VISIBLE);
+            routePicker.startAnimation(slideDown);
+
+            startDestinationText.setFocusableInTouchMode(true);
+            startDestinationText.requestFocus();
+
+            startDestinationText.post(() -> {
+                InputMethodManager imm =
+                        (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+                if (imm != null) {
+                    imm.showSoftInput(startDestinationText, InputMethodManager.SHOW_IMPLICIT);
+                }
+            });
+        });
+
+        btnSwapAddress.setOnClickListener(v -> { swapAddresses(); });
+
+        // Handle Device/System Back Press
+        getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+                if (routePicker.getVisibility() == View.VISIBLE) {
+                    closeRoutePicker.run();
+                    startDestinationText.setText("");
+                    endDestinationText.setText("");
+                } else {
+                    setEnabled(false);
+                    getOnBackPressedDispatcher().onBackPressed();
+                }
+            }
+        });
+    }
 
     @Override
     public void onMapReady(GoogleMap googleMap) {
@@ -188,71 +245,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         btnSgwLoy = findViewById(R.id.btn_campus_switch);
         ImageButton btnLocation = findViewById(R.id.btn_location);
-
-        CardView searchBar = findViewById(R.id.search_bar_container);
-        routePicker = findViewById(R.id.route_picker_container);
-        ImageButton btnSwapAddress = findViewById(R.id.btn_swap_address);
-        startDestinationText = findViewById(R.id.et_start);
-        endDestinationText = findViewById(R.id.et_destination);
-        btnSwapAddress = findViewById(R.id.btn_swap_address);
-
-        Animation slideDown = AnimationUtils.loadAnimation(this, R.anim.slide_down);
-        Animation slideUp = AnimationUtils.loadAnimation(this, R.anim.slide_up);
-
-        // Helper method for the "Close" action on the search bar
-        Runnable closeRoutePicker = () -> {
-            slideUp.setAnimationListener(new Animation.AnimationListener() {
-                @Override
-                public void onAnimationStart(Animation animation) {}
-
-                @Override
-                public void onAnimationEnd(Animation animation) {
-                    routePicker.setVisibility(View.GONE);
-                    searchBar.setVisibility(View.VISIBLE);
-                    // Reset listener so it doesn't trigger on other animations
-                    slideUp.setAnimationListener(null);
-                }
-
-                @Override
-                public void onAnimationRepeat(Animation animation) {}
-            });
-            routePicker.startAnimation(slideUp);
-        };
-
-        // Handle Search Bar Click (Open)
-        searchBar.setOnClickListener(v -> {
-            searchBar.setVisibility(View.GONE);
-            routePicker.setVisibility(View.VISIBLE);
-            routePicker.startAnimation(slideDown);
-            startDestinationText.setFocusableInTouchMode(true);
-            startDestinationText.requestFocus();
-
-            startDestinationText.post(() -> {
-                InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
-                if (imm != null) {
-                    imm.showSoftInput(startDestinationText, InputMethodManager.SHOW_IMPLICIT);
-                }
-            });
-        });
-
-        btnSwapAddress.setOnClickListener(v -> { swapAddresses(); });
-
-        // Handle Device/System Back Press
-        getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
-            @Override
-            public void handleOnBackPressed() {
-                // If the route picker is open, slide it up
-                if (routePicker.getVisibility() == View.VISIBLE) {
-                    closeRoutePicker.run();
-                    startDestinationText.setText("");
-                    endDestinationText.setText("");
-                } else {
-                    // If it's already closed, perform normal back action (exit app)
-                    setEnabled(false);
-                    getOnBackPressedDispatcher().onBackPressed();
-                }
-            }
-        });
 
         try {
             // Load the GeoJSON file
@@ -469,7 +461,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         String buildingName = feature.getProperty("name");
 
-        // ✅ If search view is open, autofill instead of showing dialog
+        // If search view is open, autofill instead of showing dialog
         if (routePicker != null && routePicker.getVisibility() == View.VISIBLE) {
 
             if (startDestinationText != null && startDestinationText.hasFocus()) {

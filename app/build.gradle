@@ -9,6 +9,9 @@ android {
     namespace 'com.example.oncampusapp'
     compileSdk 35
 
+    testOptions {
+        animationsDisabled = true}
+
     defaultConfig {
         applicationId "com.example.oncampusapp"
         minSdk 24
@@ -85,9 +88,26 @@ tasks.register("jacocoCombinedTestReport", JacocoReport) {
     dependsOn("testDebugUnitTest", "createDebugCoverageReport")
 
     def fileFilter = [
+            // Android / generated
             '**/R.class', '**/R$*.class', '**/BuildConfig.*', '**/Manifest*.*',
-            '**/*Test*.*', 'android/**/*.*'
+
+            // Tests
+            '**/*Test*.*',
+
+            // ViewBinding / DataBinding generated
+            '**/*Binding*.*',          // e.g., ActivityMapsBinding, *BindingImpl
+            '**/databinding/**',       // package com...databinding
+            '**/android/databinding/**',
+            '**/androidx/databinding/**',
+            '**/BR.*',                 // DataBinding generated
+
+            // Common DI generated (if you ever add Dagger/Hilt, harmless otherwise)
+            '**/*_Factory*.*', '**/*_MembersInjector*.*', '**/Dagger*.*',
+
+            // Optional: lambdas/anonymous can be noisy, keep if you want
+            // '**/*$Lambda$*.*', '**/*$inlined$*.*'
     ]
+
 
     // Java classes (AGP commonly outputs here)
     def javaClassesMain = fileTree(

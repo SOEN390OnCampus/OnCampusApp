@@ -16,7 +16,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @RunWith(MockitoJUnitRunner.class)
-public class MapsActivityTest {
+public class MapsActivityUnitTest {
 
     @Before
     public void setUp() {
