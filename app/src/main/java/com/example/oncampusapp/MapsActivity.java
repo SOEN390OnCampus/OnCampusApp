@@ -78,6 +78,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private BuildingClassifier buildingClassifier;
     private Dialog currentBuildingDialog = null;
     private boolean isFetchingBuildingDetails = false;
+
+    private ImageView currentLocationIcon;
     private AutoCompleteTextView startDestinationText;
     private AutoCompleteTextView endDestinationText;
     private LinearLayout routePicker;
@@ -179,6 +181,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         routePicker = findViewById(R.id.route_picker_container);
         startDestinationText = findViewById(R.id.et_start);
         endDestinationText = findViewById(R.id.et_destination);
+        currentLocationIcon = findViewById(R.id.currentLocationIcon);
 
         btnSwapAddress = findViewById(R.id.btn_swap_address);
 
@@ -202,6 +205,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             searchBar.setVisibility(View.GONE);
             routePicker.setVisibility(View.VISIBLE);
             routePicker.startAnimation(slideDown);
+            currentLocationIcon.setVisibility(View.VISIBLE);
 
             startDestinationText.setFocusableInTouchMode(true);
             startDestinationText.requestFocus();
@@ -216,6 +220,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         });
 
         btnSwapAddress.setOnClickListener(v -> { swapAddresses(); });
+        currentLocationIcon.setOnClickListener(v -> { setCurrentBuilding(); });
 
         // Handle Device/System Back Press
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
@@ -727,5 +732,28 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         startDestinationText.clearFocus();
         endDestinationText.clearFocus();
+    }
+
+    /**
+     *  Set building user is currently in as start destination
+     */
+    private void setCurrentBuilding() {
+        Building currentBuilding = getCurrentBuilding();
+        if (currentBuilding != null) {
+            startDestinationText.setText(currentBuilding.getName());
+        }
+    }
+
+    /**
+     * get the current building the user is in
+     * @return Building
+     */
+    private Building getCurrentBuilding() {
+        for (Building building : buildingsMap.values()) {
+            if (building.currentlyInside) {
+                return building;
+            }
+        }
+        return null;
     }
 }

@@ -84,6 +84,10 @@
                 android:orientation="vertical"
                 android:paddingHorizontal="8dp">
 
+                <FrameLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content">
+
                 <AutoCompleteTextView
                     android:id="@+id/et_start"
                     android:layout_width="match_parent"
@@ -98,6 +102,17 @@
                     android:imeOptions="actionNext"
                     android:paddingHorizontal="12dp"
                     android:textSize="16sp" />
+
+                <ImageView
+                    android:id="@+id/currentLocationIcon"
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:layout_gravity="end|center_vertical"
+                    android:layout_marginEnd="12dp"
+                    android:src="@android:drawable/ic_menu_mylocation"
+                    android:visibility="gone"/>
+
+                </FrameLayout>
 
                 <AutoCompleteTextView
                     android:id="@+id/et_destination"
