@@ -75,6 +75,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private AutoCompleteTextView startDestinationText;
     private AutoCompleteTextView endDestinationText;
     private LinearLayout routePicker;
+    private ImageButton btnSwapAddress;
 
     public static final LatLng SGW_COORDS = new LatLng(45.496107243097704, -73.57725834380621);
     public static final LatLng LOY_COORDS = new LatLng(45.4582, -73.6405);
@@ -193,7 +194,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         ImageButton btnSwapAddress = findViewById(R.id.btn_swap_address);
         startDestinationText = findViewById(R.id.et_start);
         endDestinationText = findViewById(R.id.et_destination);
-
+        btnSwapAddress = findViewById(R.id.btn_swap_address);
 
         Animation slideDown = AnimationUtils.loadAnimation(this, R.anim.slide_down);
         Animation slideUp = AnimationUtils.loadAnimation(this, R.anim.slide_up);
@@ -234,6 +235,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             });
         });
 
+        btnSwapAddress.setOnClickListener(v -> { swapAddresses(); });
+
         // Handle Device/System Back Press
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
             @Override
@@ -241,6 +244,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 // If the route picker is open, slide it up
                 if (routePicker.getVisibility() == View.VISIBLE) {
                     closeRoutePicker.run();
+                    startDestinationText.setText("");
+                    endDestinationText.setText("");
                 } else {
                     // If it's already closed, perform normal back action (exit app)
                     setEnabled(false);
@@ -669,5 +674,19 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         });
 
         dialog.setOnDismissListener(d -> currentBuildingDialog = null);
+    }
+
+    /**
+     * Swap the start and end destination
+     */
+    private void swapAddresses() {
+        String startDestinationTextValue = startDestinationText.getText().toString();
+        String endDestinationTextValue = endDestinationText.getText().toString();
+
+        startDestinationText.setText(endDestinationTextValue);
+        endDestinationText.setText((startDestinationTextValue));
+
+        startDestinationText.clearFocus();
+        endDestinationText.clearFocus();
     }
 }
