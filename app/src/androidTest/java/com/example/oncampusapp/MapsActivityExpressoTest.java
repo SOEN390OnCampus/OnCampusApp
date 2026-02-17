@@ -275,4 +275,16 @@ public class MapsActivityExpressoTest {
         openRoutePicker();
         closeRoutePickerWithBack();
     }
+
+    // ----------------------------------------
+    // For US-2.2: Clicking on current location
+    // ----------------------------------------
+
+    @Test
+    public void clickingOnCurrentLocation() {
+        onView(withId(R.id.btn_location)).perform(click());
+        openRoutePicker();
+        onView(withId(R.id.currentLocationIcon)).perform(click());
+        onView(withId(R.id.et_start)).check(matches(withText("EV - Engineering, Computer Science and Visual Arts Integrated Complex")));
+    }
 }

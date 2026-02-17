@@ -748,7 +748,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
      * get the current building the user is in
      * @return Building
      */
-    private Building getCurrentBuilding() {
+    protected static Building getCurrentBuilding() {
         for (Building building : buildingsMap.values()) {
             if (building.currentlyInside) {
                 return building;
