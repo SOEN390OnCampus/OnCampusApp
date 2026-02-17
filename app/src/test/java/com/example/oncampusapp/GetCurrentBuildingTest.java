@@ -25,7 +25,7 @@ public class GetCurrentBuildingTest {
         Building result = MapsActivity.getCurrentBuilding();
 
         assertNotNull(result);
-        assertEquals("Library", result.getName());
+        assertEquals("Hall", result.getName());
     }
 
     @Test
