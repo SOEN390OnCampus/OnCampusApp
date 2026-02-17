@@ -14,6 +14,127 @@
         tools:context=".MapsActivity" />
 
     <androidx.cardview.widget.CardView
+        android:id="@+id/search_bar_container"
+        android:layout_width="0dp"
+        android:layout_height="50dp"
+        android:layout_marginHorizontal="24dp"
+        android:layout_marginTop="65dp"
+        app:cardCornerRadius="25dp"
+        app:cardElevation="8dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center_vertical"
+            android:paddingHorizontal="16dp"
+            android:background="@android:color/white">
+
+            <ImageView
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:contentDescription="@string/search_image"
+                android:src="@android:drawable/ic_menu_search"
+                app:tint="@android:color/darker_gray" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="12dp"
+                android:text="@string/search"
+                android:textColor="@android:color/darker_gray"
+                android:textSize="18sp" />
+        </LinearLayout>
+    </androidx.cardview.widget.CardView>
+
+    <LinearLayout
+        android:id="@+id/route_picker_container"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/concordia_red"
+        android:elevation="10dp"
+        android:orientation="vertical"
+        android:paddingHorizontal="12dp"
+        android:paddingBottom="25dp"
+        android:visibility="gone"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:layout_marginTop="80dp">
+
+            <ImageButton
+                android:id="@+id/btn_swap_address"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/swap_address_image"
+                android:src="@drawable/ic_baseline_swap_vert_24"
+                app:tint="@android:color/white" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:paddingHorizontal="8dp">
+
+                <AutoCompleteTextView
+                    android:id="@+id/et_start"
+                    android:layout_width="match_parent"
+                    android:layout_height="45dp"
+                    android:completionThreshold="1"
+                    android:autofillHints=""
+                    android:background="@drawable/rounded_edittext"
+                    android:hint="@string/select_or_input_starting_point"
+                    android:textColorHint="@android:color/darker_gray"
+                    android:textColor="@android:color/black"
+                    android:inputType="textNoSuggestions"
+                    android:imeOptions="actionNext"
+                    android:paddingHorizontal="12dp"
+                    android:textSize="16sp" />
+
+                <AutoCompleteTextView
+                    android:id="@+id/et_destination"
+                    android:layout_width="match_parent"
+                    android:layout_height="45dp"
+                    android:layout_marginTop="12dp"
+                    android:completionThreshold="1"
+                    android:autofillHints=""
+                    android:background="@drawable/rounded_edittext"
+                    android:hint="@string/select_or_input_destination_point"
+                    android:textColorHint="@android:color/darker_gray"
+                    android:textColor="@android:color/black"
+                    android:inputType="textNoSuggestions"
+                    android:imeOptions="actionDone"
+                    android:paddingHorizontal="12dp"
+                    android:textSize="16sp" />
+            </LinearLayout>
+
+            <Button
+                android:id="@+id/btn_go"
+                android:layout_width="56dp"
+                android:layout_height="56dp"
+                android:layout_gravity="center_vertical"
+                android:layout_marginStart="8dp"
+                android:backgroundTint="@android:color/black"
+                android:text="@string/go"
+                android:textColor="@android:color/white"
+                android:padding="0dp"
+                android:insetTop="0dp"
+                android:insetBottom="0dp"
+                android:insetLeft="0dp"
+                android:insetRight="0dp"
+                app:cornerRadius="8dp" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <androidx.cardview.widget.CardView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginStart="16dp"
@@ -46,7 +167,7 @@
                 android:layout_height="36dp"
                 android:layout_marginTop="4dp"
                 android:background="@android:drawable/presence_online"
-                android:backgroundTint="#912338"
+                android:backgroundTint="@color/concordia_red"
                 android:gravity="center"
                 android:text="@string/campus_loy"
                 android:textColor="@android:color/white"
@@ -62,7 +183,6 @@
                 android:contentDescription="@string/maps_current_location"
                 android:src="@android:drawable/ic_menu_compass"
                 app:tint="@android:color/white" />
-
         </LinearLayout>
     </androidx.cardview.widget.CardView>
 

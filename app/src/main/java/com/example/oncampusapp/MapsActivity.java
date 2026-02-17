@@ -1,16 +1,17 @@
 package com.example.oncampusapp;
 
-import static android.view.View.GONE;
-import static android.view.View.INVISIBLE;
+import androidx.activity.OnBackPressedCallback;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.cardview.widget.CardView;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.core.view.WindowCompat;
 import androidx.fragment.app.FragmentActivity;
 
 import android.Manifest;
+import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.content.res.Resources;
@@ -19,7 +20,13 @@ import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
+import android.view.animation.Animation;
+import android.view.animation.AnimationUtils;
+import android.view.inputmethod.InputMethodManager;
+import android.widget.ArrayAdapter;
+import android.widget.AutoCompleteTextView;
 import android.widget.ImageButton;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.app.Dialog;
@@ -57,6 +64,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import com.bumptech.glide.Glide;
 
@@ -69,6 +77,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private ActivityMapsBinding binding;
     private BuildingClassifier buildingClassifier;
     private Dialog currentBuildingDialog = null;
+    private boolean isFetchingBuildingDetails = false;
+    private AutoCompleteTextView startDestinationText;
+    private AutoCompleteTextView endDestinationText;
+    private LinearLayout routePicker;
+    private ImageButton btnSwapAddress;
 
     public static final LatLng SGW_COORDS = new LatLng(45.496107243097704, -73.57725834380621);
     public static final LatLng LOY_COORDS = new LatLng(45.4582, -73.6405);
@@ -99,15 +112,15 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         super.onCreate(savedInstanceState);
 
         WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
-
-        setContentView(R.layout.activity_main);
         getWindow().setStatusBarColor(Color.TRANSPARENT);
 
+// ViewBinding: inflate, then set content view ONCE [web:83]
         binding = ActivityMapsBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
+        setupRoutePickerUi();
+
 
         buildingClassifier = new BuildingClassifier();
-
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
 
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
@@ -155,11 +168,69 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         // Check and Request on Startup
         checkLocationPermissions();
-        
+
         // Load the GeoJSON ID to Place ID mapping
 
         // Load building details
         loadBuildingDetails();
+    }
+    private void setupRoutePickerUi() {
+        CardView searchBar = findViewById(R.id.search_bar_container);
+        routePicker = findViewById(R.id.route_picker_container);
+        startDestinationText = findViewById(R.id.et_start);
+        endDestinationText = findViewById(R.id.et_destination);
+
+        btnSwapAddress = findViewById(R.id.btn_swap_address);
+
+        Animation slideDown = AnimationUtils.loadAnimation(this, R.anim.slide_down);
+        Animation slideUp = AnimationUtils.loadAnimation(this, R.anim.slide_up);
+
+        Runnable closeRoutePicker = () -> {
+            slideUp.setAnimationListener(new Animation.AnimationListener() {
+                @Override public void onAnimationStart(Animation animation) {}
+                @Override public void onAnimationEnd(Animation animation) {
+                    routePicker.setVisibility(View.GONE);
+                    searchBar.setVisibility(View.VISIBLE);
+                    slideUp.setAnimationListener(null);
+                }
+                @Override public void onAnimationRepeat(Animation animation) {}
+            });
+            routePicker.startAnimation(slideUp);
+        };
+
+        searchBar.setOnClickListener(v -> {
+            searchBar.setVisibility(View.GONE);
+            routePicker.setVisibility(View.VISIBLE);
+            routePicker.startAnimation(slideDown);
+
+            startDestinationText.setFocusableInTouchMode(true);
+            startDestinationText.requestFocus();
+
+            startDestinationText.post(() -> {
+                InputMethodManager imm =
+                        (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+                if (imm != null) {
+                    imm.showSoftInput(startDestinationText, InputMethodManager.SHOW_IMPLICIT);
+                }
+            });
+        });
+
+        btnSwapAddress.setOnClickListener(v -> { swapAddresses(); });
+
+        // Handle Device/System Back Press
+        getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+                if (routePicker.getVisibility() == View.VISIBLE) {
+                    closeRoutePicker.run();
+                    startDestinationText.setText("");
+                    endDestinationText.setText("");
+                } else {
+                    setEnabled(false);
+                    getOnBackPressedDispatcher().onBackPressed();
+                }
+            }
+        });
     }
 
     @Override
@@ -292,6 +363,23 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             btnSgwLoy.setText(sgw);
         }
 
+        // String array for building suggestions
+        String[] buildingSuggestions = buildingsMap.values()
+            .stream()
+            .map(Building::getName)
+            .filter(Objects::nonNull)
+            .toArray(String[]::new);
+
+        // Create the adapter for building suggestions
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(this,
+            android.R.layout.simple_dropdown_item_1line, buildingSuggestions);
+
+        // Set the adapter to both views
+        startDestinationText.setAdapter(adapter);
+        endDestinationText.setAdapter(adapter);
+
+        // Move camera to a wider view of Montreal
+        LatLng montreal = new LatLng(45.47715, -73.6089);
         mMap.animateCamera(CameraUpdateFactory.newCameraPosition(
             new CameraPosition.Builder()
                 .target(defaultLatLng)
@@ -427,10 +515,30 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
      */
     private void handleBuildingDetailsButtonClick(String geojsonId) {
         BuildingDetails details = geoIdToBuildingDetailsMap.get(geojsonId);
+
         if (details == null){
             Toast.makeText(this, "No details found for this building", Toast.LENGTH_SHORT).show();
             return;
         }
+
+        String buildingName = details.name;
+
+        // If search view is open, autofill instead of showing dialog
+        if (routePicker != null && routePicker.getVisibility() == View.VISIBLE) {
+
+            if (startDestinationText != null && startDestinationText.hasFocus()) {
+                startDestinationText.setText(buildingName);
+                startDestinationText.dismissDropDown();
+                return;
+            }
+
+            if (endDestinationText != null && endDestinationText.hasFocus()) {
+                endDestinationText.setText(buildingName);
+                endDestinationText.dismissDropDown();
+                return;
+            }
+        }
+
         BuildingDetailsDto buildingDetailsDto = new BuildingDetailsDto();
         buildingDetailsDto.setName(details.name);
         buildingDetailsDto.setAddress(details.address);
@@ -443,7 +551,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
      * Displays a dialog containing detailed information about a building.
      * Dismisses any existing dialog before showing the new one. Coordinates the creation,
      * population, and display of the building information dialog.
-     * 
+     *
      * @param buildingDetails the building details retrieved from the Places API
      * @param featureId the building's feature ID used for campus determination
      */
@@ -452,45 +560,45 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         if (currentBuildingDialog != null && currentBuildingDialog.isShowing()) {
             currentBuildingDialog.dismiss();
         }
-        
+
         String campus = determineCampus(featureId);
         Dialog dialog = createAndConfigureDialog();
         populateDialogViews(dialog, buildingDetails, campus);
         setupDialogListeners(dialog);
-        
+
         dialog.show();
         currentBuildingDialog = dialog;
     }
 
     /**
      * Determines which campus a building belongs to based on its location.
-     * 
+     *
      * @param featureId the building's feature ID
      * @return the campus name as a string resource
      */
     private String determineCampus(String featureId) {
         String campus = getString(R.string.concordia_university);
         Building building = buildingsMap.get(featureId);
-        
+
         if (building != null && building.polygon != null && !building.polygon.isEmpty()) {
             LatLng buildingLocation = building.polygon.get(0);
             double distToSGW = SphericalUtil.computeDistanceBetween(buildingLocation, SGW_COORDS);
             double distToLoyola = SphericalUtil.computeDistanceBetween(buildingLocation, LOY_COORDS);
             campus = (distToSGW < distToLoyola) ? getString(R.string.sgw_campus_en) : getString(R.string.loyola_campus_en);
         }
-        
+
         return campus;
     }
 
     /**
      * Creates and configures the building info dialog window.
-     * 
+     *
      * @return the configured Dialog instance
      */
     private Dialog createAndConfigureDialog() {
         Dialog dialog = new Dialog(this);
         dialog.setContentView(R.layout.dialog_building_info);
-        
+
         // Set dialog to be full width
         if (dialog.getWindow() != null) {
             dialog.getWindow().setLayout(
@@ -499,13 +607,13 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             );
             dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
         }
-        
+
         return dialog;
     }
 
     /**
      * Populates the dialog views with building details including name, address, description, and image.
-     * 
+     *
      * @param dialog the Dialog to populate
      * @param buildingDetails the building details data
      * @param campus the campus name
@@ -557,7 +665,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     /**
      * Loads the building image into the ImageView using Glide.
-     * 
+     *
      * @param imgBuilding ImageView for the building image
      * @param buildingDetails the building details data
      */
@@ -575,7 +683,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     /**
      * Sets up dialog event listeners for close and dismiss actions.
-     * 
+     *
      * @param dialog the Dialog to set up listeners for
      */
     private void setupDialogListeners(Dialog dialog) {
@@ -584,7 +692,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             dialog.dismiss();
             currentBuildingDialog = null;
         });
-        
+
         dialog.setOnDismissListener(d -> currentBuildingDialog = null);
     }
 
@@ -605,5 +713,19 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         } catch (Resources.NotFoundException | IOException e) {
             throw new RuntimeException("File not found:" + e.getMessage());
         }
+    }
+
+    /**
+     * Swap the start and end destination
+     */
+    private void swapAddresses() {
+        String startDestinationTextValue = startDestinationText.getText().toString();
+        String endDestinationTextValue = endDestinationText.getText().toString();
+
+        startDestinationText.setText(endDestinationTextValue);
+        endDestinationText.setText((startDestinationTextValue));
+
+        startDestinationText.clearFocus();
+        endDestinationText.clearFocus();
     }
 }
