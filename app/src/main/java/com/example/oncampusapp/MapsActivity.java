@@ -1,8 +1,6 @@
 package com.example.oncampusapp;
 
 import androidx.activity.OnBackPressedCallback;
-import static android.view.View.GONE;
-import static android.view.View.INVISIBLE;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
@@ -21,7 +19,6 @@ import android.graphics.Color;
 import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
-import android.view.View;
 import android.view.View;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
