@@ -51,6 +51,8 @@ dependencies {
     implementation libs.play.services.location
     implementation libs.glide
     implementation libs.android.maps.utils
+    implementation libs.gson
+
 
     testImplementation libs.junit
     testImplementation libs.mockito.core

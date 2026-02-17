@@ -24,6 +24,11 @@
     <!-- Toast messages -->
     <string name="toast_building_id_not_found">Building ID not found</string>
     <string name="toast_no_place_id_mapping">No Place ID mapping for: %s</string>
+
+    <!-- Building accessibility -->
+    <string name="building_accessible">Wheel chair accessible</string>
+    <string name="building_not_accessible">Not wheel chair accessible</string>
+
     <string name="search_image">Search image</string>
     <string name="search">Search</string>
     <string name="swap_address_image">Swap address image</string>
