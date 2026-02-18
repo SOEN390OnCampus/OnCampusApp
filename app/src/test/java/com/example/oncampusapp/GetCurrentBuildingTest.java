@@ -10,19 +10,24 @@ import java.util.HashMap;
 @RunWith(MockitoJUnitRunner.class)
 public class GetCurrentBuildingTest {
 
+    BuildingManager buildingManager;
+    Building building1;
+    Building building2;
+
+
     @Before
-    public void setup() {
-        MapsActivity.buildingsMap.clear();
+    public void setUp() {
+        buildingManager = new BuildingManager();
+        building1 = new Building("1", "Hall", null);
+        building2 = new Building("2", "JMSB", null);
+        buildingManager.addBuilding(building1);
+        buildingManager.addBuilding(building2);
     }
 
     @Test
     public void returnsBuildingWhenUserInside() {
-        Building building = new Building("1", "Hall", null);
-        building.currentlyInside = true;
-
-        MapsActivity.buildingsMap.put("1", building);
-
-        Building result = MapsActivity.getCurrentBuilding();
+        building1.currentlyInside = true;
+        Building result = buildingManager.getCurrentBuilding();
 
         assertNotNull(result);
         assertEquals("Hall", result.getName());
@@ -30,16 +35,11 @@ public class GetCurrentBuildingTest {
 
     @Test
     public void returnsFirstBuildingIfMultipleInside() {
-        Building building1 = new Building("1", "Hall", null);
-        building1.currentlyInside = true;
 
-        Building building2 = new Building("2", "JMSB", null);
+        building1.currentlyInside = true;
         building2.currentlyInside = true;
 
-        MapsActivity.buildingsMap.put("1", building1);
-        MapsActivity.buildingsMap.put("2", building2);
-
-        Building result = MapsActivity.getCurrentBuilding();
+        Building result = buildingManager.getCurrentBuilding();
 
         assertNotNull(result);
         assertTrue(result == building1 || result == building2);
@@ -47,12 +47,12 @@ public class GetCurrentBuildingTest {
 
     @Test
     public void returnsNullWhenUserNotInsideAnyBuilding() {
-        Building building = new Building("1", "Hall", null);
-        building.currentlyInside = false;
 
-        MapsActivity.buildingsMap.put("1", building);
 
-        Building result = MapsActivity.getCurrentBuilding();
+        building1.currentlyInside = false;
+        building2.currentlyInside = false;
+
+        Building result = buildingManager.getCurrentBuilding();
 
         assertNull(result);
     }

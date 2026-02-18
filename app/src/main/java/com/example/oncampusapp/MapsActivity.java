@@ -76,6 +76,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private Map<String, BuildingDetails> geoIdToBuildingDetailsMap;
     private ActivityMapsBinding binding;
     private BuildingClassifier buildingClassifier;
+
+    protected BuildingManager buildingManager;
     private Dialog currentBuildingDialog = null;
     private boolean isFetchingBuildingDetails = false;
 
@@ -251,6 +253,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         GeofenceManager geofenceManager = new GeofenceManager(this);
         FeatureStyler featureStyler = new FeatureStyler();
+        buildingManager = new BuildingManager();
 
         btnSgwLoy = findViewById(R.id.btn_campus_switch);
         ImageButton btnLocation = findViewById(R.id.btn_location);
@@ -311,6 +314,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                         Building building1 = new Building(id, name, coordinates);
 
                         buildingsMap.put(id, building1);
+                        buildingManager.addBuilding(building1);
 
                         geofenceManager.addGeofence(
                                 id,
@@ -738,22 +742,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
      *  Set building user is currently in as start destination
      */
     private void setCurrentBuilding() {
-        Building currentBuilding = getCurrentBuilding();
+        Building currentBuilding = buildingManager.getCurrentBuilding();
         if (currentBuilding != null) {
             startDestinationText.setText(currentBuilding.getName());
         }
-    }
-
-    /**
-     * get the current building the user is in
-     * @return Building
-     */
-    protected static Building getCurrentBuilding() {
-        for (Building building : buildingsMap.values()) {
-            if (building.currentlyInside) {
-                return building;
-            }
-        }
-        return null;
     }
 }

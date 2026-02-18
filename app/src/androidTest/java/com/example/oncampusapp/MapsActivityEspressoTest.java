@@ -9,7 +9,6 @@ import static androidx.test.espresso.action.ViewActions.click;
 import static androidx.test.espresso.action.ViewActions.typeText;
 import static androidx.test.espresso.assertion.ViewAssertions.matches;
 import static androidx.test.espresso.matcher.ViewMatchers.hasFocus;
-import static androidx.test.espresso.matcher.ViewMatchers.isDisplayed;
 import static androidx.test.espresso.matcher.ViewMatchers.withId;
 import static androidx.test.espresso.matcher.ViewMatchers.withText;
 import static androidx.test.espresso.action.ViewActions.closeSoftKeyboard;
@@ -24,7 +23,6 @@ import androidx.test.espresso.matcher.ViewMatchers.Visibility;
 
 
 import android.Manifest;
-import android.view.View;
 
 import androidx.test.espresso.NoMatchingRootException;
 import androidx.test.espresso.NoMatchingViewException;
@@ -42,9 +40,10 @@ import org.junit.runner.RunWith;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 @RunWith(AndroidJUnit4.class)
-public class MapsActivityExpressoTest {
+public class MapsActivityEspressoTest {
 
     @Rule
     public ActivityScenarioRule<MapsActivity> activityRule =
@@ -55,10 +54,15 @@ public class MapsActivityExpressoTest {
             GrantPermissionRule.grant(Manifest.permission.ACCESS_FINE_LOCATION);
 
     private void sleep(int ms) {
-        try { Thread.sleep(ms); } catch (InterruptedException ignored) {}
+        try {
+            Thread.sleep(ms);
+        } catch (InterruptedException ignored) {
+        }
     }
 
-    /** Opens route picker by clicking the search bar. */
+    /**
+     * Opens route picker by clicking the search bar.
+     */
     private void openRoutePicker() {
         // Wait a bit for activity + map init to settle (still not perfect, but reduces flake)
         sleep(5000);
@@ -68,7 +72,9 @@ public class MapsActivityExpressoTest {
         onView(withId(R.id.search_bar_container)).check(matches(withEffectiveVisibility(Visibility.GONE)));
     }
 
-    /** Closes route picker using back. */
+    /**
+     * Closes route picker using back.
+     */
     private void closeRoutePickerWithBack() {
         onView(withId(R.id.et_start)).perform(closeSoftKeyboard()); // closes keyboard (ViewAction)
         pressBack();
@@ -79,7 +85,6 @@ public class MapsActivityExpressoTest {
         onView(withId(R.id.route_picker_container))
                 .check(matches(withEffectiveVisibility(Visibility.GONE)));
     }
-
 
 
     /**
@@ -282,9 +287,20 @@ public class MapsActivityExpressoTest {
 
     @Test
     public void clickingOnCurrentLocation() {
+        AtomicReference<Building> ref = new AtomicReference<>();
+
+
         onView(withId(R.id.btn_location)).perform(click());
         openRoutePicker();
+
+        activityRule.getScenario().onActivity(activity -> {
+            ref.set(activity.buildingManager.getCurrentBuilding());
+        });
+
+        String name = ref.get().getName();
+
         onView(withId(R.id.currentLocationIcon)).perform(click());
-        onView(withId(R.id.et_start)).check(matches(withText("EV - Engineering, Computer Science and Visual Arts Integrated Complex")));
+        onView(withId(R.id.et_start)).check(matches(withText(name)));
     }
+
 }
