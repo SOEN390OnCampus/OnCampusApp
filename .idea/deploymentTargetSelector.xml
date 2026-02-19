@@ -4,10 +4,21 @@
     <selectionStates>
       <SelectionState runConfigName="app">
         <option name="selectionMode" value="DROPDOWN" />
-        <DropdownSelection timestamp="2026-01-28T19:11:43.241027Z">
+        <DropdownSelection timestamp="2026-02-19T19:35:15.024271300Z">
           <Target type="DEFAULT_BOOT">
             <handle>
-              <DeviceId pluginId="LocalEmulator" identifier="path=/Users/airi/.android/avd/Pixel_2_API_36.avd" />
+              <DeviceId pluginId="PhysicalDevice" identifier="serial=R3CXA0EL5WT" />
+            </handle>
+          </Target>
+        </DropdownSelection>
+        <DialogSelection />
+      </SelectionState>
+      <SelectionState runConfigName="NavigationUITest">
+        <option name="selectionMode" value="DROPDOWN" />
+        <DropdownSelection timestamp="2026-02-19T19:25:28.159788100Z">
+          <Target type="DEFAULT_BOOT">
+            <handle>
+              <DeviceId pluginId="LocalEmulator" identifier="path=C:\Users\utilisateur\.android\avd\Medium_Phone.avd" />
             </handle>
           </Target>
         </DropdownSelection>
