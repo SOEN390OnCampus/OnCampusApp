@@ -1,7 +1,5 @@
 package com.example.oncampusapp;
 
-import static com.example.oncampusapp.BuildingLookup.getLatLngFromBuildingName;
-
 import androidx.activity.OnBackPressedCallback;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
@@ -777,57 +775,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
     }
 
-    // Fetch data from Google Directions API
-    private void fetchDirections(LatLng start, LatLng end) {
-        String apiKey = BuildConfig.MAPS_API_KEY;
-        String url = "https://maps.googleapis.com/maps/api/directions/json?" +
-                "origin=" + start.latitude + "," + start.longitude +
-                "&destination=" + end.latitude + "," + end.longitude +
-                "&mode=walking" +
-                "&key=" + apiKey;
-
-        java.util.concurrent.Executors.newSingleThreadExecutor().execute(() -> {
-            try {
-                java.net.URL directionUrl = new java.net.URL(url);
-                java.net.HttpURLConnection conn = (java.net.HttpURLConnection) directionUrl.openConnection();
-                conn.setRequestMethod("GET");
-                conn.connect();
-
-                InputStream inputStream = conn.getInputStream();
-                BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(inputStream));
-                StringBuilder stringBuilder = new StringBuilder();
-                String line;
-                while ((line = bufferedReader.readLine()) != null) {
-                    stringBuilder.append(line);
-                }
-
-                org.json.JSONObject jsonResponse = new org.json.JSONObject(stringBuilder.toString());
-                org.json.JSONArray routes = jsonResponse.optJSONArray("routes");
-
-                if (routes != null && routes.length() > 0) {
-                    org.json.JSONObject route = routes.getJSONObject(0);
-
-                    // Get the Polyline
-                    String encodedString = route.getJSONObject("overview_polyline").getString("points");
-                    List<LatLng> decodedPath = com.google.maps.android.PolyUtil.decode(encodedString);
-
-                    // Get the Duration Text
-                    org.json.JSONArray legs = route.getJSONArray("legs");
-                    org.json.JSONObject leg = legs.getJSONObject(0);
-                    String durationText = leg.getJSONObject("duration").getString("text");
-
-                    // Update UI
-                    runOnUiThread(() -> {
-                        // Pass BOTH the path and the time to the drawing method
-                        drawRouteOnMap(decodedPath, durationText);
-                    });
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        });
-    }
-
     // Update signature to accept duration
     private void drawRouteOnMap(List<LatLng> decodedPath, String duration) {
         if (mMap == null || decodedPath == null) return;
@@ -891,64 +838,14 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         fusedLocationClient.requestLocationUpdates(request, navigationLocationCallback, android.os.Looper.getMainLooper());
     }
 
-    private void updateRouteProgress(LatLng userLocation) {
-        if (currentRoutePoints == null || currentRoutePoints.isEmpty()) return;
-
-        // Find which segment of the line we are currently on (or closest to)
-        // index = 0 means we are between point 0 and point 1
-        int index = com.google.maps.android.PolyUtil.locationIndexOnPath(
-                userLocation,
-                currentRoutePoints,
-                true, // geodesic
-                50.0  // Tolerance in meters
-        );
-
-        // If we are on the path (index is valid)
-        if (index >= 0 && index < currentRoutePoints.size() - 1) {
-
-            // Create a NEW list of points for the line
-            List<LatLng> newPath = new ArrayList<>();
-
-            // Point 0: The User's Current Location (The Head of the line)
-            newPath.add(userLocation);
-
-            // Points 1..End: The rest of the original path (skipping the points behind)
-            List<LatLng> remainingPoints = currentRoutePoints.subList(index + 1, currentRoutePoints.size());
-            newPath.addAll(remainingPoints);
-
-            // Update the drawing immediately
-            if (bluePolyline != null) {
-                bluePolyline.setPoints(newPath);
-            }
-        }
-
-        // Get the last point of the route (The destination)
-        LatLng destination = currentRoutePoints.get(currentRoutePoints.size() - 1);
-
-        // Calculate distance between YOU and DESTINATION
-        double distanceToFinish = com.google.maps.android.SphericalUtil.computeDistanceBetween(userLocation, destination);
-
-        // If closer than 10 meters, End the Trip
-        if (distanceToFinish < 10) {
-            Toast.makeText(this, "You have arrived!", Toast.LENGTH_LONG).show();
-
-            // Simulate clicking the "EXIT" button to reset the UI
-            android.widget.Button btnEndTrip = findViewById(R.id.btn_end_trip);
-            btnEndTrip.performClick();
-        }
-    }
-
-    // Helper method to gather text and fetch directions
     private void initiateRoutePreview() {
         String startName = startDestinationText.getText().toString().trim();
         String destName = endDestinationText.getText().toString().trim();
 
-        if (startName.isEmpty() || destName.isEmpty()) {
-            return;
-        }
+        if (startName.isEmpty() || destName.isEmpty()) return;
 
-        LatLng startCoords = getLatLngFromBuildingName(startName, buildingsMap);
-        LatLng destCoords = getLatLngFromBuildingName(destName, buildingsMap);
+        LatLng startCoords = BuildingLookup.getLatLngFromBuildingName(startName, buildingsMap);
+        LatLng destCoords = BuildingLookup.getLatLngFromBuildingName(destName, buildingsMap);
 
         if (startCoords != null && destCoords != null) {
             // Hide Keyboard
@@ -957,10 +854,43 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 imm.hideSoftInputFromWindow(getCurrentFocus().getWindowToken(), 0);
             }
 
-            // Fetch the data (Time + Path)
-            fetchDirections(startCoords, destCoords);
+            // Use NavigationHelper Class
+            NavigationHelper.fetchDirections(startCoords, destCoords, BuildConfig.MAPS_API_KEY, new NavigationHelper.DirectionsCallback() {
+                @Override
+                public void onSuccess(List<LatLng> path, String durationText) {
+                    runOnUiThread(() -> drawRouteOnMap(path, durationText));
+                }
+
+                @Override
+                public void onError(Exception e) {
+                    e.printStackTrace();
+                    runOnUiThread(() -> Toast.makeText(MapsActivity.this, "Failed to load route", Toast.LENGTH_SHORT).show());
+                }
+            });
         } else {
             Toast.makeText(this, "Could not find one of the locations", Toast.LENGTH_SHORT).show();
         }
     }
+
+    private void updateRouteProgress(LatLng userLocation) {
+        if (currentRoutePoints == null || currentRoutePoints.isEmpty()) return;
+
+        // Use Helper To Get The Sliced Path
+        List<LatLng> updatedPath = NavigationHelper.getUpdatedPath(userLocation, currentRoutePoints, 50.0);
+
+        // Update the UI immediately if the path changed
+        if (updatedPath.size() != currentRoutePoints.size() && bluePolyline != null) {
+            bluePolyline.setPoints(updatedPath);
+            currentRoutePoints = updatedPath; // Save the new state
+        }
+
+        // Use Helper To Check Arrival
+        if (NavigationHelper.hasArrived(userLocation, currentRoutePoints, 10.0)) {
+            Toast.makeText(this, "You have arrived!", Toast.LENGTH_LONG).show();
+
+            android.widget.Button btnEndTrip = findViewById(R.id.btn_end_trip);
+            if (btnEndTrip != null) btnEndTrip.performClick(); // Reset the UI
+        }
+    }
+
 }

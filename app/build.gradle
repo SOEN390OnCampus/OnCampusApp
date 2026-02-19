@@ -71,7 +71,6 @@ dependencies {
     implementation libs.places
 }
 
-// ... (Rest of your SonarQube and JaCoCo tasks remain unchanged)
 sonarqube {
     properties {
         property "sonar.projectKey", "OnCampusApp"
