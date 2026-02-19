@@ -45,6 +45,7 @@ import com.google.android.gms.maps.model.LatLng;
 import com.example.oncampusapp.databinding.ActivityMapsBinding;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
+import com.google.maps.android.data.Feature;
 import com.google.maps.android.data.Geometry;
 import com.google.maps.android.data.geojson.GeoJsonFeature;
 import com.google.maps.android.data.geojson.GeoJsonLayer;
@@ -345,7 +346,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             layer.setOnFeatureClickListener(feature -> {
                 if (feature.getGeometry() instanceof GeoJsonPolygon) {
                     String clickedLayer = feature.getProperty("layer");
-                    if (clickedLayer == null) {
+                    if (clickedLayer == null) { //Clicked on the building
+                        handleBuildingClick(feature);
                         return;
                     }
                     if (clickedLayer.equals("detailButton")){ // Clicked on the button
@@ -554,6 +556,29 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         buildingDetailsDto.setImgUri(details.image);
         buildingDetailsDto.setAccessibility(details.accessibility);
         showBuildingInfoDialog(buildingDetailsDto, geojsonId);
+    }
+
+    /**
+     * Handle on click for the building polygon on the map
+     * Set the name of the building into start destination search box
+     * @param feature feature representing the building
+     */
+    private void handleBuildingClick(Feature feature) {
+        String buildingName = feature.getProperty("name");
+
+        if (routePicker != null && routePicker.getVisibility() == View.VISIBLE) {
+
+            if (startDestinationText != null && startDestinationText.hasFocus()) {
+                startDestinationText.setText(buildingName);
+                startDestinationText.dismissDropDown();
+                return;
+            }
+
+            if (endDestinationText != null && endDestinationText.hasFocus()) {
+                endDestinationText.setText(buildingName);
+                endDestinationText.dismissDropDown();
+            }
+        }
     }
 
     /**
