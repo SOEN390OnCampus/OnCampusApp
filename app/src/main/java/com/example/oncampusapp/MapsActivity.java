@@ -1,5 +1,7 @@
 package com.example.oncampusapp;
 
+import static com.example.oncampusapp.BuildingLookup.getLatLngFromBuildingName;
+
 import androidx.activity.OnBackPressedCallback;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
@@ -775,21 +777,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
     }
 
-    // Helper to find a building's center by its name
-    private LatLng getLatLngFromBuildingName(String name) {
-        if (name == null || name.isEmpty()) return null;
-
-        for (Building b : buildingsMap.values()) {
-            if (b == null || b.getName() == null) {
-                continue;
-            }
-            if (b.getName().equalsIgnoreCase(name)) {
-                return b.getCenter();
-            }
-        }
-        return null;
-    }
-
     // Fetch data from Google Directions API
     private void fetchDirections(LatLng start, LatLng end) {
         String apiKey = BuildConfig.MAPS_API_KEY;
@@ -960,8 +947,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             return;
         }
 
-        LatLng startCoords = getLatLngFromBuildingName(startName);
-        LatLng destCoords = getLatLngFromBuildingName(destName);
+        LatLng startCoords = getLatLngFromBuildingName(startName, buildingsMap);
+        LatLng destCoords = getLatLngFromBuildingName(destName, buildingsMap);
 
         if (startCoords != null && destCoords != null) {
             // Hide Keyboard
