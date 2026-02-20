@@ -102,4 +102,22 @@ public class NavigationHelperTest {
         List<LatLng> emptyPath = NavigationHelper.getUpdatedPath(startPoint, new ArrayList<>(), 50.0);
         assertEquals(0, emptyPath.size());
     }
+    @Test
+    public void testEnumValues() {
+        assertEquals("walking", NavigationHelper.Mode.WALKING.getValue());
+        assertEquals("driving", NavigationHelper.Mode.DRIVING.getValue());
+        assertEquals("transit", NavigationHelper.Mode.TRANSIT.getValue());
+    }
+
+    @Test
+    public void testValueOf() {
+        assertEquals(NavigationHelper.Mode.WALKING, NavigationHelper.Mode.valueOf("WALKING"));
+        assertEquals(NavigationHelper.Mode.DRIVING, NavigationHelper.Mode.valueOf("DRIVING"));
+        assertEquals(NavigationHelper.Mode.TRANSIT, NavigationHelper.Mode.valueOf("TRANSIT"));
+    }
+
+    @Test
+    public void testEnumCount() {
+        assertEquals(3, NavigationHelper.Mode.values().length);
+    }
 }
