@@ -56,17 +56,19 @@
         android:background="@color/concordia_red"
         android:elevation="10dp"
         android:orientation="vertical"
-        android:paddingHorizontal="12dp"
-        android:paddingBottom="25dp"
+        android:paddingHorizontal="16dp"
+        android:paddingBottom="20dp"
+        android:paddingTop="85dp"
         android:visibility="gone"
         app:layout_constraintTop_toTopOf="parent">
 
         <LinearLayout
+            android:id="@+id/layout_inputs"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:gravity="center_vertical"
             android:orientation="horizontal"
-            android:layout_marginTop="80dp">
+            android:gravity="center_vertical"
+            android:layout_marginBottom="16dp">
 
             <ImageButton
                 android:id="@+id/btn_swap_address"
@@ -82,71 +84,162 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:orientation="vertical"
-                android:paddingHorizontal="8dp">
+                android:paddingHorizontal="12dp">
 
                 <FrameLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content">
-
-                <AutoCompleteTextView
-                    android:id="@+id/et_start"
-                    android:layout_width="match_parent"
-                    android:layout_height="45dp"
-                    android:completionThreshold="1"
-                    android:autofillHints=""
-                    android:background="@drawable/rounded_edittext"
-                    android:hint="@string/select_or_input_starting_point"
-                    android:textColorHint="@android:color/darker_gray"
-                    android:textColor="@android:color/black"
-                    android:inputType="textNoSuggestions"
-                    android:imeOptions="actionNext"
-                    android:paddingHorizontal="12dp"
-                    android:textSize="16sp" />
-
-                <ImageView
-                    android:id="@+id/currentLocationIcon"
-                    android:layout_width="24dp"
-                    android:layout_height="24dp"
-                    android:layout_gravity="end|center_vertical"
-                    android:layout_marginEnd="12dp"
-                    android:src="@android:drawable/ic_menu_mylocation"
-                    android:visibility="gone"/>
-
+                    <AutoCompleteTextView
+                        android:id="@+id/et_start"
+                        android:layout_width="match_parent"
+                        android:layout_height="45dp"
+                        android:background="@drawable/rounded_edittext"
+                        android:hint="@string/select_or_input_starting_point"
+                        android:textColor="#212121"
+                        android:textColorHint="#757575"
+                        android:inputType="textNoSuggestions"
+                        android:paddingHorizontal="12dp"
+                        android:textSize="14sp"
+                        android:maxLines="1" />
+                    <ImageView
+                        android:id="@+id/currentLocationIcon"
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:layout_gravity="end|center_vertical"
+                        android:layout_marginEnd="12dp"
+                        android:src="@android:drawable/ic_menu_mylocation"
+                        android:visibility="gone"/>
                 </FrameLayout>
 
                 <AutoCompleteTextView
                     android:id="@+id/et_destination"
                     android:layout_width="match_parent"
                     android:layout_height="45dp"
-                    android:layout_marginTop="12dp"
-                    android:completionThreshold="1"
-                    android:autofillHints=""
+                    android:layout_marginTop="8dp"
                     android:background="@drawable/rounded_edittext"
                     android:hint="@string/select_or_input_destination_point"
-                    android:textColorHint="@android:color/darker_gray"
-                    android:textColor="@android:color/black"
+                    android:textColor="#212121"
+                    android:textColorHint="#757575"
                     android:inputType="textNoSuggestions"
-                    android:imeOptions="actionDone"
                     android:paddingHorizontal="12dp"
-                    android:textSize="16sp" />
+                    android:textSize="14sp"
+                    android:maxLines="1" />
             </LinearLayout>
 
-            <Button
-                android:id="@+id/btn_go"
-                android:layout_width="56dp"
-                android:layout_height="56dp"
-                android:layout_gravity="center_vertical"
-                android:layout_marginStart="8dp"
-                android:backgroundTint="@android:color/black"
-                android:text="@string/go"
-                android:textColor="@android:color/white"
-                android:padding="0dp"
-                android:insetTop="0dp"
-                android:insetBottom="0dp"
-                android:insetLeft="0dp"
-                android:insetRight="0dp"
-                app:cornerRadius="8dp" />
         </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/layout_tabs"
+            android:layout_width="match_parent"
+            android:layout_height="55dp"
+            android:orientation="horizontal"
+            android:background="@drawable/bg_white_rounded"
+            android:padding="4dp"
+            android:layout_marginBottom="16dp">
+            <ImageButton
+                android:id="@+id/btn_mode_walking"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:src="@drawable/ic_walk"
+                android:background="#D3D3D3"
+                android:scaleType="fitCenter"
+                android:padding="10dp"/>
+            <ImageButton
+                android:id="@+id/btn_mode_driving"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:src="@drawable/ic_car"
+                android:background="?attr/selectableItemBackground"
+                android:scaleType="fitCenter"
+                android:padding="10dp"
+                android:alpha="0.5"/>
+            <ImageButton
+                android:id="@+id/btn_mode_transit"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:src="@drawable/ic_transit"
+                android:background="?attr/selectableItemBackground"
+                android:scaleType="fitCenter"
+                android:padding="10dp"
+                android:alpha="0.5"/>
+            <LinearLayout
+                android:id="@+id/btn_mode_shuttle"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:background="?attr/selectableItemBackground"
+                android:clickable="true"
+                android:focusable="true"
+                android:alpha="0.5">
+                <ImageView
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:src="@drawable/ic_transit"
+                    app:tint="#000000" />
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="SHUTTLE"
+                    android:textSize="8sp"
+                    android:textStyle="bold"
+                    android:textColor="#000000"/>
+            </LinearLayout>
+            <TextView
+                android:id="@+id/txt_duration"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1.8"
+                android:gravity="center"
+                android:text="-- MIN"
+                android:textStyle="bold"
+                android:textColor="#4CAF50"
+                android:textSize="16sp"/>
+        </LinearLayout>
+        <Button
+            android:id="@+id/btn_go"
+            android:layout_width="match_parent"
+            android:layout_height="55dp"
+            android:backgroundTint="@android:color/black"
+            android:text="@string/go"
+            android:textColor="@android:color/white"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            app:cornerRadius="25dp" />
+        <LinearLayout
+            android:id="@+id/layout_navigation_active"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:visibility="gone"
+            android:gravity="center_vertical"
+            android:background="@drawable/bg_white_rounded"
+            android:padding="12dp">
+            <TextView
+                android:id="@+id/txt_nav_instruction"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="-- MINS"
+                android:textColor="#4CAF50"
+                android:textSize="20sp"
+                android:textStyle="bold"
+                android:gravity="center_vertical"/>
+            <Button
+                android:id="@+id/btn_end_trip"
+                android:layout_width="wrap_content"
+                android:layout_height="40dp"
+                android:backgroundTint="#CC3333"
+                android:text="EXIT"
+                android:textColor="@android:color/white"
+                android:textSize="12sp"
+                app:cornerRadius="20dp"/>
+        </LinearLayout>
+
     </LinearLayout>
 
     <androidx.cardview.widget.CardView
