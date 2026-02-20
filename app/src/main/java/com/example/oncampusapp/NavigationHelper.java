@@ -22,15 +22,27 @@ public class NavigationHelper {
         void onSuccess(List<LatLng> path, String durationText);
         void onError(Exception e);
     }
+    public enum Mode {
+        WALKING("walking"),
+        DRIVING("driving"),
+        TRANSIT("transit");
+        private final String value;
+        Mode(String value) {
+            this.value = value;
+        }
+        public String getValue() {
+            return value;
+        }
+    }
 
     /**
      * Fetches directions from Google API and parses the JSON.
      */
-    public static void fetchDirections(LatLng start, LatLng end, String apiKey, DirectionsCallback callback) {
+    public static void fetchDirections(LatLng start, LatLng end, Mode mode, String apiKey, DirectionsCallback callback) {
         String urlString = "https://maps.googleapis.com/maps/api/directions/json?" +
                 "origin=" + start.latitude + "," + start.longitude +
                 "&destination=" + end.latitude + "," + end.longitude +
-                "&mode=walking" +
+                "&mode=" + mode.getValue() +
                 "&key=" + apiKey;
 
         Executors.newSingleThreadExecutor().execute(() -> {
@@ -72,7 +84,6 @@ public class NavigationHelper {
             }
         });
     }
-
     /**
      * Slices the route to start exactly at the user's current location.
      * Returns the updated path, or the original path if the user is off-route.

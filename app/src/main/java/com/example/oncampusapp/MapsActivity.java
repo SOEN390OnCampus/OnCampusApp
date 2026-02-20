@@ -88,6 +88,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private ImageView currentLocationIcon;
     private AutoCompleteTextView startDestinationText;
     private AutoCompleteTextView endDestinationText;
+    private NavigationHelper.Mode selectedMode = NavigationHelper.Mode.WALKING;
     private LinearLayout routePicker;
     private ImageButton btnSwapAddress;
 
@@ -259,25 +260,43 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         //Transport Tab Logic
         btnWalk.setOnClickListener(v -> {
             // Visuals
-            btnWalk.setBackgroundColor(Color.parseColor("#D3D3D3")); btnWalk.setAlpha(1.0f);
+            btnWalk.setBackgroundColor(Color.parseColor("#D3D3D3"));
+            btnWalk.setAlpha(1.0f);
             btnCar.setBackgroundResource(0); btnCar.setAlpha(0.5f);
             btnTransit.setBackgroundResource(0); btnTransit.setAlpha(0.5f);
             btnShuttle.setBackgroundResource(0); btnShuttle.setAlpha(0.5f);
 
             // Logic
+            this.selectedMode = NavigationHelper.Mode.WALKING;
             initiateRoutePreview();
         });
+        btnCar.setOnClickListener(v -> {
+            // Visuals
+            btnCar.setBackgroundColor(Color.parseColor("#D3D3D3")); btnCar.setAlpha(1.0f);
+            btnWalk.setBackgroundResource(0); btnWalk.setAlpha(0.5f);
+            btnTransit.setBackgroundResource(0); btnTransit.setAlpha(0.5f);
+            btnShuttle.setBackgroundResource(0); btnShuttle.setAlpha(0.5f);
 
-        View.OnClickListener notImplemented = v ->
-                Toast.makeText(this, "Only Walking is available in this demo", Toast.LENGTH_SHORT).show();
+            // Logic
+            this.selectedMode = NavigationHelper.Mode.DRIVING;
+            initiateRoutePreview();
+        });
+        btnTransit.setOnClickListener(v -> {
+            // Visuals
+            btnTransit.setBackgroundColor(Color.parseColor("#D3D3D3")); btnTransit.setAlpha(1.0f);
+            btnWalk.setBackgroundResource(0); btnWalk.setAlpha(0.5f);
+            btnCar.setBackgroundResource(0); btnCar.setAlpha(0.5f);
+            btnShuttle.setBackgroundResource(0); btnShuttle.setAlpha(0.5f);
 
-        btnCar.setOnClickListener(notImplemented);
-        btnTransit.setOnClickListener(notImplemented);
-        btnShuttle.setOnClickListener(notImplemented);
+            // Logic
+            this.selectedMode = NavigationHelper.Mode.TRANSIT;
+            initiateRoutePreview();
+        });
+        btnShuttle.setOnClickListener(v -> Toast.makeText(this, "Concordia Shuttle is currently unavailable", Toast.LENGTH_SHORT).show());
 
         //Helper Buttons
         btnSwapAddress.setOnClickListener(v -> { swapAddresses(); initiateRoutePreview(); });
-        currentLocationIcon.setOnClickListener(v -> { setCurrentBuilding(); });
+        currentLocationIcon.setOnClickListener(v -> setCurrentBuilding());
 
         //GO BUTTON (Start Navigation Mode)
         btnGo.setOnClickListener(v -> {
@@ -311,9 +330,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
             //Update Nav Bar Text safely
             if(txtDuration != null && txtDuration.getText().length() > 0 && !txtDuration.getText().equals("-- MIN")) {
-                txtNavInstruction.setText(txtDuration.getText() + " (Walking)");
+                String instructionText = txtDuration.getText() + " ("+selectedMode.toString().toLowerCase()+")";
+                txtNavInstruction.setText(instructionText);
             } else {
-                txtNavInstruction.setText("Follow the route (Walking)");
+                String instructionText = "Follow the route ("+selectedMode.toString().toLowerCase()+")";
+                txtNavInstruction.setText(instructionText);
             }
 
             //Zoom Camera for Navigation
@@ -943,7 +964,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             }
 
             // Use NavigationHelper Class
-            NavigationHelper.fetchDirections(startCoords, destCoords, BuildConfig.MAPS_API_KEY, new NavigationHelper.DirectionsCallback() {
+            NavigationHelper.fetchDirections(startCoords, destCoords, selectedMode, BuildConfig.MAPS_API_KEY, new NavigationHelper.DirectionsCallback() {
                 @Override
                 public void onSuccess(List<LatLng> path, String durationText) {
                     runOnUiThread(() -> drawRouteOnMap(path, durationText));
