@@ -48,6 +48,7 @@ import com.google.android.gms.maps.model.PatternItem;
 import com.google.android.gms.maps.model.PolylineOptions;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
+import com.google.maps.android.data.Feature;
 import com.google.maps.android.data.Geometry;
 import com.google.maps.android.data.geojson.GeoJsonFeature;
 import com.google.maps.android.data.geojson.GeoJsonLayer;
@@ -497,7 +498,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             layer.setOnFeatureClickListener(feature -> {
                 if (feature.getGeometry() instanceof GeoJsonPolygon) {
                     String clickedLayer = feature.getProperty("layer");
-                    if (clickedLayer == null) {
+                    if (clickedLayer == null) { //Clicked on the building
+                        handleBuildingClick(feature);
                         return;
                     }
                     if (clickedLayer.equals("detailButton")){ // Clicked on the button
@@ -669,6 +671,37 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         showBuildingInfoDialog(buildingDetailsDto, geojsonId);
     }
 
+    /**
+     * Handle on click for the building polygon on the map
+     * Set the name of the building into start destination search box
+     * @param feature feature representing the building
+     */
+    private void handleBuildingClick(Feature feature) {
+        String buildingName = feature.getProperty("name");
+
+        if (routePicker != null && routePicker.getVisibility() == View.VISIBLE) {
+
+            if (startDestinationText != null && startDestinationText.hasFocus()) {
+                startDestinationText.setText(buildingName);
+                startDestinationText.dismissDropDown();
+                return;
+            }
+
+            if (endDestinationText != null && endDestinationText.hasFocus()) {
+                endDestinationText.setText(buildingName);
+                endDestinationText.dismissDropDown();
+            }
+        }
+    }
+
+    /**
+     * Displays a dialog containing detailed information about a building.
+     * Dismisses any existing dialog before showing the new one. Coordinates the creation,
+     * population, and display of the building information dialog.
+     *
+     * @param buildingDetails the building details retrieved from the Places API
+     * @param featureId the building's feature ID used for campus determination
+     */
     private void showBuildingInfoDialog(BuildingDetailsDto buildingDetails, String featureId) {
         if (currentBuildingDialog != null && currentBuildingDialog.isShowing()) {
             currentBuildingDialog.dismiss();
