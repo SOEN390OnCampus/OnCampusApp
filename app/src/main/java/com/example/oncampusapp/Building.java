@@ -26,4 +26,17 @@ public class Building {
     public String getName() {
         return name;
     }
+
+    public LatLng getCenter() {
+        if (polygon == null || polygon.isEmpty()) {
+            return null;
+        }
+        double latSum = 0;
+        double lngSum = 0;
+        for (LatLng point : polygon) {
+            latSum += point.latitude;
+            lngSum += point.longitude;
+        }
+        return new LatLng(latSum / polygon.size(), lngSum / polygon.size());
+    }
 }
