@@ -103,7 +103,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private com.google.android.gms.maps.model.Polyline bluePolyline;
     private List<LatLng> currentRoutePoints;
     private com.google.android.gms.location.LocationCallback navigationLocationCallback;
-
+    private com.google.android.gms.maps.model.Circle startDot;
+    private com.google.android.gms.maps.model.Marker endMarker;
 
     public GoogleMap getMap() {
         return this.mMap;
@@ -279,24 +280,39 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         //GO BUTTON (Start Navigation Mode)
         btnGo.setOnClickListener(v -> {
+            String startText = startDestinationText.getText().toString().trim();
+            String destText = endDestinationText.getText().toString().trim();
+
+            // Block navigation if the user deleted the text
+            if (startText.isEmpty() || destText.isEmpty()) {
+                Toast.makeText(this, "Please enter both locations", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            // SAFETY CHECK
             if (bluePolyline == null) {
+                Toast.makeText(this, "Calculating route, please wait...", Toast.LENGTH_SHORT).show();
                 initiateRoutePreview();
                 return;
+            }
+
+            // REMOVE THE GREY START DOT SO ONLY THE USER'S LIVE LOCATION SHOWS
+            if (startDot != null) {
+                startDot.remove();
+                startDot = null;
             }
 
             // Start GPS Tracking
             startNavigationUpdates();
             Toast.makeText(this, "Navigation Started", Toast.LENGTH_SHORT).show();
 
-            //Update UI (Hide Setup, Show Nav Bar)
-            layoutInputs.setVisibility(View.GONE);
-            layoutTabs.setVisibility(View.GONE);
-            btnGo.setVisibility(View.GONE);
-            layoutNavActive.setVisibility(View.VISIBLE);
+            toggleNavigationUI(true);
 
-            //Update Nav Bar Text
-            if(txtDuration != null) {
+            //Update Nav Bar Text safely
+            if(txtDuration != null && txtDuration.getText().length() > 0 && !txtDuration.getText().equals("-- MIN")) {
                 txtNavInstruction.setText(txtDuration.getText() + " (Walking)");
+            } else {
+                txtNavInstruction.setText("Follow the route (Walking)");
             }
 
             //Zoom Camera for Navigation
@@ -304,6 +320,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 CameraPosition cameraPosition = new CameraPosition.Builder()
                         .target(currentRoutePoints.get(0))
                         .zoom(19f)
+                        .tilt(0)
                         .build();
                 mMap.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPosition));
             }
@@ -315,11 +332,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             if (navigationLocationCallback != null) {
                 fusedLocationClient.removeLocationUpdates(navigationLocationCallback);
             }
-            //Restore UI
-            layoutNavActive.setVisibility(View.GONE);
-            layoutInputs.setVisibility(View.VISIBLE);
-            layoutTabs.setVisibility(View.VISIBLE);
-            btnGo.setVisibility(View.VISIBLE);
+
+            toggleNavigationUI(false);
 
             //Reset Camera
             CameraPosition flatCam = new CameraPosition.Builder(mMap.getCameraPosition())
@@ -358,6 +372,26 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 }
             }
         });
+    }
+
+    //Helper method to reduce repetitive code
+    private void toggleNavigationUI(boolean isNavigating) {
+        LinearLayout layoutInputs = findViewById(R.id.layout_inputs);
+        LinearLayout layoutTabs = findViewById(R.id.layout_tabs);
+        android.widget.Button btnGo = findViewById(R.id.btn_go);
+        LinearLayout layoutNavActive = findViewById(R.id.layout_navigation_active);
+
+        if (isNavigating) {
+            layoutInputs.setVisibility(View.GONE);
+            layoutTabs.setVisibility(View.GONE);
+            btnGo.setVisibility(View.GONE);
+            layoutNavActive.setVisibility(View.VISIBLE);
+        } else {
+            layoutInputs.setVisibility(View.VISIBLE);
+            layoutTabs.setVisibility(View.VISIBLE);
+            btnGo.setVisibility(View.VISIBLE);
+            layoutNavActive.setVisibility(View.GONE);
+        }
     }
 
     @Override
@@ -788,6 +822,27 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         // Draw the Line
         this.currentRoutePoints = new ArrayList<>(decodedPath);
         if (bluePolyline != null) bluePolyline.remove();
+
+        // Clear old markers and draw new ones so the Swap button is visually obvious
+        // Remove old markers/dots if they exist
+        if (startDot != null) startDot.remove();
+        if (endMarker != null) endMarker.remove();
+
+        if (!decodedPath.isEmpty()) {
+            // Draw a Grey Dot for the Start Location
+            startDot = mMap.addCircle(new com.google.android.gms.maps.model.CircleOptions()
+                    .center(decodedPath.get(0))
+                    .radius(4) // 4 meters wide
+                    .fillColor(Color.GRAY)
+                    .strokeColor(Color.DKGRAY)
+                    .strokeWidth(3)
+                    .zIndex(3));
+
+            // Draw a standard Red Pin for the Destination
+            endMarker = mMap.addMarker(new com.google.android.gms.maps.model.MarkerOptions()
+                    .position(decodedPath.get(decodedPath.size() - 1))
+                    .title("Destination"));
+        }
 
         List<PatternItem> pattern = Arrays.asList(new Dot(), new Gap(20));
         PolylineOptions blueOptions = new PolylineOptions()
