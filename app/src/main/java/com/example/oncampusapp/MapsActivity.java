@@ -45,6 +45,7 @@ import com.google.android.gms.maps.model.GroundOverlayOptions;
 import com.google.android.gms.maps.model.LatLng;
 import com.example.oncampusapp.databinding.ActivityMapsBinding;
 import com.google.android.gms.maps.model.PatternItem;
+import com.google.android.gms.maps.model.Polyline;
 import com.google.android.gms.maps.model.PolylineOptions;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
@@ -88,6 +89,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private ImageView currentLocationIcon;
     private AutoCompleteTextView startDestinationText;
     private AutoCompleteTextView endDestinationText;
+    private NavigationHelper.Mode selectedMode = NavigationHelper.Mode.WALKING;
     private LinearLayout routePicker;
     private ImageButton btnSwapAddress;
 
@@ -211,6 +213,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         ImageButton btnCar = findViewById(R.id.btn_mode_driving);
         ImageButton btnTransit = findViewById(R.id.btn_mode_transit);
         View btnShuttle = findViewById(R.id.btn_mode_shuttle);
+        List<View> transportTabs = Arrays.asList(btnWalk, btnCar, btnTransit, btnShuttle);
+
 
         //Animations
         Animation slideDown = AnimationUtils.loadAnimation(this, R.anim.slide_down);
@@ -257,27 +261,42 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         endDestinationText.setOnItemClickListener((parent, view, position, id) -> initiateRoutePreview());
 
         //Transport Tab Logic
+        View.OnClickListener btnModeListener = v -> {
+            v.setBackgroundColor(Color.parseColor("#D3D3D3"));
+            v.setAlpha(1.0f);
+            for (View tab : transportTabs) {
+                if (tab != v) {
+                    tab.setBackgroundResource(0);
+                    tab.setAlpha(0.5f);
+                }
+            }
+        };
+
         btnWalk.setOnClickListener(v -> {
             // Visuals
-            btnWalk.setBackgroundColor(Color.parseColor("#D3D3D3")); btnWalk.setAlpha(1.0f);
-            btnCar.setBackgroundResource(0); btnCar.setAlpha(0.5f);
-            btnTransit.setBackgroundResource(0); btnTransit.setAlpha(0.5f);
-            btnShuttle.setBackgroundResource(0); btnShuttle.setAlpha(0.5f);
-
-            // Logic
+            btnModeListener.onClick(v);
+            this.selectedMode = NavigationHelper.Mode.WALKING;
             initiateRoutePreview();
         });
-
-        View.OnClickListener notImplemented = v ->
-                Toast.makeText(this, "Only Walking is available in this demo", Toast.LENGTH_SHORT).show();
-
-        btnCar.setOnClickListener(notImplemented);
-        btnTransit.setOnClickListener(notImplemented);
-        btnShuttle.setOnClickListener(notImplemented);
+        btnCar.setOnClickListener(v -> {
+            // Visuals
+            btnModeListener.onClick(v);
+            // Logic
+            this.selectedMode = NavigationHelper.Mode.DRIVING;
+            initiateRoutePreview();
+        });
+        btnTransit.setOnClickListener(v -> {
+            // Visuals
+            btnModeListener.onClick(v);
+            // Logic
+            this.selectedMode = NavigationHelper.Mode.TRANSIT;
+            initiateRoutePreview();
+        });
+        btnShuttle.setOnClickListener(v -> Toast.makeText(this, "Concordia Shuttle is currently unavailable", Toast.LENGTH_SHORT).show());
 
         //Helper Buttons
         btnSwapAddress.setOnClickListener(v -> { swapAddresses(); initiateRoutePreview(); });
-        currentLocationIcon.setOnClickListener(v -> { setCurrentBuilding(); });
+        currentLocationIcon.setOnClickListener(v -> setCurrentBuilding());
 
         //GO BUTTON (Start Navigation Mode)
         btnGo.setOnClickListener(v -> {
@@ -311,9 +330,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
             //Update Nav Bar Text safely
             if(txtDuration != null && txtDuration.getText().length() > 0 && !txtDuration.getText().equals("-- MIN")) {
-                txtNavInstruction.setText(txtDuration.getText() + " (Walking)");
+                String instructionText = txtDuration.getText() + " ("+selectedMode.getValue()+")";
+                txtNavInstruction.setText(instructionText);
             } else {
-                txtNavInstruction.setText("Follow the route (Walking)");
+                String instructionText = "Follow the route ("+selectedMode.getValue()+")";
+                txtNavInstruction.setText(instructionText);
             }
 
             //Zoom Camera for Navigation
@@ -843,7 +864,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     }
 
     // Update signature to accept duration
-    private void drawRouteOnMap(List<LatLng> decodedPath, String duration) {
+    private void drawRouteOnMap(List<LatLng> decodedPath, String duration, boolean isDotted) {
         if (mMap == null || decodedPath == null) return;
 
         // Update the Time Text
@@ -877,14 +898,16 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     .title("Destination"));
         }
 
-        List<PatternItem> pattern = Arrays.asList(new Dot(), new Gap(20));
         PolylineOptions blueOptions = new PolylineOptions()
                 .addAll(decodedPath)
                 .color(Color.parseColor("#4285F4"))
                 .width(20)
-                .pattern(pattern)
                 .zIndex(2)
                 .geodesic(true);
+        if (isDotted){
+            List<PatternItem> pattern = Arrays.asList(new Dot(), new Gap(20));
+            blueOptions.pattern(pattern);
+        }
 
         bluePolyline = mMap.addPolyline(blueOptions);
 
@@ -943,10 +966,14 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             }
 
             // Use NavigationHelper Class
-            NavigationHelper.fetchDirections(startCoords, destCoords, BuildConfig.MAPS_API_KEY, new NavigationHelper.DirectionsCallback() {
+            NavigationHelper.fetchDirections(startCoords, destCoords, selectedMode, BuildConfig.MAPS_API_KEY, new NavigationHelper.DirectionsCallback() {
                 @Override
                 public void onSuccess(List<LatLng> path, String durationText) {
-                    runOnUiThread(() -> drawRouteOnMap(path, durationText));
+                    if (selectedMode== NavigationHelper.Mode.WALKING){
+                        runOnUiThread(() -> drawRouteOnMap(path, durationText, true)); // Dotted line for walking
+                    } else {
+                        runOnUiThread(() -> drawRouteOnMap(path, durationText, false)); // Straight line for everything else
+                    }
                 }
 
                 @Override
@@ -979,6 +1006,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             android.widget.Button btnEndTrip = findViewById(R.id.btn_end_trip);
             if (btnEndTrip != null) btnEndTrip.performClick(); // Reset the UI
         }
+    }
+    public Polyline getBluePolyline(){
+        return bluePolyline;
     }
 
 }
