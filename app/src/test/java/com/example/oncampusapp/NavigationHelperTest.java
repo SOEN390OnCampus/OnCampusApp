@@ -5,17 +5,32 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import com.google.android.gms.maps.model.LatLng;
 
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.MockedStatic;
+import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 @RunWith(MockitoJUnitRunner.class)
 public class NavigationHelperTest {
@@ -24,6 +39,14 @@ public class NavigationHelperTest {
     private LatLng startPoint;
     private LatLng midPoint;
     private LatLng destinationPoint;
+    private final String VALID_RESPONSE = "{" +
+            "\"routes\": [{" +
+            "\"overview_polyline\": { \"points\": \"_p~iF~ps|U_ulLnnqC_mqNvxq`@\" }," +
+            "\"legs\": [{" +
+            "\"duration\": { \"text\": \"1 hour\" }" +
+            "}]" +
+            "}]" +
+            "}";
 
     @Before
     public void setUp() {
@@ -119,5 +142,26 @@ public class NavigationHelperTest {
     @Test
     public void testEnumCount() {
         assertEquals(3, NavigationHelper.Mode.values().length);
+    }
+    @Test
+    public void testFetchDirections_ValidResponse_onSuccessCalled() throws Exception {
+        try (MockedStatic<NavigationHelper> mock = Mockito.mockStatic(NavigationHelper.class)) {
+            mock.when(() -> NavigationHelper.fetchUrl(anyString())).thenReturn(VALID_RESPONSE);
+
+            mock.when(() -> NavigationHelper.fetchDirections(any(), any(), any(), any(), any()))
+                    .thenCallRealMethod();
+
+            NavigationHelper.fetchDirections(startPoint, destinationPoint, NavigationHelper.Mode.DRIVING, "key", new NavigationHelper.DirectionsCallback() {
+                @Override
+                public void onSuccess(List path, String duration) {
+                    assertEquals("1 hour", duration);
+                }
+                @Override
+                public void onError(Exception e) {
+                    fail(e.getMessage());
+                }
+            });
+
+        }
     }
 }
