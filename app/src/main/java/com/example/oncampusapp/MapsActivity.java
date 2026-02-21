@@ -863,7 +863,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     }
 
     // Update signature to accept duration
-    private void drawRouteOnMap(List<LatLng> decodedPath, String duration) {
+    private void drawRouteOnMap(List<LatLng> decodedPath, String duration, boolean isDotted) {
         if (mMap == null || decodedPath == null) return;
 
         // Update the Time Text
@@ -897,14 +897,16 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     .title("Destination"));
         }
 
-        List<PatternItem> pattern = Arrays.asList(new Dot(), new Gap(20));
         PolylineOptions blueOptions = new PolylineOptions()
                 .addAll(decodedPath)
                 .color(Color.parseColor("#4285F4"))
                 .width(20)
-                .pattern(pattern)
                 .zIndex(2)
                 .geodesic(true);
+        if (isDotted){
+            List<PatternItem> pattern = Arrays.asList(new Dot(), new Gap(20));
+            blueOptions.pattern(pattern);
+        }
 
         bluePolyline = mMap.addPolyline(blueOptions);
 
@@ -966,7 +968,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             NavigationHelper.fetchDirections(startCoords, destCoords, selectedMode, BuildConfig.MAPS_API_KEY, new NavigationHelper.DirectionsCallback() {
                 @Override
                 public void onSuccess(List<LatLng> path, String durationText) {
-                    runOnUiThread(() -> drawRouteOnMap(path, durationText));
+                    if (selectedMode== NavigationHelper.Mode.WALKING){
+                        runOnUiThread(() -> drawRouteOnMap(path, durationText, true)); // Dotted line for walking
+                    } else {
+                        runOnUiThread(() -> drawRouteOnMap(path, durationText, false)); // Straight line for everything else
+                    }
                 }
 
                 @Override
