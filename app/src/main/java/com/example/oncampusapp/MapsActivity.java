@@ -45,6 +45,7 @@ import com.google.android.gms.maps.model.GroundOverlayOptions;
 import com.google.android.gms.maps.model.LatLng;
 import com.example.oncampusapp.databinding.ActivityMapsBinding;
 import com.google.android.gms.maps.model.PatternItem;
+import com.google.android.gms.maps.model.Polyline;
 import com.google.android.gms.maps.model.PolylineOptions;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
@@ -1005,6 +1006,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             android.widget.Button btnEndTrip = findViewById(R.id.btn_end_trip);
             if (btnEndTrip != null) btnEndTrip.performClick(); // Reset the UI
         }
+    }
+    public Polyline getBluePolyline(){
+        return bluePolyline;
     }
 
 }
