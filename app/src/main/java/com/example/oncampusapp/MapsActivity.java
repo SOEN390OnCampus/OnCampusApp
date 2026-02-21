@@ -212,6 +212,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         ImageButton btnCar = findViewById(R.id.btn_mode_driving);
         ImageButton btnTransit = findViewById(R.id.btn_mode_transit);
         View btnShuttle = findViewById(R.id.btn_mode_shuttle);
+        List<View> transportTabs = Arrays.asList(btnWalk, btnCar, btnTransit, btnShuttle);
+
 
         //Animations
         Animation slideDown = AnimationUtils.loadAnimation(this, R.anim.slide_down);
@@ -258,36 +260,33 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         endDestinationText.setOnItemClickListener((parent, view, position, id) -> initiateRoutePreview());
 
         //Transport Tab Logic
+        View.OnClickListener btnModeListener = v -> {
+            v.setBackgroundColor(Color.parseColor("#D3D3D3"));
+            v.setAlpha(1.0f);
+            for (View tab : transportTabs) {
+                if (tab != v) {
+                    tab.setBackgroundResource(0);
+                    tab.setAlpha(0.5f);
+                }
+            }
+        };
+
         btnWalk.setOnClickListener(v -> {
             // Visuals
-            btnWalk.setBackgroundColor(Color.parseColor("#D3D3D3"));
-            btnWalk.setAlpha(1.0f);
-            btnCar.setBackgroundResource(0); btnCar.setAlpha(0.5f);
-            btnTransit.setBackgroundResource(0); btnTransit.setAlpha(0.5f);
-            btnShuttle.setBackgroundResource(0); btnShuttle.setAlpha(0.5f);
-
-            // Logic
+            btnModeListener.onClick(v);
             this.selectedMode = NavigationHelper.Mode.WALKING;
             initiateRoutePreview();
         });
         btnCar.setOnClickListener(v -> {
             // Visuals
-            btnCar.setBackgroundColor(Color.parseColor("#D3D3D3")); btnCar.setAlpha(1.0f);
-            btnWalk.setBackgroundResource(0); btnWalk.setAlpha(0.5f);
-            btnTransit.setBackgroundResource(0); btnTransit.setAlpha(0.5f);
-            btnShuttle.setBackgroundResource(0); btnShuttle.setAlpha(0.5f);
-
+            btnModeListener.onClick(v);
             // Logic
             this.selectedMode = NavigationHelper.Mode.DRIVING;
             initiateRoutePreview();
         });
         btnTransit.setOnClickListener(v -> {
             // Visuals
-            btnTransit.setBackgroundColor(Color.parseColor("#D3D3D3")); btnTransit.setAlpha(1.0f);
-            btnWalk.setBackgroundResource(0); btnWalk.setAlpha(0.5f);
-            btnCar.setBackgroundResource(0); btnCar.setAlpha(0.5f);
-            btnShuttle.setBackgroundResource(0); btnShuttle.setAlpha(0.5f);
-
+            btnModeListener.onClick(v);
             // Logic
             this.selectedMode = NavigationHelper.Mode.TRANSIT;
             initiateRoutePreview();
@@ -330,10 +329,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
             //Update Nav Bar Text safely
             if(txtDuration != null && txtDuration.getText().length() > 0 && !txtDuration.getText().equals("-- MIN")) {
-                String instructionText = txtDuration.getText() + " ("+selectedMode.toString().toLowerCase()+")";
+                String instructionText = txtDuration.getText() + " ("+selectedMode.getValue()+")";
                 txtNavInstruction.setText(instructionText);
             } else {
-                String instructionText = "Follow the route ("+selectedMode.toString().toLowerCase()+")";
+                String instructionText = "Follow the route ("+selectedMode.getValue()+")";
                 txtNavInstruction.setText(instructionText);
             }
 
