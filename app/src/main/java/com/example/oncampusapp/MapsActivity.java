@@ -215,6 +215,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         View btnShuttle = findViewById(R.id.btn_mode_shuttle);
         List<View> transportTabs = Arrays.asList(btnWalk, btnCar, btnTransit, btnShuttle);
 
+        ImageView imgNavMode = findViewById(R.id.img_nav_mode);
+        TextView txtNavMode = findViewById(R.id.txt_nav_mode);
 
         //Animations
         Animation slideDown = AnimationUtils.loadAnimation(this, R.anim.slide_down);
@@ -322,6 +324,21 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 startDot = null;
             }
 
+            switch (selectedMode) {
+                case WALKING:
+                    imgNavMode.setImageResource(R.drawable.ic_walk);
+                    txtNavMode.setText("Walking");
+                    break;
+                case DRIVING:
+                    imgNavMode.setImageResource(R.drawable.ic_car);
+                    txtNavMode.setText("Driving");
+                    break;
+                case TRANSIT:
+                    imgNavMode.setImageResource(R.drawable.ic_transit);
+                    txtNavMode.setText("Transit");
+                    break;
+            }
+
             // Start GPS Tracking
             startNavigationUpdates();
             Toast.makeText(this, "Navigation Started", Toast.LENGTH_SHORT).show();
@@ -330,8 +347,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
             //Update Nav Bar Text safely
             if(txtDuration != null && txtDuration.getText().length() > 0 && !txtDuration.getText().equals("-- MIN")) {
-                String instructionText = txtDuration.getText() + " ("+selectedMode.getValue()+")";
-                txtNavInstruction.setText(instructionText);
+                txtNavInstruction.setText(txtDuration.getText());
             } else {
                 String instructionText = "Follow the route ("+selectedMode.getValue()+")";
                 txtNavInstruction.setText(instructionText);
