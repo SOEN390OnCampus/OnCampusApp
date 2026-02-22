@@ -25,7 +25,8 @@ public class NavigationHelper {
     public enum Mode {
         WALKING("walking"),
         DRIVING("driving"),
-        TRANSIT("transit");
+        TRANSIT("transit"),
+        SHUTTLE("shuttle");
         private final String value;
         Mode(String value) {
             this.value = value;
