@@ -96,4 +96,27 @@ public class ShuttleHelper {
         String title = marker.getTitle();
         return title.equals("SGW Shuttle Stop") || title.equals("Loyola Shuttle Stop");
     }
+
+    /**
+     * Determines if two locations are on the same Concordia campus.
+     * Uses the midpoint between SGW and Loyola as the boundary.
+     * @param point1 First location
+     * @param point2 Second location
+     * @param sgwCoords SGW campus center coordinates
+     * @param loyCoords Loyola campus center coordinates
+     * @return true if both points are closer to the same campus
+     */
+    public static boolean isSameCampus(LatLng point1, LatLng point2, LatLng sgwCoords, LatLng loyCoords) {
+        if (point1 == null || point2 == null) return false;
+        boolean point1AtSGW = distanceBetween(point1, sgwCoords) < distanceBetween(point1, loyCoords);
+        boolean point2AtSGW = distanceBetween(point2, sgwCoords) < distanceBetween(point2, loyCoords);
+        return point1AtSGW == point2AtSGW;
+    }
+
+    /** Simple Euclidean-style distance proxy (no Android SDK required) */
+    private static double distanceBetween(LatLng a, LatLng b) {
+        double dLat = a.latitude - b.latitude;
+        double dLng = a.longitude - b.longitude;
+        return Math.sqrt(dLat * dLat + dLng * dLng);
+    }
 }

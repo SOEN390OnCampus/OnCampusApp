@@ -115,6 +115,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     // Shuttle Stop Markers - managed by ShuttleHelper
     private com.google.android.gms.maps.model.Marker[] shuttleMarkers = new com.google.android.gms.maps.model.Marker[2];
 
+    // Transport UI buttons (class-level for access across methods)
+    private ImageButton btnWalk;
+    private android.widget.Button btnShuttleTimetable;
+    private android.widget.Button btnGo;
+
     public GoogleMap getMap() {
         return this.mMap;
     }
@@ -209,13 +214,13 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         LinearLayout layoutNavActive = findViewById(R.id.layout_navigation_active);
 
         // Buttons & Text
-        android.widget.Button btnGo = findViewById(R.id.btn_go);
+        btnGo = findViewById(R.id.btn_go);
         android.widget.Button btnEndTrip = findViewById(R.id.btn_end_trip);
         TextView txtNavInstruction = findViewById(R.id.txt_nav_instruction);
         TextView txtDuration = findViewById(R.id.txt_duration);
 
         // Transport Tabs
-        ImageButton btnWalk = findViewById(R.id.btn_mode_walking);
+        btnWalk = findViewById(R.id.btn_mode_walking);
         ImageButton btnCar = findViewById(R.id.btn_mode_driving);
         ImageButton btnTransit = findViewById(R.id.btn_mode_transit);
         View btnShuttle = findViewById(R.id.btn_mode_shuttle);
@@ -279,7 +284,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         };
 
         //Shuttle Timetable Button
-        android.widget.Button btnShuttleTimetable = findViewById(R.id.btn_shuttle_timetable);
+        btnShuttleTimetable = findViewById(R.id.btn_shuttle_timetable);
         btnShuttleTimetable.setOnClickListener(v -> ShuttleHelper.openTimetable(this));
 
         btnWalk.setOnClickListener(v -> {
@@ -334,6 +339,16 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             // Block navigation if the user deleted the text
             if (startText.isEmpty() || destText.isEmpty()) {
                 Toast.makeText(this, "Please enter both locations", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            // Always re-check same-campus rule before starting navigation
+            LatLng startCoords = BuildingLookup.getLatLngFromBuildingName(startText, buildingsMap);
+            LatLng destCoords = BuildingLookup.getLatLngFromBuildingName(destText, buildingsMap);
+            if (startCoords != null && destCoords != null
+                    && applySameCampusCheck(startCoords, destCoords)) {
+                // Mode was switched — recalculate route and let user press GO again
+                initiateRoutePreview();
                 return;
             }
 
@@ -987,6 +1002,31 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         fusedLocationClient.requestLocationUpdates(request, navigationLocationCallback, android.os.Looper.getMainLooper());
     }
 
+    /**
+     * Checks if shuttle mode should auto-switch to walking because both locations are on the same campus.
+     * @return true if the mode was switched (caller should re-preview and abort current action)
+     */
+    private boolean applySameCampusCheck(LatLng startCoords, LatLng destCoords) {
+        if (selectedMode != NavigationHelper.Mode.SHUTTLE) return false;
+        if (!ShuttleHelper.isSameCampus(startCoords, destCoords, SGW_COORDS, LOY_COORDS)) return false;
+
+        selectedMode = NavigationHelper.Mode.WALKING;
+        if (btnWalk != null) {
+            btnWalk.setBackgroundColor(Color.parseColor("#D3D3D3"));
+            btnWalk.setAlpha(1.0f);
+            int[] otherTabIds = {R.id.btn_mode_driving, R.id.btn_mode_transit, R.id.btn_mode_shuttle};
+            for (int id : otherTabIds) {
+                View tab = findViewById(id);
+                if (tab != null) { tab.setBackgroundResource(0); tab.setAlpha(0.5f); }
+            }
+        }
+        if (btnShuttleTimetable != null) btnShuttleTimetable.setVisibility(View.GONE);
+        if (btnGo != null) adjustGoButtonWidth(btnGo, false);
+        ShuttleHelper.hideShuttleStops(shuttleMarkers);
+        Toast.makeText(this, "Both locations are on the same campus — switched to walking", Toast.LENGTH_SHORT).show();
+        return true;
+    }
+
     private void initiateRoutePreview() {
         String startName = startDestinationText.getText().toString().trim();
         String destName = endDestinationText.getText().toString().trim();
@@ -1002,6 +1042,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             if (imm != null && getCurrentFocus() != null) {
                 imm.hideSoftInputFromWindow(getCurrentFocus().getWindowToken(), 0);
             }
+
+            // If shuttle mode but both locations are on the same campus, auto-switch to walking
+            applySameCampusCheck(startCoords, destCoords);
 
             // For shuttle mode, use transit API for now till we have real shuttle routing
             NavigationHelper.Mode apiMode = (selectedMode == NavigationHelper.Mode.SHUTTLE) ? NavigationHelper.Mode.TRANSIT : selectedMode;

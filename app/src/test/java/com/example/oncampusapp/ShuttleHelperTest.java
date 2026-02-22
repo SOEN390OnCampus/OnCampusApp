@@ -13,6 +13,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.android.gms.maps.GoogleMap;
+import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 
@@ -171,5 +172,48 @@ public class ShuttleHelperTest {
         when(mockMarker1.getTitle()).thenReturn("sgw shuttle stop");
         
         assertFalse("Lowercase title should return false (case sensitive)", ShuttleHelper.isShuttleStopMarker(mockMarker1));
+    }
+
+    // ==================== IS SAME CAMPUS TESTS ====================
+
+    private static final LatLng SGW = new LatLng(45.496107, -73.577258);
+    private static final LatLng LOY = new LatLng(45.4582, -73.6405);
+
+    @Test
+    public void testIsSameCampus_BothAtSGW() {
+        LatLng building1 = new LatLng(45.497163, -73.578535); // near SGW
+        LatLng building2 = new LatLng(45.496500, -73.579000); // also near SGW
+        assertTrue("Two SGW buildings should be same campus", ShuttleHelper.isSameCampus(building1, building2, SGW, LOY));
+    }
+
+    @Test
+    public void testIsSameCampus_BothAtLoyola() {
+        LatLng building1 = new LatLng(45.458424, -73.638369); // near Loyola
+        LatLng building2 = new LatLng(45.459000, -73.639000); // also near Loyola
+        assertTrue("Two Loyola buildings should be same campus", ShuttleHelper.isSameCampus(building1, building2, SGW, LOY));
+    }
+
+    @Test
+    public void testIsSameCampus_DifferentCampuses() {
+        LatLng sgwBuilding = new LatLng(45.497163, -73.578535); // SGW
+        LatLng loyBuilding = new LatLng(45.458424, -73.638369); // Loyola
+        assertFalse("SGW and Loyola buildings should be different campuses", ShuttleHelper.isSameCampus(sgwBuilding, loyBuilding, SGW, LOY));
+    }
+
+    @Test
+    public void testIsSameCampus_WithNullPoint1() {
+        LatLng loyBuilding = new LatLng(45.458424, -73.638369);
+        assertFalse("Null point should return false", ShuttleHelper.isSameCampus(null, loyBuilding, SGW, LOY));
+    }
+
+    @Test
+    public void testIsSameCampus_WithNullPoint2() {
+        LatLng sgwBuilding = new LatLng(45.497163, -73.578535);
+        assertFalse("Null point should return false", ShuttleHelper.isSameCampus(sgwBuilding, null, SGW, LOY));
+    }
+
+    @Test
+    public void testIsSameCampus_BothNull() {
+        assertFalse("Both null points should return false", ShuttleHelper.isSameCampus(null, null, SGW, LOY));
     }
 }
