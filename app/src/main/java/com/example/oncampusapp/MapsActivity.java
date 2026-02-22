@@ -24,6 +24,7 @@ import android.view.animation.AnimationUtils;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
+import android.widget.FrameLayout;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -434,6 +435,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         btnSgwLoy = findViewById(R.id.btn_campus_switch);
         ImageButton btnLocation = findViewById(R.id.btn_location);
 
+        FrameLayout closeSearchLayout = findViewById(R.id.close_search);
+
         try {
             // Load the GeoJSON file
             GeoJsonLayer layer = new GeoJsonLayer(mMap, R.raw.concordia_buildings, getApplicationContext());
@@ -573,6 +576,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         btnSgwLoy.setOnClickListener(v -> switchCampus());
         btnLocation.setOnClickListener(v -> goToCurrentLocation());
+        closeSearchLayout.setOnClickListener(v -> handleCloseSearch());
     }
 
     private GeoJsonFeature createSquareFeature(LatLng center, String id){
@@ -1011,4 +1015,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         return bluePolyline;
     }
 
+    private void handleCloseSearch() {
+        getOnBackPressedDispatcher().onBackPressed();
+    }
 }

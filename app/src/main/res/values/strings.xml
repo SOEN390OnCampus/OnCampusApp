@@ -35,4 +35,5 @@
     <string name="select_or_input_starting_point">Select or input starting point...</string>
     <string name="select_or_input_destination_point">Select or input destination point...</string>
     <string name="go">GO</string>
+    <string name="hide_the_search_section">Hide the search section</string>
 </resources>
