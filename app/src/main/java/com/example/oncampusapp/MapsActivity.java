@@ -11,8 +11,10 @@ import androidx.fragment.app.FragmentActivity;
 
 import android.Manifest;
 import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.net.Uri;
 import android.content.res.Resources;
 import android.graphics.Color;
 import android.os.Build;
@@ -95,6 +97,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     public static final LatLng SGW_COORDS = new LatLng(45.496107243097704, -73.57725834380621);
     public static final LatLng LOY_COORDS = new LatLng(45.4582, -73.6405);
+    
     public FusedLocationProviderClient fusedLocationClient;
 
     private ActivityResultLauncher<String[]> locationPermissionRequest;
@@ -108,6 +111,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private com.google.android.gms.location.LocationCallback navigationLocationCallback;
     private com.google.android.gms.maps.model.Circle startDot;
     private com.google.android.gms.maps.model.Marker endMarker;
+    
+    // Shuttle Stop Markers - managed by ShuttleHelper
+    private com.google.android.gms.maps.model.Marker[] shuttleMarkers = new com.google.android.gms.maps.model.Marker[2];
 
     public GoogleMap getMap() {
         return this.mMap;
@@ -272,10 +278,17 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             }
         };
 
+        //Shuttle Timetable Button
+        android.widget.Button btnShuttleTimetable = findViewById(R.id.btn_shuttle_timetable);
+        btnShuttleTimetable.setOnClickListener(v -> ShuttleHelper.openTimetable(this));
+
         btnWalk.setOnClickListener(v -> {
             // Visuals
             btnModeListener.onClick(v);
             this.selectedMode = NavigationHelper.Mode.WALKING;
+            btnShuttleTimetable.setVisibility(View.GONE);
+            adjustGoButtonWidth(btnGo, false);
+            ShuttleHelper.hideShuttleStops(shuttleMarkers);
             initiateRoutePreview();
         });
         btnCar.setOnClickListener(v -> {
@@ -283,6 +296,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             btnModeListener.onClick(v);
             // Logic
             this.selectedMode = NavigationHelper.Mode.DRIVING;
+            btnShuttleTimetable.setVisibility(View.GONE);
+            adjustGoButtonWidth(btnGo, false);
+            ShuttleHelper.hideShuttleStops(shuttleMarkers);
             initiateRoutePreview();
         });
         btnTransit.setOnClickListener(v -> {
@@ -290,9 +306,21 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             btnModeListener.onClick(v);
             // Logic
             this.selectedMode = NavigationHelper.Mode.TRANSIT;
+            btnShuttleTimetable.setVisibility(View.GONE);
+            adjustGoButtonWidth(btnGo, false);
+            ShuttleHelper.hideShuttleStops(shuttleMarkers);
             initiateRoutePreview();
         });
-        btnShuttle.setOnClickListener(v -> Toast.makeText(this, "Concordia Shuttle is currently unavailable", Toast.LENGTH_SHORT).show());
+        btnShuttle.setOnClickListener(v -> {
+            // Visuals
+            btnModeListener.onClick(v);
+            // Logic
+            this.selectedMode = NavigationHelper.Mode.SHUTTLE;
+            btnShuttleTimetable.setVisibility(View.VISIBLE);
+            adjustGoButtonWidth(btnGo, true);
+            shuttleMarkers = ShuttleHelper.showShuttleStops(mMap, shuttleMarkers);
+            initiateRoutePreview();
+        });
 
         //Helper Buttons
         btnSwapAddress.setOnClickListener(v -> { swapAddresses(); initiateRoutePreview(); });
@@ -426,6 +454,16 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         mMap.setBuildingsEnabled(false);
         mMap.getUiSettings().setTiltGesturesEnabled(false);
+        
+        // Set up marker click listener for shuttle stops
+        mMap.setOnMarkerClickListener(marker -> {
+            if (ShuttleHelper.isShuttleStopMarker(marker)) {
+                marker.showInfoWindow();
+                ShuttleHelper.openTimetable(this);
+                return true;
+            }
+            return false; // Let default behavior handle other markers
+        });
 
         GeofenceManager geofenceManager = new GeofenceManager(this);
         FeatureStyler featureStyler = new FeatureStyler();
@@ -965,8 +1003,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 imm.hideSoftInputFromWindow(getCurrentFocus().getWindowToken(), 0);
             }
 
+            // For shuttle mode, use transit API for now till we have real shuttle routing
+            NavigationHelper.Mode apiMode = (selectedMode == NavigationHelper.Mode.SHUTTLE) ? NavigationHelper.Mode.TRANSIT : selectedMode;
+
             // Use NavigationHelper Class
-            NavigationHelper.fetchDirections(startCoords, destCoords, selectedMode, BuildConfig.MAPS_API_KEY, new NavigationHelper.DirectionsCallback() {
+            NavigationHelper.fetchDirections(startCoords, destCoords, apiMode, BuildConfig.MAPS_API_KEY, new NavigationHelper.DirectionsCallback() {
                 @Override
                 public void onSuccess(List<LatLng> path, String durationText) {
                     if (selectedMode== NavigationHelper.Mode.WALKING){
@@ -1010,5 +1051,27 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     public Polyline getBluePolyline(){
         return bluePolyline;
     }
+
+    /**
+     * Adjusts the GO button width based on whether timetable button is visible
+     */
+    private void adjustGoButtonWidth(android.widget.Button btnGo, boolean timetableVisible) {
+        LinearLayout.LayoutParams params = (LinearLayout.LayoutParams) btnGo.getLayoutParams();
+        if (timetableVisible) {
+            // Shared width - GO button takes less space
+            params.width = 0;
+            params.weight = 1.3f;
+            int margin = (int) (4 * getResources().getDisplayMetrics().density);
+            params.setMarginEnd(margin);
+        } else {
+            // Full width - GO button takes all space
+            params.width = 0;
+            params.weight = 1.0f;
+            params.setMarginEnd(0);
+        }
+        btnGo.setLayoutParams(params);
+    }
+
+
 
 }
