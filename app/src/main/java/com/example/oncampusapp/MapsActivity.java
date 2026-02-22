@@ -551,11 +551,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
 
         // String array for building suggestions
-        String[] buildingSuggestions = buildingsMap.values()
-                .stream()
-                .map(Building::getName)
-                .filter(Objects::nonNull)
-                .toArray(String[]::new);
+        String[] buildingSuggestions = geoIdToBuildingDetailsMap.values()
+            .stream()
+            .map(b -> b.name)
+            .toArray(String[]::new);
 
         // Create the adapter for building suggestions
         ArrayAdapter<String> adapter = new ArrayAdapter<>(this,
