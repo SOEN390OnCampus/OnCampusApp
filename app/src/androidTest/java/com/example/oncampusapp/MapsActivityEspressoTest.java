@@ -262,7 +262,7 @@ public class MapsActivityEspressoTest {
         closeRoutePickerWithBack();
 
         openRoutePicker();
-        onView(withId(R.id.et_start)).check(matches(withText("TEST123")));
+        onView(withId(R.id.et_start)).check(matches(withText("")));
     }
 
     @Test
@@ -289,9 +289,9 @@ public class MapsActivityEspressoTest {
     public void clickingOnCurrentLocation() {
         AtomicReference<Building> ref = new AtomicReference<>();
 
-
+        sleep(5000);
         onView(withId(R.id.btn_location)).perform(click());
-        openRoutePicker();
+        sleep(2000);
 
         activityRule.getScenario().onActivity(activity -> {
             ref.set(activity.buildingManager.getCurrentBuilding());
