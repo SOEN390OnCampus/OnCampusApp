@@ -144,6 +144,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         // ViewBinding: inflate, then set content view ONCE
         binding = ActivityMapsBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
+
+        // Pre-load shuttle route data from bundled JSON
+        ShuttleHelper.init(this);
+
         setupRoutePickerUi();
 
         buildingClassifier = new BuildingClassifier();
