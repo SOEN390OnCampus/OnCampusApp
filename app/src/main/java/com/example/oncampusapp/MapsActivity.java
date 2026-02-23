@@ -267,9 +267,20 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         });
 
         // AUTO-PREVIEW LOGIC
-        // Trigger preview immediately when user selects from the dropdown list
-        startDestinationText.setOnItemClickListener((parent, view, position, id) -> initiateRoutePreview());
-        endDestinationText.setOnItemClickListener((parent, view, position, id) -> initiateRoutePreview());
+        // Read the selected name directly from the adapter to avoid AutoCompleteTextView
+        // timing quirks where getText() may still hold the partial typed string.
+        startDestinationText.setOnItemClickListener((parent, view, position, id) -> {
+            String selected = (String) parent.getItemAtPosition(position);
+            startDestinationText.setText(selected);
+            startDestinationText.setSelection(selected.length());
+            initiateRoutePreview();
+        });
+        endDestinationText.setOnItemClickListener((parent, view, position, id) -> {
+            String selected = (String) parent.getItemAtPosition(position);
+            endDestinationText.setText(selected);
+            endDestinationText.setSelection(selected.length());
+            initiateRoutePreview();
+        });
 
         //Transport Tab Logic
         View.OnClickListener btnModeListener = v -> {
@@ -1046,14 +1057,18 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             // If shuttle mode but both locations are on the same campus, auto-switch to walking
             applySameCampusCheck(startCoords, destCoords);
 
-            // For shuttle mode, use transit API for now till we have real shuttle routing
-            NavigationHelper.Mode apiMode = (selectedMode == NavigationHelper.Mode.SHUTTLE) ? NavigationHelper.Mode.TRANSIT : selectedMode;
+            // Shuttle mode: draw the fixed KML-based route directly (no API call needed)
+            if (selectedMode == NavigationHelper.Mode.SHUTTLE) {
+                List<LatLng> shuttlePath = ShuttleHelper.getShuttleRoute(startCoords, destCoords);
+                drawRouteOnMap(shuttlePath, ShuttleHelper.SHUTTLE_DURATION_EST, false);
+                return;
+            }
 
-            // Use NavigationHelper Class
-            NavigationHelper.fetchDirections(startCoords, destCoords, apiMode, BuildConfig.MAPS_API_KEY, new NavigationHelper.DirectionsCallback() {
+            // Use NavigationHelper Class for all other modes
+            NavigationHelper.fetchDirections(startCoords, destCoords, selectedMode, BuildConfig.MAPS_API_KEY, new NavigationHelper.DirectionsCallback() {
                 @Override
                 public void onSuccess(List<LatLng> path, String durationText) {
-                    if (selectedMode== NavigationHelper.Mode.WALKING){
+                    if (selectedMode == NavigationHelper.Mode.WALKING){
                         runOnUiThread(() -> drawRouteOnMap(path, durationText, true)); // Dotted line for walking
                     } else {
                         runOnUiThread(() -> drawRouteOnMap(path, durationText, false)); // Straight line for everything else
@@ -1067,7 +1082,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 }
             });
         } else {
-            Toast.makeText(this, "Could not find one of the locations", Toast.LENGTH_SHORT).show();
+            if (buildingsMap.isEmpty()) {
+                Toast.makeText(this, "Map is still loading, please wait", Toast.LENGTH_SHORT).show();
+            } else {
+                String missing = (startCoords == null) ? startName : destName;
+                Toast.makeText(this, "Could not find: \"" + missing + "\"", Toast.LENGTH_LONG).show();
+            }
         }
     }
 
