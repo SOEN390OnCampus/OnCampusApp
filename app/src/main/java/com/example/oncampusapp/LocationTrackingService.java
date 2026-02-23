@@ -1,5 +1,7 @@
 package com.example.oncampusapp;
 
+import com.example.oncampusapp.location.FusedLocationProvider;
+import com.example.oncampusapp.location.ILocationProvider;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationCallback;
 import com.google.android.gms.location.LocationRequest;
@@ -30,7 +32,7 @@ import androidx.core.app.NotificationManagerCompat;
 // This class is used to track the location of the user, specifically when they are inside a building
 public class LocationTrackingService extends Service {
 
-    private FusedLocationProviderClient fusedLocationClient;
+    private ILocationProvider fusedLocationClient;
     private LocationCallback locationCallback;
 
     @Override
@@ -38,7 +40,17 @@ public class LocationTrackingService extends Service {
         super.onCreate();
         Log.d("TrackingService", "Service started, requesting location updates");
         startForegroundNotification();
-        fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
+
+        // Retrieve the globally injected provider
+        OnCampusApplication app = (OnCampusApplication) getApplication();
+        fusedLocationClient = app.getLocationProvider();
+
+        // Safety check in case the service starts before the activity initializes it
+        if (fusedLocationClient == null) {
+            fusedLocationClient = new FusedLocationProvider(this);
+            app.setLocationProvider(fusedLocationClient);
+        }
+
         startLocationUpdates();
     }
 

@@ -33,6 +33,7 @@ import android.app.Dialog;
 import android.widget.ImageView;
 
 import com.example.oncampusapp.location.FusedLocationProvider;
+import com.example.oncampusapp.location.FusedLocationSource;
 import com.example.oncampusapp.location.ILocationProvider;
 import com.google.android.gms.location.LocationCallback;
 import com.google.android.gms.maps.CameraUpdateFactory;
@@ -97,6 +98,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     public static final LatLng SGW_COORDS = new LatLng(45.496107243097704, -73.57725834380621);
     public static final LatLng LOY_COORDS = new LatLng(45.4582, -73.6405);
     public ILocationProvider fusedLocationClient;
+    private FusedLocationSource myLocationSource;
+
+    private static final int LOCATION_PERMISSION_REQUEST_CODE = 1;
 
     private ActivityResultLauncher<String[]> locationPermissionRequest;
     private TextView btnSgwLoy;
@@ -117,6 +121,15 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     // for tests. to mock location
     public void setLocationProvider(ILocationProvider provider) {
         this.fusedLocationClient = provider;
+        this.myLocationSource = new FusedLocationSource(this, this.fusedLocationClient);
+        if (mMap != null) {
+            mMap.setLocationSource(this.myLocationSource);
+        }
+
+        // Set it globally so the Service can use the mock too!
+        if (getApplication() instanceof OnCampusApplication) {
+            ((OnCampusApplication) getApplication()).setLocationProvider(provider);
+        }
     }
     private void checkLocationPermissions() {
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
@@ -142,9 +155,18 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         buildingClassifier = new BuildingClassifier();
 
-        if (fusedLocationClient == null) {
-            fusedLocationClient = new FusedLocationProvider(this);
+        OnCampusApplication app = (OnCampusApplication) getApplication();
+
+        // If a mock hasn't been injected yet, set the default one
+        if (app.getLocationProvider() == null) {
+            app.setLocationProvider(new FusedLocationProvider(this));
         }
+
+        // Use the provider from the application
+        fusedLocationClient = app.getLocationProvider();
+
+        // Initialize our custom Location Source
+        myLocationSource = new FusedLocationSource(this, fusedLocationClient);
 
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
@@ -428,9 +450,15 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
 
+        // Tell the map to use our custom FusedLocationSource
+        mMap.setLocationSource(myLocationSource);
+
         if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
             mMap.setMyLocationEnabled(true);
         }
+
+        // Enable the blue dot (Requires permission check)
+        enableMyLocation();
 
         // Move camera to SGW campus
         mMap.animateCamera(
@@ -1028,5 +1056,17 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     private void handleCloseSearch() {
         getOnBackPressedDispatcher().onBackPressed();
+    }
+
+    private void enableMyLocation() {
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+            // This triggers the activate() method in our FusedLocationSource
+            mMap.setMyLocationEnabled(true);
+        } else {
+            // Request permissions if not already granted
+            ActivityCompat.requestPermissions(this,
+                    new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
+                    LOCATION_PERMISSION_REQUEST_CODE);
+        }
     }
 }
