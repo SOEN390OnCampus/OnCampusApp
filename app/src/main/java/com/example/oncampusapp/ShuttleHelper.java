@@ -30,8 +30,8 @@ public class ShuttleHelper {
     public static final LatLng SHUTTLE_STOP_SGW = new LatLng(45.497163, -73.578535); // SGW Campus
     public static final LatLng SHUTTLE_STOP_LOY = new LatLng(45.458424, -73.638369); // Loyola Campus
 
-    /** Estimated shuttle journey duration (one way) */
-    public static final String SHUTTLE_DURATION_EST = "~30 MIN";
+    /** Fallback duration shown while the API call is in-flight or if it fails */
+    public static final String SHUTTLE_DURATION_FALLBACK = "~30 MIN";
 
     /** Lazily loaded shuttle routes - populated by init(). */
     private static List<LatLng> routeSgwToLoy = null;
@@ -92,6 +92,40 @@ public class ShuttleHelper {
         } else {
             return new ArrayList<>(routeLoyToSgw);
         }
+    }
+
+    /**
+     * Fetches the real driving duration between the two shuttle stops from the
+     * Google Directions API (DRIVING mode, stop-to-stop), then delivers it via
+     * {@link NavigationHelper.DirectionsCallback#onSuccess}. Falls back to
+     * {@link #SHUTTLE_DURATION_FALLBACK} on error — the path argument in onSuccess
+     * is always null; callers should use the pre-computed KML route instead.
+     *
+     * @param start  the user's starting LatLng (used only to determine direction)
+     * @param apiKey Google Maps API key
+     * @param cb     callback that receives (null, durationText) on success
+     */
+    public static void fetchDuration(LatLng start, String apiKey, NavigationHelper.DirectionsCallback cb) {
+        LatLng from, to;
+        if (start == null || distanceBetween(start, SHUTTLE_STOP_SGW) <= distanceBetween(start, SHUTTLE_STOP_LOY)) {
+            from = SHUTTLE_STOP_SGW;
+            to   = SHUTTLE_STOP_LOY;
+        } else {
+            from = SHUTTLE_STOP_LOY;
+            to   = SHUTTLE_STOP_SGW;
+        }
+        NavigationHelper.fetchDirections(from, to, NavigationHelper.Mode.DRIVING, apiKey,
+                new NavigationHelper.DirectionsCallback() {
+                    @Override
+                    public void onSuccess(List<LatLng> path, String durationText) {
+                        cb.onSuccess(null, durationText);
+                    }
+                    @Override
+                    public void onError(Exception e) {
+                        Log.w("ShuttleHelper", "Duration fetch failed, using fallback", e);
+                        cb.onError(e);
+                    }
+                });
     }
 
     // Concordia Shuttle Timetable URL (Winter schedule)

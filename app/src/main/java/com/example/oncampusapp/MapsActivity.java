@@ -1061,10 +1061,22 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             // If shuttle mode but both locations are on the same campus, auto-switch to walking
             applySameCampusCheck(startCoords, destCoords);
 
-            // Shuttle mode: draw the fixed KML-based route directly (no API call needed)
+            // Shuttle mode: draw the fixed KML-based route, but fetch real duration from API
             if (selectedMode == NavigationHelper.Mode.SHUTTLE) {
                 List<LatLng> shuttlePath = ShuttleHelper.getShuttleRoute(startCoords, destCoords);
-                drawRouteOnMap(shuttlePath, ShuttleHelper.SHUTTLE_DURATION_EST, false);
+                // Draw immediately with fallback text, then update once API responds
+                drawRouteOnMap(shuttlePath, ShuttleHelper.SHUTTLE_DURATION_FALLBACK, false);
+                ShuttleHelper.fetchDuration(startCoords, BuildConfig.MAPS_API_KEY,
+                        new NavigationHelper.DirectionsCallback() {
+                            @Override
+                            public void onSuccess(List<LatLng> ignored, String durationText) {
+                                runOnUiThread(() -> drawRouteOnMap(shuttlePath, durationText, false));
+                            }
+                            @Override
+                            public void onError(Exception e) {
+                                // Fallback already shown — nothing more to do
+                            }
+                        });
                 return;
             }
 
