@@ -32,8 +32,10 @@ import androidx.test.ext.junit.rules.ActivityScenarioRule;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.rule.GrantPermissionRule;
 
+import com.example.oncampusapp.location.FakeLocationProvider;
 import com.google.android.gms.maps.model.LatLng;
 
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -52,6 +54,14 @@ public class MapsActivityEspressoTest {
     @Rule
     public GrantPermissionRule permissionRule =
             GrantPermissionRule.grant(Manifest.permission.ACCESS_FINE_LOCATION);
+
+    @Before
+    public void setUp() {
+        activityRule.getScenario().onActivity(activity -> {
+            // Call your method here
+            activity.setLocationProvider(new FakeLocationProvider(activity));
+        });
+    }
 
     private void sleep(int ms) {
         try {
@@ -289,6 +299,10 @@ public class MapsActivityEspressoTest {
     public void clickingOnCurrentLocation() {
         AtomicReference<Building> ref = new AtomicReference<>();
 
+        activityRule.getScenario().onActivity(activity -> {
+            activity.fusedLocationClient.setFakeLocation(45, 45);
+        });
+
         sleep(5000);
         onView(withId(R.id.btn_location)).perform(click());
         sleep(2000);
@@ -296,7 +310,7 @@ public class MapsActivityEspressoTest {
         activityRule.getScenario().onActivity(activity -> {
             ref.set(activity.buildingManager.getCurrentBuilding());
         });
-
+        
         String name = ref.get().getName();
 
         onView(withId(R.id.currentLocationIcon)).perform(click());

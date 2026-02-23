@@ -32,8 +32,9 @@ import android.widget.Toast;
 import android.app.Dialog;
 import android.widget.ImageView;
 
-import com.google.android.gms.location.FusedLocationProviderClient;
-import com.google.android.gms.location.LocationServices;
+import com.example.oncampusapp.location.FusedLocationProvider;
+import com.example.oncampusapp.location.ILocationProvider;
+import com.google.android.gms.location.LocationCallback;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
@@ -71,7 +72,6 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 
 import com.bumptech.glide.Glide;
 
@@ -96,7 +96,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     public static final LatLng SGW_COORDS = new LatLng(45.496107243097704, -73.57725834380621);
     public static final LatLng LOY_COORDS = new LatLng(45.4582, -73.6405);
-    public FusedLocationProviderClient fusedLocationClient;
+    public ILocationProvider fusedLocationClient;
 
     private ActivityResultLauncher<String[]> locationPermissionRequest;
     private TextView btnSgwLoy;
@@ -106,7 +106,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     // Navigation Variables
     private com.google.android.gms.maps.model.Polyline bluePolyline;
     private List<LatLng> currentRoutePoints;
-    private com.google.android.gms.location.LocationCallback navigationLocationCallback;
+    private LocationCallback navigationLocationCallback;
     private com.google.android.gms.maps.model.Circle startDot;
     private com.google.android.gms.maps.model.Marker endMarker;
 
@@ -114,6 +114,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         return this.mMap;
     }
 
+    // for tests. to mock location
+    public void setLocationProvider(ILocationProvider provider) {
+        this.fusedLocationClient = provider;
+    }
     private void checkLocationPermissions() {
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
             // Request the permission
@@ -137,7 +141,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         setupRoutePickerUi();
 
         buildingClassifier = new BuildingClassifier();
-        fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
+
+        if (fusedLocationClient == null) {
+            fusedLocationClient = new FusedLocationProvider(this);
+        }
 
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
