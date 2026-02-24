@@ -141,12 +141,31 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
     }
 
+    // Register for multiple permissions
+    private final ActivityResultLauncher<String[]> requestMultiplePermissionsLauncher =
+        registerForActivityResult(new ActivityResultContracts.RequestMultiplePermissions(), isGranted -> {
+            Boolean fineLocationGranted = isGranted.getOrDefault(Manifest.permission.ACCESS_FINE_LOCATION, false);
+            Boolean postNotificationsGranted = isGranted.getOrDefault(Manifest.permission.POST_NOTIFICATIONS, false);
+
+            if (Boolean.TRUE.equals(fineLocationGranted))
+                Log.d("LocationPermission", "Precise location access granted.");
+            else if (Boolean.TRUE.equals(isGranted.getOrDefault(Manifest.permission.ACCESS_COARSE_LOCATION, false)))
+                Log.d("LocationPermission", "Only approximate location access granted.");
+
+            if (Boolean.TRUE.equals(postNotificationsGranted))
+                Log.d("NotificationPermission", "Notifications granted.");
+            else
+                Log.d("NotificationPermission", "Notifications denied.");
+        });
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
         WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
         getWindow().setStatusBarColor(Color.TRANSPARENT);
+
+        launchPermissionRequest();
 
         // ViewBinding: inflate, then set content view ONCE
         binding = ActivityMapsBinding.inflate(getLayoutInflater());
@@ -1067,6 +1086,27 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             ActivityCompat.requestPermissions(this,
                     new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
                     LOCATION_PERMISSION_REQUEST_CODE);
+        }
+    }
+
+    private void launchPermissionRequest() {
+        List<String> permissionsToRequest = new ArrayList<>();
+
+        // Check Location
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            permissionsToRequest.add(Manifest.permission.ACCESS_FINE_LOCATION);
+            permissionsToRequest.add(Manifest.permission.ACCESS_COARSE_LOCATION);
+        }
+
+        // Check Notifications (API 33+)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                permissionsToRequest.add(Manifest.permission.POST_NOTIFICATIONS);
+            }
+        }
+
+        if (!permissionsToRequest.isEmpty()) {
+            requestMultiplePermissionsLauncher.launch(permissionsToRequest.toArray(new String[0]));
         }
     }
 }

@@ -55,7 +55,15 @@ public class MapsActivityEspressoTest {
 
     @Rule
     public GrantPermissionRule permissionRule =
-            GrantPermissionRule.grant(Manifest.permission.ACCESS_FINE_LOCATION);
+            GrantPermissionRule.grant(
+                    // Location
+                    Manifest.permission.ACCESS_FINE_LOCATION,
+                    Manifest.permission.ACCESS_COARSE_LOCATION,
+                    Manifest.permission.ACCESS_BACKGROUND_LOCATION
+
+                    // Notifications (Android 13+)
+//                    Manifest.permission.POST_NOTIFICATIONS
+            );
 
     @Before
     public void setUp() {
@@ -297,27 +305,26 @@ public class MapsActivityEspressoTest {
     // For US-2.2: Clicking on current location
     // ----------------------------------------
 
-//    @Test
-//    public void clickingOnCurrentLocation() {
-//        AtomicReference<Building> ref = new AtomicReference<>();
-//
-//        activityRule.getScenario().onActivity(activity -> {
-//            activity.fusedLocationClient.setFakeLocation(45.4973, -73.5789); // A coordinate inside the H. building
-//        });
-//
-//        sleep(5000);
-//        onView(withId(R.id.btn_location)).perform(click());
-//        sleep(1000);
-//
-//        activityRule.getScenario().onActivity(activity -> {
-//            Building currentBuilding = activity.buildingManager.getCurrentBuilding();
-//            ref.set(activity.buildingManager.getCurrentBuilding());
-//        });
-//
-//        String name = ref.get().getName();
-//
-//        onView(withId(R.id.currentLocationIcon)).perform(click());
-//        onView(withId(R.id.et_start)).check(matches(withText(name)));
-//    }
+    @Test
+    public void clickingOnCurrentLocation() {
+        AtomicReference<Building> ref = new AtomicReference<>();
+
+        activityRule.getScenario().onActivity(activity -> {
+            activity.fusedLocationClient.setFakeLocation(45.4973, -73.5789); // A coordinate inside H - Henry F. Hall Building
+        });
+
+        sleep(5000);
+        onView(withId(R.id.btn_location)).perform(click());
+        sleep(1000);
+
+        activityRule.getScenario().onActivity(activity -> {
+            Building currentBuilding = activity.buildingManager.getCurrentBuilding();
+            ref.set(activity.buildingManager.getCurrentBuilding());
+        });
+
+        String name = ref.get().getName();
+
+        assertEquals("H - Henry F. Hall Building", name);
+    }
 
 }
