@@ -406,9 +406,16 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             }
 
             //Zoom Camera for Navigation
-            if (currentRoutePoints != null && !currentRoutePoints.isEmpty()) {
+            LatLng cameraTarget = null;
+            if (selectedMode == NavigationHelper.Mode.SHUTTLE) {
+                // For shuttle mode, focus on the start building directly
+                cameraTarget = BuildingLookup.getLatLngFromBuildingName(startText, buildingsMap);
+            } else if (currentRoutePoints != null && !currentRoutePoints.isEmpty()) {
+                cameraTarget = currentRoutePoints.get(0);
+            }
+            if (cameraTarget != null) {
                 CameraPosition cameraPosition = new CameraPosition.Builder()
-                        .target(currentRoutePoints.get(0))
+                        .target(cameraTarget)
                         .zoom(19f)
                         .tilt(0)
                         .build();
