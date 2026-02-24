@@ -348,7 +348,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             btnShuttleTimetable.setVisibility(View.VISIBLE);
             adjustGoButtonWidth(btnGo, true);
             clearNormalRoute(); 
-            shuttleMarkers = ShuttleHelper.showShuttleStops(mMap, shuttleMarkers);
+            shuttleMarkers = ShuttleHelper.showShuttleStops(this, mMap, shuttleMarkers);
             initiateRoutePreview();
         });
 
@@ -498,7 +498,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         
         // Set up marker click listener for shuttle stops
         mMap.setOnMarkerClickListener(marker -> {
-            if (ShuttleHelper.isShuttleStopMarker(marker)) {
+            if (ShuttleHelper.isShuttleStopMarker(this, marker)) {
                 marker.showInfoWindow();
                 ShuttleHelper.openTimetable(this);
                 return true;
@@ -1076,7 +1076,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             if (selectedMode == NavigationHelper.Mode.SHUTTLE) {
 
             if (mMap != null && (shuttleMarkers[0] == null || shuttleMarkers[1] == null)) {
-                shuttleMarkers = ShuttleHelper.showShuttleStops(mMap, shuttleMarkers);
+                shuttleMarkers = ShuttleHelper.showShuttleStops(this, mMap, shuttleMarkers);
             }
 
                 if (shuttleMarkers[0] == null || shuttleMarkers[1] == null) {

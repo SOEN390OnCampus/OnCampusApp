@@ -12,6 +12,8 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import android.content.Context;
+
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
@@ -30,6 +32,9 @@ public class ShuttleHelperTest {
     private GoogleMap mockMap;
 
     @Mock
+    private Context mockContext;
+
+    @Mock
     private Marker mockMarker1;
 
     @Mock
@@ -37,7 +42,8 @@ public class ShuttleHelperTest {
 
     @Before
     public void setUp() {
-        // Setup common mock behaviors
+        when(mockContext.getString(R.string.sgw_shuttle_stop)).thenReturn("SGW Shuttle Stop");
+        when(mockContext.getString(R.string.loyola_shuttle_stop)).thenReturn("Loyola Shuttle Stop");
     }
 
     // ==================== CONSTANTS TESTS ====================
@@ -62,7 +68,7 @@ public class ShuttleHelperTest {
 
     @Test
     public void testShowShuttleStops_WithNullMap() {
-        Marker[] result = ShuttleHelper.showShuttleStops(null, null);
+        Marker[] result = ShuttleHelper.showShuttleStops(mockContext, null, null);
         
         assertNotNull("Result should not be null", result);
         assertEquals("Result array should have 2 elements", 2, result.length);
@@ -122,56 +128,56 @@ public class ShuttleHelperTest {
 
     @Test
     public void testIsShuttleStopMarker_WithNullMarker() {
-        assertFalse("Null marker should return false", ShuttleHelper.isShuttleStopMarker(null));
+        assertFalse("Null marker should return false", ShuttleHelper.isShuttleStopMarker(mockContext, null));
     }
 
     @Test
     public void testIsShuttleStopMarker_WithNullTitle() {
         when(mockMarker1.getTitle()).thenReturn(null);
         
-        assertFalse("Marker with null title should return false", ShuttleHelper.isShuttleStopMarker(mockMarker1));
+        assertFalse("Marker with null title should return false", ShuttleHelper.isShuttleStopMarker(mockContext, mockMarker1));
     }
 
     @Test
     public void testIsShuttleStopMarker_WithSGWTitle() {
         when(mockMarker1.getTitle()).thenReturn("SGW Shuttle Stop");
         
-        assertTrue("SGW Shuttle Stop should be recognized", ShuttleHelper.isShuttleStopMarker(mockMarker1));
+        assertTrue("SGW Shuttle Stop should be recognized", ShuttleHelper.isShuttleStopMarker(mockContext, mockMarker1));
     }
 
     @Test
     public void testIsShuttleStopMarker_WithLoyolaTitle() {
         when(mockMarker1.getTitle()).thenReturn("Loyola Shuttle Stop");
         
-        assertTrue("Loyola Shuttle Stop should be recognized", ShuttleHelper.isShuttleStopMarker(mockMarker1));
+        assertTrue("Loyola Shuttle Stop should be recognized", ShuttleHelper.isShuttleStopMarker(mockContext, mockMarker1));
     }
 
     @Test
     public void testIsShuttleStopMarker_WithOtherTitle() {
         when(mockMarker1.getTitle()).thenReturn("Some Other Building");
         
-        assertFalse("Other marker titles should return false", ShuttleHelper.isShuttleStopMarker(mockMarker1));
+        assertFalse("Other marker titles should return false", ShuttleHelper.isShuttleStopMarker(mockContext, mockMarker1));
     }
 
     @Test
     public void testIsShuttleStopMarker_WithEmptyString() {
         when(mockMarker1.getTitle()).thenReturn("");
         
-        assertFalse("Empty title should return false", ShuttleHelper.isShuttleStopMarker(mockMarker1));
+        assertFalse("Empty title should return false", ShuttleHelper.isShuttleStopMarker(mockContext, mockMarker1));
     }
 
     @Test
     public void testIsShuttleStopMarker_WithSimilarTitle() {
         when(mockMarker1.getTitle()).thenReturn("SGW Shuttle");
         
-        assertFalse("Similar but not exact title should return false", ShuttleHelper.isShuttleStopMarker(mockMarker1));
+        assertFalse("Similar but not exact title should return false", ShuttleHelper.isShuttleStopMarker(mockContext, mockMarker1));
     }
 
     @Test
     public void testIsShuttleStopMarker_CaseSensitive() {
         when(mockMarker1.getTitle()).thenReturn("sgw shuttle stop");
         
-        assertFalse("Lowercase title should return false (case sensitive)", ShuttleHelper.isShuttleStopMarker(mockMarker1));
+        assertFalse("Lowercase title should return false (case sensitive)", ShuttleHelper.isShuttleStopMarker(mockContext, mockMarker1));
     }
 
     // ==================== IS SAME CAMPUS TESTS ====================

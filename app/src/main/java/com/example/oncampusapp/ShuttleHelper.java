@@ -150,7 +150,7 @@ public class ShuttleHelper {
      * @param existingMarkers Array containing existing marker references [SGW, Loyola] to remove before adding new ones
      * @return Array containing new marker references [SGW, Loyola]
      */
-    public static Marker[] showShuttleStops(GoogleMap map, Marker[] existingMarkers) {
+    public static Marker[] showShuttleStops(Context context, GoogleMap map, Marker[] existingMarkers) {
         if (map == null) return new Marker[]{null, null};
         
         // Remove old shuttle markers if they exist
@@ -162,14 +162,14 @@ public class ShuttleHelper {
         // Add shuttle stop markers with distinctive appearance
         Marker sgwMarker = map.addMarker(new MarkerOptions()
                 .position(SHUTTLE_STOP_SGW)
-                .title("SGW Shuttle Stop")
-                .snippet("Tap for shuttle timetable")
+                .title(context.getString(R.string.sgw_shuttle_stop))
+                .snippet(context.getString(R.string.tap_for_shuttle_timetable))
                 .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE)));
 
         Marker loyMarker = map.addMarker(new MarkerOptions()
                 .position(SHUTTLE_STOP_LOY)
-                .title("Loyola Shuttle Stop")
-                .snippet("Tap for shuttle timetable")
+                .title(context.getString(R.string.loyola_shuttle_stop))
+                .snippet(context.getString(R.string.tap_for_shuttle_timetable))
                 .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE)));
         
         return new Marker[]{sgwMarker, loyMarker};
@@ -197,10 +197,11 @@ public class ShuttleHelper {
      * @param marker The marker to check
      * @return true if the marker is a shuttle stop
      */
-    public static boolean isShuttleStopMarker(Marker marker) {
+    public static boolean isShuttleStopMarker(Context context, Marker marker) {
         if (marker == null || marker.getTitle() == null) return false;
         String title = marker.getTitle();
-        return title.equals("SGW Shuttle Stop") || title.equals("Loyola Shuttle Stop");
+        return title.equals(context.getString(R.string.sgw_shuttle_stop))
+                || title.equals(context.getString(R.string.loyola_shuttle_stop));
     }
 
     /**
