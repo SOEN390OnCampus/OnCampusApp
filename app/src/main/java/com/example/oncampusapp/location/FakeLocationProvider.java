@@ -19,12 +19,14 @@ import com.google.android.gms.tasks.Task;
 import com.google.android.gms.tasks.Tasks;
 
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 
 public class FakeLocationProvider implements ILocationProvider {
     private final FusedLocationProviderClient client;
     private final Location fakeLocation;
-    private Handler handler;
-    private Runnable updateRunnable;
+    private final Handler handler;
+    private final Map<LocationCallback, Runnable> activeUpdates = new HashMap<>();
 
     @SuppressLint("MissingPermission")
     public FakeLocationProvider(Context context) {
@@ -56,14 +58,26 @@ public class FakeLocationProvider implements ILocationProvider {
     }
 
     public void removeLocationUpdates(LocationCallback locationCallback) {
+        // Stop the Google Client updates
         client.removeLocationUpdates(locationCallback);
+
+        // Stop our custom Handler loop
+        Runnable runnable = activeUpdates.remove(locationCallback);
+        if (runnable != null) {
+            handler.removeCallbacks(runnable);
+        }
     }
 
     @Override
     public void requestLocationUpdates(LocationRequest locationRequest, LocationCallback locationCallback, Looper looper) {
-        long interval = locationRequest.getInterval();
+        // Prevent duplicate listeners for the same callback
+        if (activeUpdates.containsKey(locationCallback)) {
+            removeLocationUpdates(locationCallback);
+        }
 
-        updateRunnable = new Runnable() {
+        long interval = locationRequest.getIntervalMillis();
+
+        Runnable runnable = new Runnable() {
             @Override
             public void run() {
 
@@ -80,6 +94,8 @@ public class FakeLocationProvider implements ILocationProvider {
             }
         };
 
-        handler.post(updateRunnable);
+        // Store the reference and start
+        activeUpdates.put(locationCallback, runnable);
+        handler.post(runnable);
     }
 }
