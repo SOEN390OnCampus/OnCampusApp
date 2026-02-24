@@ -120,6 +120,15 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private android.widget.Button btnShuttleTimetable;
     private android.widget.Button btnGo;
 
+
+    //Shuttle 3 leg routes polylines
+    private Polyline walkToStopPolyline;
+    private Polyline shuttlePolyline;
+    private Polyline walkFromStopPolyline;
+
+
+    
+    
     public GoogleMap getMap() {
         return this.mMap;
     }
@@ -309,6 +318,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             btnShuttleTimetable.setVisibility(View.GONE);
             adjustGoButtonWidth(btnGo, false);
             ShuttleHelper.hideShuttleStops(shuttleMarkers);
+            clearShuttleRoute(); 
             initiateRoutePreview();
         });
         btnCar.setOnClickListener(v -> {
@@ -319,6 +329,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             btnShuttleTimetable.setVisibility(View.GONE);
             adjustGoButtonWidth(btnGo, false);
             ShuttleHelper.hideShuttleStops(shuttleMarkers);
+            clearShuttleRoute(); 
             initiateRoutePreview();
         });
         btnTransit.setOnClickListener(v -> {
@@ -329,6 +340,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             btnShuttleTimetable.setVisibility(View.GONE);
             adjustGoButtonWidth(btnGo, false);
             ShuttleHelper.hideShuttleStops(shuttleMarkers);
+            clearShuttleRoute(); 
             initiateRoutePreview();
         });
         btnShuttle.setOnClickListener(v -> {
@@ -338,6 +350,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             this.selectedMode = NavigationHelper.Mode.SHUTTLE;
             btnShuttleTimetable.setVisibility(View.VISIBLE);
             adjustGoButtonWidth(btnGo, true);
+            clearNormalRoute(); 
             shuttleMarkers = ShuttleHelper.showShuttleStops(mMap, shuttleMarkers);
             initiateRoutePreview();
         });
@@ -368,7 +381,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             }
 
             // SAFETY CHECK
-            if (bluePolyline == null) {
+            if (selectedMode != NavigationHelper.Mode.SHUTTLE && bluePolyline == null) {
                 Toast.makeText(this, "Calculating route, please wait...", Toast.LENGTH_SHORT).show();
                 initiateRoutePreview();
                 return;
@@ -442,6 +455,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
                     // Clean up map
                     if (bluePolyline != null) bluePolyline.remove();
+                    clearShuttleRoute();
                     if (navigationLocationCallback != null) {
                         fusedLocationClient.removeLocationUpdates(navigationLocationCallback);
                     }
@@ -1063,22 +1077,84 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
             // Shuttle mode: draw the fixed KML-based route, but fetch real duration from API
             if (selectedMode == NavigationHelper.Mode.SHUTTLE) {
-                List<LatLng> shuttlePath = ShuttleHelper.getShuttleRoute(startCoords, destCoords);
-                // Draw immediately with fallback text, then update once API responds
-                drawRouteOnMap(shuttlePath, ShuttleHelper.SHUTTLE_DURATION_FALLBACK, false);
-                ShuttleHelper.fetchDuration(startCoords, BuildConfig.MAPS_API_KEY,
-                        new NavigationHelper.DirectionsCallback() {
-                            @Override
-                            public void onSuccess(List<LatLng> ignored, String durationText) {
-                                runOnUiThread(() -> drawRouteOnMap(shuttlePath, durationText, false));
-                            }
-                            @Override
-                            public void onError(Exception e) {
-                                // Fallback already shown — nothing more to do
-                            }
-                        });
-                return;
+
+            if (mMap != null && (shuttleMarkers[0] == null || shuttleMarkers[1] == null)) {
+                shuttleMarkers = ShuttleHelper.showShuttleStops(mMap, shuttleMarkers);
             }
+
+                if (shuttleMarkers[0] == null || shuttleMarkers[1] == null) {
+                    Toast.makeText(this, "Shuttle stops are still loading, please try again", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+
+                LatLng stopA = shuttleMarkers[0].getPosition();
+                LatLng stopB = shuttleMarkers[1].getPosition();
+
+                double distToA = SphericalUtil.computeDistanceBetween(startCoords, stopA);
+                double distToB = SphericalUtil.computeDistanceBetween(startCoords, stopB);
+
+                LatLng pickupStop = (distToA <= distToB) ? stopA : stopB;
+                LatLng dropoffStop = (pickupStop == stopA) ? stopB : stopA;
+
+                clearNormalRoute();
+                clearShuttleRoute();
+
+                    // Shuttle leg
+                    List<LatLng> shuttlePath =
+                    ShuttleHelper.getShuttleRoute(pickupStop, dropoffStop);
+
+                    shuttlePolyline = drawSegmentPolyline(shuttlePath, false);
+
+                // Walk A → pickup
+                NavigationHelper.fetchDirections(
+                    startCoords,
+                    pickupStop,
+                    NavigationHelper.Mode.WALKING,
+                    BuildConfig.MAPS_API_KEY,
+                        new NavigationHelper.DirectionsCallback() {
+
+                @Override
+                public void onSuccess(List<LatLng> path, String durationText) {
+                    runOnUiThread(() ->
+                    walkToStopPolyline = drawSegmentPolyline(path, true));
+                    }
+
+                @Override
+                 public void onError(Exception e) {
+                    e.printStackTrace();
+                }
+            });
+
+            // Walk dropoff → B
+                NavigationHelper.fetchDirections(
+                  dropoffStop,
+                  destCoords,
+                    NavigationHelper.Mode.WALKING,
+                    BuildConfig.MAPS_API_KEY,
+                    new NavigationHelper.DirectionsCallback() {
+
+                @Override
+                public void onSuccess(List<LatLng> path, String durationText) {
+                    runOnUiThread(() ->
+                    walkFromStopPolyline = drawSegmentPolyline(path, true));
+                }
+
+                    @Override
+                public void onError(Exception e) {
+                    e.printStackTrace();
+            }
+                });
+
+                TextView txtDuration = findViewById(R.id.txt_duration);
+                    if (txtDuration != null) {
+                txtDuration.setText(
+                ShuttleHelper.SHUTTLE_DURATION_FALLBACK.toUpperCase()
+                );
+                }
+
+            return;
+            }
+               
 
             // Use NavigationHelper Class for all other modes
             NavigationHelper.fetchDirections(startCoords, destCoords, selectedMode, BuildConfig.MAPS_API_KEY, new NavigationHelper.DirectionsCallback() {
@@ -1151,6 +1227,49 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         btnGo.setLayoutParams(params);
     }
 
+
+    //Helper methods for shuttle 3 leg addition
+     private void clearNormalRoute() {
+        if (bluePolyline != null) bluePolyline.remove();
+        bluePolyline = null;
+
+        if (startDot != null) startDot.remove();
+        startDot = null;
+
+        if (endMarker != null) endMarker.remove();
+        endMarker = null;
+
+        if (currentRoutePoints != null) currentRoutePoints.clear();
+    }
+
+    private void clearShuttleRoute() {
+        if (walkToStopPolyline != null) walkToStopPolyline.remove();
+        walkToStopPolyline = null;
+
+        if (shuttlePolyline != null) shuttlePolyline.remove();
+        shuttlePolyline = null;
+
+        if (walkFromStopPolyline != null) walkFromStopPolyline.remove();
+        walkFromStopPolyline = null;
+    }
+
+    private Polyline drawSegmentPolyline(List<LatLng> path, boolean isDotted) {
+        if (mMap == null || path == null || path.isEmpty()) return null;
+
+        PolylineOptions options = new PolylineOptions()
+                .addAll(path)
+                .color(Color.parseColor("#4285F4"))
+                .width(20)
+                .zIndex(2)
+                .geodesic(true);
+
+        if (isDotted){
+            List<PatternItem> pattern = Arrays.asList(new Dot(), new Gap(20));
+            options.pattern(pattern);
+        }
+
+        return mMap.addPolyline(options);
+    }
 
 
 }
