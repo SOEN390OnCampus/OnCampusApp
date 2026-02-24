@@ -84,17 +84,15 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private Map<String, BuildingDetails> geoIdToBuildingDetailsMap;
     private ActivityMapsBinding binding;
     private BuildingClassifier buildingClassifier;
-
     protected BuildingManager buildingManager;
+    private GeoJsonLayer layer;
     private Dialog currentBuildingDialog = null;
-
     private ImageView currentLocationIcon;
     private AutoCompleteTextView startDestinationText;
     private AutoCompleteTextView endDestinationText;
     private NavigationHelper.Mode selectedMode = NavigationHelper.Mode.WALKING;
     private LinearLayout routePicker;
     private ImageButton btnSwapAddress;
-
     public static final LatLng SGW_COORDS = new LatLng(45.496107243097704, -73.57725834380621);
     public static final LatLng LOY_COORDS = new LatLng(45.4582, -73.6405);
     public ILocationProvider fusedLocationClient;
@@ -498,7 +496,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         try {
             // Load the GeoJSON file
-            GeoJsonLayer layer = new GeoJsonLayer(mMap, R.raw.concordia_buildings, getApplicationContext());
+            layer = new GeoJsonLayer(mMap, R.raw.concordia_buildings, getApplicationContext());
             List<GeoJsonFeature> pointFeatures = new ArrayList<>();
 
             // Iterate through the GeoJSON file to find the features
@@ -724,7 +722,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
     }
 
-    private void handleBuildingDetailsButtonClick(String geojsonId) {
+    protected void handleBuildingDetailsButtonClick(String geojsonId) {
         BuildingDetails details = geoIdToBuildingDetailsMap.get(geojsonId);
         if (details == null){
             Toast.makeText(this, "No details found for this building", Toast.LENGTH_SHORT).show();
@@ -1072,7 +1070,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     public Polyline getBluePolyline(){
         return bluePolyline;
     }
-
+    public GeoJsonLayer getLayer(){
+        return layer;
+    }
+    public Dialog getCurrentBuildingDialog(){
+        return currentBuildingDialog;
+    }
     private void handleCloseSearch() {
         getOnBackPressedDispatcher().onBackPressed();
     }
