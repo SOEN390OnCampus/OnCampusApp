@@ -5,7 +5,16 @@
     "address": "2160 Bishop St.",
     "image": "https://www.concordia.ca/content/concordia/en/maps/buildings/b/_jcr_content/content-main/grid_container_307846512/grid-container-parsys/box_427340212/box-parsys/image.img.jpg/1750701724050.jpg",
     "accessibility": false,
-    "link": "https://www.concordia.ca/maps/buildings/b.html"
+    "link": "https://www.concordia.ca/maps/buildings/b.html",
+    "schedule": {
+      "wednesday" : "10:30a.m.–4:30p.m.",
+      "thursday" : "10:30a.m.–4:30p.m.",
+      "friday" : "10:30a.m.–4:30p.m.",
+      "saturday" : "Closed",
+      "sunday" : "Closed",
+      "monday" : "10:30a.m.–4:30p.m.",
+      "tuesday" : "10:30a.m.–4:30p.m."
+    }
   },
   "CI": {
     "code": "CI",
@@ -53,7 +62,8 @@
     "address": "1515 Ste-Catherine St. W.",
     "image": "https://www.concordia.ca/content/concordia/en/maps/buildings/ev/_jcr_content/content-main/grid_container_307846512/grid-container-parsys/box_427340212/box-parsys/image.img.jpg/1750702823530.jpg",
     "accessibility": true,
-    "link": "https://www.concordia.ca/maps/buildings/ev.html"
+    "link": "https://www.concordia.ca/maps/buildings/ev.html",
+    "hasDirectTunnelToMetro" : true
   },
   "FA": {
     "code": "FA",
@@ -77,7 +87,16 @@
     "address": "1610 Ste-Catherine St. W.",
     "image": "https://www.concordia.ca/content/concordia/en/maps/buildings/fg/_jcr_content/content-main/grid_container_307846512/grid-container-parsys/box_427340212/box-parsys/image.img.jpg/1750703205424.jpg",
     "accessibility": true,
-    "link": "https://www.concordia.ca/maps/buildings/fg.html"
+    "link": "https://www.concordia.ca/maps/buildings/fg.html",
+    "schedule": {
+      "wednesday" : "10 a.m.–10 p.m.",
+      "thursday" : "10 a.m.–10 p.m.",
+      "friday" : "10 a.m.–11 p.m.",
+      "saturday" : "10 a.m.–10 p.m.",
+      "sunday" : "10 a.m.–10 p.m.",
+      "monday" : "10 a.m.–10 p.m.",
+      "tuesday" : "10 a.m.–10 p.m."
+    }
   },
   "GA": {
     "code": "GA",
@@ -117,7 +136,17 @@
     "address": "1455 De Maisonneuve Blvd.\u00a0W.",
     "image": "https://www.concordia.ca/content/concordia/en/maps/buildings/h/_jcr_content/content-main/grid_container_307846512/grid-container-parsys/box_427340212/box-parsys/image.img.jpg/1750703745830.jpg",
     "accessibility": true,
-    "link": "https://www.concordia.ca/maps/buildings/h.html"
+    "link": "https://www.concordia.ca/maps/buildings/h.html",
+    "hasDirectTunnelToMetro" : true,
+    "schedule": {
+      "wednesday" : "9 a.m.–5 p.m.",
+      "thursday" : "9 a.m.–5 p.m.",
+      "friday" : "9 a.m.–5 p.m.",
+      "saturday" : "Closed",
+      "sunday" : "Closed",
+      "monday" : "9 a.m.–5 p.m.",
+      "tuesday" : "9 a.m.–5 p.m."
+    }
   },
   "K": {
     "code": "K",
@@ -133,7 +162,11 @@
     "address": "1400 De Maisonneuve Blvd.\u00a0W.",
     "image": "https://www.concordia.ca/content/concordia/en/maps/buildings/lb/_jcr_content/content-main/grid_container_307846512/grid-container-parsys/box_427340212/box-parsys/image.img.jpg/1750706334758.jpg",
     "accessibility": true,
-    "link": "https://www.concordia.ca/maps/buildings/lb.html"
+    "link": "https://www.concordia.ca/maps/buildings/lb.html",
+    "hasDirectTunnelToMetro" : true,
+    "schedule": {
+      "alwaysOpen" : true
+    }
   },
   "LD": {
     "code": "LD",
@@ -165,7 +198,17 @@
     "address": "1450 Guy St.",
     "image": "https://www.concordia.ca/content/concordia/en/maps/buildings/mb/_jcr_content/content-main/grid_container_307846512/grid-container-parsys/box_427340212/box-parsys/image.img.jpg/1752848969887.jpg",
     "accessibility": true,
-    "link": "https://www.concordia.ca/maps/buildings/mb.html"
+    "link": "https://www.concordia.ca/maps/buildings/mb.html",
+    "hasDirectTunnelToMetro" : true,
+    "schedule": {
+      "wednesday" : "10 a.m.–6 p.m.",
+      "thursday" : "10 a.m.–6 p.m.",
+      "friday" : "10 a.m.–6 p.m",
+      "saturday" : "11 a.m.–5 p.m",
+      "sunday" : "11 a.m.–5 p.m",
+      "monday" : "10 a.m.–6 p.m.",
+      "tuesday" : "10 a.m.–6 p.m."
+    }
   },
   "MI": {
     "code": "MI",
@@ -253,7 +296,10 @@
     "address": "1410 Guy St.",
     "image": "https://www.concordia.ca/content/concordia/en/maps/buildings/td/_jcr_content/content-main/grid_container_307846512/grid-container-parsys/box_427340212/box-parsys/image.img.jpg/1753213459658.jpg",
     "accessibility": false,
-    "link": "https://www.concordia.ca/maps/buildings/td.html"
+    "link": "https://www.concordia.ca/maps/buildings/td.html",
+    "schedule": {
+      "alwaysOpen": true
+    }
   },
   "V": {
     "code": "V",
@@ -293,7 +339,16 @@
     "address": "7141 Sherbrooke St. W.",
     "image": "https://www.concordia.ca/content/concordia/en/maps/buildings/ad/_jcr_content/content-main/grid_container_307846512/grid-container-parsys/box_427340212/box-parsys/image.img.jpg/1750701647513.jpg",
     "accessibility": true,
-    "link": "https://www.concordia.ca/maps/buildings/ad.html"
+    "link": "https://www.concordia.ca/maps/buildings/ad.html",
+    "schedule": {
+      "wednesday" : "9 a.m.–5 p.m.",
+      "thursday" : "9 a.m.–5 p.m.",
+      "friday" : "9 a.m.–5 p.m.",
+      "saturday" : "Closed",
+      "sunday" : "Closed",
+      "monday" : "9 a.m.–5 p.m.",
+      "tuesday" : "9 a.m.–5 p.m."
+    }
   },
   "way/604324439": {
     "code": "BB",
@@ -301,7 +356,16 @@
     "address": "3502 Av. Belmore",
     "image": "https://www.concordia.ca/content/concordia/en/maps/buildings/bb/_jcr_content/content-main/grid_container_307846512/grid-container-parsys/box_427340212/box-parsys/image.img.jpg/1754505281032.jpg",
     "accessibility": false,
-    "link": "https://www.concordia.ca/maps/buildings/bb.html"
+    "link": "https://www.concordia.ca/maps/buildings/bb.html",
+    "schedule": {
+      "wednesday" : "7 a.m.–6 p.m.",
+      "thursday" : "7 a.m.–6 p.m.",
+      "friday" : "7 a.m.–6 p.m.",
+      "saturday" : "Closed",
+      "sunday" : "Closed",
+      "monday" : "7 a.m.–6 p.m.",
+      "tuesday" : "7 a.m.–6 p.m."
+    }
   },
   "way/604324440": {
     "code": "BH",
@@ -309,7 +373,16 @@
     "address": "3500 Av. Belmore",
     "image": "https://www.concordia.ca/content/concordia/en/maps/buildings/bh/_jcr_content/content-main/grid_container_307846512/grid-container-parsys/box_427340212/box-parsys/image.img.jpg/1754505255461.jpg",
     "accessibility": false,
-    "link": "https://www.concordia.ca/maps/buildings/bh.html"
+    "link": "https://www.concordia.ca/maps/buildings/bh.html",
+    "schedule": {
+      "wednesday" : "7 a.m.–6 p.m.",
+      "thursday" : "7 a.m.–6 p.m.",
+      "friday" : "7 a.m.–6 p.m.",
+      "saturday" : "Closed",
+      "sunday" : "Closed",
+      "monday" : "7 a.m.–6 p.m.",
+      "tuesday" : "7 a.m.–6 p.m."
+    }
   },
   "way/604324456": {
     "code": "CC",
@@ -325,7 +398,16 @@
     "address": "7141 Sherbrooke St. W.",
     "image": "https://www.concordia.ca/content/concordia/en/maps/buildings/cj/_jcr_content/content-main/grid_container_307846512/grid-container-parsys/box_427340212/box-parsys/image.img.jpg/1750702027234.jpg",
     "accessibility": true,
-    "link": "https://www.concordia.ca/maps/buildings/cj.html"
+    "link": "https://www.concordia.ca/maps/buildings/cj.html",
+    "schedule": {
+      "wednesday" : "8 a.m.–6 p.m.",
+      "thursday" : "8 a.m.–6 p.m.",
+      "friday" : "8 a.m.–6 p.m.",
+      "saturday" : "Closed",
+      "sunday" : "Closed",
+      "monday" : "8 a.m.–6 p.m.",
+      "tuesday" : "8 a.m.–6 p.m."
+    }
   },
   "DO": {
     "code": "DO",
@@ -389,7 +471,10 @@
     "address": "7141 Sherbrooke St. W.",
     "image": "https://www.concordia.ca/content/concordia/en/maps/buildings/jr/_jcr_content/content-main/grid_container_307846512/grid-container-parsys/box_427340212/box-parsys/image.img.jpg/1752775378408.jpg",
     "accessibility": true,
-    "link": "https://www.concordia.ca/maps/buildings/jr.html"
+    "link": "https://www.concordia.ca/maps/buildings/jr.html",
+    "schedule" : {
+      "alwaysOpen" : true
+    }
   },
   "way/604019520": {
     "code": "PC",
@@ -397,7 +482,16 @@
     "address": "7200 Sherbrooke St. W.",
     "image": "https://www.concordia.ca/content/concordia/en/maps/buildings/pc/_jcr_content/content-main/grid_container_307846512/grid-container-parsys/box_427340212/box-parsys/image.img.jpg/1754056606860.jpg",
     "accessibility": true,
-    "link": "https://www.concordia.ca/maps/buildings/pc.html"
+    "link": "https://www.concordia.ca/maps/buildings/pc.html",
+    "schedule": {
+      "wednesday" : "6 a.m.–10 p.m.",
+      "thursday" : "6 a.m.–10 p.m.",
+      "friday" : "6 a.m.–10 p.m.",
+      "saturday" : "8 a.m.–5 p.m.",
+      "sunday" : "8 a.m.–5 p.m.",
+      "monday" : "6 a.m.–10 p.m.",
+      "tuesday" : "6 a.m.–10 p.m."
+    }
   },
   "way/47332006": {
     "code": "PS",
@@ -405,7 +499,16 @@
     "address": "7141 Sherbrooke St. W.",
     "image": "https://www.concordia.ca/content/concordia/en/maps/buildings/ps/_jcr_content/content-main/grid_container_307846512/grid-container-parsys/box_427340212/box-parsys/image.img.jpg/1753211858581.jpg",
     "accessibility": false,
-    "link": "https://www.concordia.ca/maps/buildings/ps.html"
+    "link": "https://www.concordia.ca/maps/buildings/ps.html",
+    "schedule": {
+      "wednesday" : "7 a.m. – 11 p.m.",
+      "thursday" : "7 a.m. – 11 p.m..",
+      "friday" : "7 a.m. – 11 p.m.",
+      "saturday" : "7 a.m. – 9 p.m.",
+      "sunday" : "7 a.m. – 9 p.m.",
+      "monday" : "7 a.m. – 11 p.m.",
+      "tuesday" : "7 a.m. – 11 p.m."
+    }
   },
   "way/604324443": {
     "code": "PT",
@@ -421,7 +524,16 @@
     "address": "7141 Sherbrooke St. W.",
     "image": "https://www.concordia.ca/content/concordia/en/maps/buildings/py/_jcr_content/content-main/grid_container_307846512/grid-container-parsys/box_427340212/box-parsys/image.img.jpg/1750712426337.jpg",
     "accessibility": true,
-    "link": "https://www.concordia.ca/maps/buildings/py.html"
+    "link": "https://www.concordia.ca/maps/buildings/py.html",
+    "schedule": {
+      "wednesday" : "9 a.m. – 7 p.m.",
+      "thursday" : "9 a.m. – 5 p.m..",
+      "friday" : "9 a.m. – 5 p.m..",
+      "saturday" : "Closed",
+      "sunday" : "Closed",
+      "monday" : "9 a.m. – 5 p.m..",
+      "tuesday" : "9 a.m. – 5 p.m.."
+    }
   },
   "QA": {
     "code": "QA",
@@ -437,7 +549,16 @@
     "address": "7200 Sherbrooke St. W.",
     "image": "https://www.concordia.ca/content/concordia/en/maps/buildings/ra/_jcr_content/content-main/grid_container_307846512/grid-container-parsys/box_427340212/box-parsys/image.img.jpg/1753387180607.jpg",
     "accessibility": true,
-    "link": "https://www.concordia.ca/maps/buildings/ra.html"
+    "link": "https://www.concordia.ca/maps/buildings/ra.html",
+    "schedule": {
+      "wednesday" : "7 a.m.–10 p.m.",
+      "thursday" : "7 a.m.–10 p.m.",
+      "friday" : "7 a.m.–10 p.m.",
+      "saturday" : "Closed",
+      "sunday" : "Closed",
+      "monday" : "7 a.m.–10 p.m.",
+      "tuesday" : "7 a.m.–10 p.m."
+    }
   },
   "way/604324455": {
     "code": "RF",
@@ -445,7 +566,16 @@
     "address": "7141 Sherbrooke St. W.",
     "image": "https://www.concordia.ca/content/concordia/en/maps/buildings/rf/_jcr_content/content-main/grid_container_307846512/grid-container-parsys/box_427340212/box-parsys/image.img.jpg/1754321077294.jpg",
     "accessibility": true,
-    "link": "https://www.concordia.ca/maps/buildings/rf.html"
+    "link": "https://www.concordia.ca/maps/buildings/rf.html",
+    "schedule": {
+      "monday" : "9 a.m.–5 p.m.",
+      "tuesday" : "9 a.m.–5 p.m.",
+      "wednesday" : "9 a.m.–5 p.m.",
+      "thursday" : "9 a.m.–5 p.m.",
+      "friday" : "9 a.m.–1 p.m.",
+      "saturday" : "Closed",
+      "sunday" : "Closed"
+    }
   },
   "way/47332009": {
     "code": "SC",
@@ -453,7 +583,16 @@
     "address": "7141 Sherbrooke St. W.",
     "image": "https://www.concordia.ca/content/concordia/en/maps/buildings/sc/_jcr_content/content-main/grid_container_307846512/grid-container-parsys/box_427340212/box-parsys/image.img.jpg/1750774420596.jpg",
     "accessibility": true,
-    "link": "https://www.concordia.ca/maps/buildings/sc.html"
+    "link": "https://www.concordia.ca/maps/buildings/sc.html",
+    "schedule": {
+      "monday" : "10 a.m.–4 p.m.",
+      "tuesday" : "10 a.m.–4 p.m.",
+      "wednesday" : "10 a.m.–4 p.m.",
+      "thursday" : "10 a.m.–4 p.m.",
+      "friday" : "10 a.m.–4 p.m.",
+      "saturday" : "Closed",
+      "sunday" : "Closed"
+    }
   },
   "way/129437736": {
     "code": "SD",
@@ -461,7 +600,16 @@
     "address": "7200 Sherbrooke St. W.",
     "image": "https://www.concordia.ca/content/concordia/en/campus-life/recreation/facilities/stinger-dome/jcr:content/content-main/hero/adaptiveimage.img.768.medium.jpg/1759324707165.jpg",
     "accessibility": false,
-    "link": "https://www.concordia.ca/campus-life/recreation/facilities/stinger-dome.html"
+    "link": "https://www.concordia.ca/campus-life/recreation/facilities/stinger-dome.html",
+    "schedule": {
+      "monday" : "9 a.m.–10 p.m.",
+      "tuesday" : "9 a.m.–10 p.m.",
+      "wednesday" : "9 a.m.–10 p.m.",
+      "thursday" : "9 a.m.–10 p.m.",
+      "friday" : "9 a.m.–10 p.m.",
+      "saturday" : "9 a.m.–10 p.m.",
+      "sunday" : "9 a.m.–10 p.m."
+    }
   }
   ,
   "way/352622186": {
@@ -478,7 +626,16 @@
     "address": "4455 Broadway St.",
     "image": "https://www.concordia.ca/content/concordia/en/maps/buildings/si/_jcr_content/content-main/grid_container_307846512/grid-container-parsys/box_427340212/box-parsys/image.img.jpg/1750774594857.jpg",
     "accessibility": false,
-    "link": "https://www.concordia.ca/maps/buildings/si.html"
+    "link": "https://www.concordia.ca/maps/buildings/si.html",
+    "schedule": {
+      "monday" : "8 a.m.–4 p.m.",
+      "tuesday" : "8 a.m.–4 p.m..",
+      "wednesday" : "8 a.m.–4 p.m.",
+      "thursday" : "8 a.m.–4 p.m.",
+      "friday" : "8 a.m.–4 p.m.",
+      "saturday" : "3:45 a.m.–5:30 p.m.",
+      "sunday" : "10 a.m.–11 a.m."
+    }
   },
   "way/47331993": {
     "code": "SP",
@@ -510,7 +667,10 @@
     "address": "7141 Sherbrooke St. W.",
     "image": "https://www.concordia.ca/content/concordia/en/maps/buildings/vl/_jcr_content/content-main/grid_container_307846512/grid-container-parsys/box_427340212/box-parsys/image.img.jpg/1750775944461.jpg",
     "accessibility": true,
-    "link": "https://www.concordia.ca/maps/buildings/vl.html"
+    "link": "https://www.concordia.ca/maps/buildings/vl.html",
+    "schedule": {
+      "alwaysOpen" :true
+    }
   }
 }
 
