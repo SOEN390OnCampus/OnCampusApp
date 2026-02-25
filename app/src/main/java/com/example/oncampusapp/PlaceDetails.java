@@ -1,12 +1,12 @@
 package com.example.oncampusapp;
 
-public class BuildingDetailsDto {
+public class PlaceDetails {
     private String name;
     private String address;
     private String imgUri;
     private boolean accessibility;
 
-    public BuildingDetailsDto() {
+    public PlaceDetails() {
     }
 
     public String getName() {

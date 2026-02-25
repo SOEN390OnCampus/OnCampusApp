@@ -95,6 +95,21 @@
             android:textSize="12sp"
             android:textColor="#666666"
             android:gravity="center" />
+        <TextView
+            android:id="@+id/txt_direct_metro_access"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/this_building_has_direct_access_to_metro_via_tunnel"
+            android:textSize="12sp"
+            android:textColor="#666666"
+            android:gravity="center" />
+        <TextView
+            android:id="@+id/txt_schedule"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textSize="12sp"
+            android:textColor="#666666"
+            android:gravity="left" />
         <!-- Accessibility -->
         <LinearLayout
             android:orientation="horizontal"
