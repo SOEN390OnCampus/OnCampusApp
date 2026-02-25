@@ -681,12 +681,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             }
         }
 
-        BuildingDetailsDto buildingDetailsDto = new BuildingDetailsDto();
-        buildingDetailsDto.setName(details.name);
-        buildingDetailsDto.setAddress(details.address);
-        buildingDetailsDto.setImgUri(details.image);
-        buildingDetailsDto.setAccessibility(details.accessibility);
-        showBuildingInfoDialog(buildingDetailsDto, geojsonId);
+        showBuildingInfoDialog(details, geojsonId);
     }
 
     /**
@@ -720,7 +715,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
      * @param buildingDetails the building details retrieved from the Places API
      * @param featureId the building's feature ID used for campus determination
      */
-    private void showBuildingInfoDialog(BuildingDetailsDto buildingDetails, String featureId) {
+    private void showBuildingInfoDialog(BuildingDetails buildingDetails, String featureId) {
         if (currentBuildingDialog != null && currentBuildingDialog.isShowing()) {
             currentBuildingDialog.dismiss();
         }
@@ -761,7 +756,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         return dialog;
     }
 
-    private void populateDialogViews(Dialog dialog, BuildingDetailsDto buildingDetails, String campus) {
+    private void populateDialogViews(Dialog dialog, BuildingDetails buildingDetails, String campus) {
         ImageView imgBuilding = dialog.findViewById(R.id.img_building);
         TextView txtBuildingName = dialog.findViewById(R.id.txt_building_name);
         TextView txtBuildingAddress = dialog.findViewById(R.id.txt_building_address);
@@ -770,9 +765,14 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         ImageView imgAccessibility = dialog.findViewById(R.id.img_accessibility);
         TextView txtAccessibility = dialog.findViewById(R.id.txt_accessibility);
 
+        TextView txtDirectMetroAccess = dialog.findViewById(R.id.txt_direct_metro_access);
+        TextView txtSchedule = dialog.findViewById(R.id.txt_schedule);
 
-        if (buildingDetails.getName() != null && !buildingDetails.getName().isEmpty()) {
-            String fullName = buildingDetails.getName();
+
+
+
+        if (buildingDetails.name != null && !buildingDetails.name.isEmpty()) {
+            String fullName = buildingDetails.name;
             String buildingName = fullName.contains(",") ? fullName.substring(0, fullName.indexOf(",")).trim() : fullName;
             txtBuildingName.setText(buildingName.toUpperCase());
 
@@ -788,23 +788,35 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             txtBuildingDescriptionFr.setText(descriptionFr);
         }
 
-        if (buildingDetails.getAddress() != null && !buildingDetails.getAddress().isEmpty()) {
-            txtBuildingAddress.setText(buildingDetails.getAddress());
+        if (buildingDetails.address != null && !buildingDetails.address.isEmpty()) {
+            txtBuildingAddress.setText(buildingDetails.address);
         }
-        if (buildingDetails.getAccessibility()) {
+        if (buildingDetails.accessibility) {
             imgAccessibility.setVisibility(View.VISIBLE);
             txtAccessibility.setText(R.string.building_accessible);
         } else {
             imgAccessibility.setVisibility(View.GONE);
             txtAccessibility.setText(R.string.building_not_accessible);
         }
+        if (buildingDetails.hasDirectTunnelToMetro) {
+            txtDirectMetroAccess.setVisibility(View.VISIBLE);
+        } else {
+            txtDirectMetroAccess.setVisibility(View.GONE);
+        }
+        if (buildingDetails.schedule == null) {
+            txtSchedule.setVisibility(View.GONE);
+        } else {
+            txtSchedule.setVisibility(View.VISIBLE);
+            txtSchedule.setText(buildingDetails.schedule.toString());
+        }
+
         loadBuildingImage(imgBuilding, buildingDetails);
     }
 
-    private void loadBuildingImage(ImageView imgBuilding, BuildingDetailsDto buildingDetails) {
-        if (buildingDetails.getImgUri() != null && !buildingDetails.getImgUri().isEmpty()) {
+    private void loadBuildingImage(ImageView imgBuilding, BuildingDetails buildingDetails) {
+        if (buildingDetails.image != null && !buildingDetails.image.isEmpty()) {
             Glide.with(this)
-                    .load(buildingDetails.getImgUri())
+                    .load(buildingDetails.image)
                     .placeholder(android.R.color.darker_gray)
                     .error(android.R.color.darker_gray)
                     .into(imgBuilding);
