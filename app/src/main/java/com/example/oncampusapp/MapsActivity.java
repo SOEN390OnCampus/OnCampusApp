@@ -738,7 +738,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         if (dialog.getWindow() != null) {
             dialog.getWindow().setLayout(
-                    (int) (getResources().getDisplayMetrics().widthPixels * 0.9),
+                    (int) (getResources().getDisplayMetrics().widthPixels * 0.8),
                     android.view.ViewGroup.LayoutParams.WRAP_CONTENT
             );
             dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
