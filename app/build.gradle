@@ -69,6 +69,7 @@ dependencies {
     androidTestImplementation libs.mockito.android
     androidTestImplementation libs.rules
     implementation libs.places
+    implementation libs.play.services.auth
 }
 
 sonarqube {
