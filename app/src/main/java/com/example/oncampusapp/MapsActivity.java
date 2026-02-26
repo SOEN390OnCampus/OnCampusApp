@@ -494,6 +494,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                                 radius
                         );
 
+                        // Special case for the SP building
+                        if (id.equals("way/47331993")){
+                            center = new LatLng(45.45786742002923, -73.64158635998182);
+                        }
+
                         if (geoIdToBuildingDetailsMap.containsKey(id)) {
                             // Create a feature to allow click
                             pointFeatures.add(createSquareFeature(center,id));
