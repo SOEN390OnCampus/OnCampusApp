@@ -55,6 +55,7 @@
         android:background="#F3F4F6"/>
 
     <LinearLayout
+        android:layout_margin="8dp"
         android:orientation="horizontal"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -74,6 +75,7 @@
     </LinearLayout>
 
     <LinearLayout
+        android:layout_margin="8dp"
         android:id="@+id/layout_building_opening_hours"
         android:orientation="horizontal"
         android:layout_width="match_parent"
@@ -94,7 +96,7 @@
     </LinearLayout>
 
     <LinearLayout
-        android:layout_margin="5dp"
+        android:layout_margin="8dp"
         android:layout_width="match_parent"
         android:layout_height="wrap_content">
         <include
@@ -113,7 +115,7 @@
     
     <ImageView
         android:id="@+id/img_building"
-        android:layout_marginTop="25dp"
+        android:layout_marginTop="22dp"
         android:layout_marginBottom="30dp"
         android:layout_marginHorizontal="30dp"
         android:src="@drawable/bg_item_accessible"
