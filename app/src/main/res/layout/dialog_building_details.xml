@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:background="@drawable/bg_white_rounded"
+    android:gravity="center_horizontal">
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <TextView
+            android:id="@+id/txt_building_code"
+            android:layout_width="60dp"
+            android:layout_height="60dp"
+            android:layout_marginTop="16dp"
+            android:layout_marginBottom="16dp"
+            android:layout_centerHorizontal="true"
+            android:background="@drawable/bg_white_circle"
+            android:gravity="center"
+            android:textColor="#000000"
+            android:textSize="30sp"
+            tools:text="I" />
+
+        <ImageButton
+            android:id="@+id/btn_close"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_alignParentTop="true"
+            android:layout_alignParentEnd="true"
+            android:layout_margin="8dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/content_description_close_button"
+            android:src="@android:drawable/ic_menu_close_clear_cancel"
+            app:tint="#666666" />
+
+    </RelativeLayout>
+
+    <TextView
+        android:id="@+id/txt_building_name"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        tools:text="SAMPLE BUILDING NAME"
+        android:textSize="20sp"
+        android:textColor="#912338"
+        android:gravity="center"
+        android:layout_marginBottom="12dp" />
+
+    <!-- Just the small grey band that separate name from further details -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="5dp"
+        android:background="#F3F4F6"/>
+
+    <LinearLayout
+        android:orientation="horizontal"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        tools:ignore="UseCompoundDrawables">
+        <ImageView
+            android:src="@drawable/ic_location"
+            android:layout_width="30dp"
+            android:layout_height="30dp"
+            android:layout_gravity="top"/>
+        <TextView
+            android:id="@+id/txt_building_address"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textSize="15sp"
+            tools:text="SAMPLE BUILDING ADDRESS THAT IS ALSO REALLY LONG TO SHOWCASE WHEN IT GO DOWN A LINE"/>
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/layout_building_opening_hours"
+        android:orientation="horizontal"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        tools:ignore="UseCompoundDrawables">
+        <ImageView
+            android:src="@drawable/ic_clock"
+            android:layout_width="30dp"
+            android:layout_height="30dp"
+            android:layout_gravity="top"/>
+        <TextView
+            android:id="@+id/txt_building_opening_hours"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textSize="15sp"
+            tools:text="Monday: 9:00 AM - 5:00 PM\nMonday: 9:00 AM - 5:00 PM\nMonday: 9:00 AM - 5:00 PM\nMonday: 9:00 AM - 5:00 PM\nMonday: 9:00 AM - 5:00 PM\nMonday: 9:00 AM - 5:00 PM\nMonday: 9:00 AM - 5:00 PM\n"/>
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+        <include
+            android:id="@+id/item_accessibility"
+            layout="@layout/item_accessibility"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="4dp" />
+        <include
+            android:id="@+id/item_metro_connect"
+            layout="@layout/item_metro_access"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="4dp"/>
+    </LinearLayout>
+    
+    <ImageView
+        android:id="@+id/img_building"
+        android:layout_margin="30dp"
+        android:src="@drawable/bg_item_accessible"
+        android:layout_width="match_parent"
+        android:layout_height="200dp"/>
+        
+
+
+
+</LinearLayout>
