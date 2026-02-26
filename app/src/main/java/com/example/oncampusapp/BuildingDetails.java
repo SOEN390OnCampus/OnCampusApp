@@ -1,6 +1,7 @@
 package com.example.oncampusapp;
 
 import androidx.annotation.NonNull;
+import java.util.*;
 
 public class BuildingDetails {
     public String code;
@@ -27,15 +28,75 @@ public class BuildingDetails {
             if (alwaysOpen) {
                 sb.append("Always Open");
             } else {
-                sb.append("Mon: ").append(monday).append("\n");
-                sb.append("Tue: ").append(tuesday).append("\n");
-                sb.append("Wed: ").append(wednesday).append("\n");
-                sb.append("Thu: ").append(thursday).append("\n");
-                sb.append("Fri: ").append(friday).append("\n");
-                sb.append("Sat: ").append(saturday).append("\n");
-                sb.append("Sun: ").append(sunday).append("\n");
+                sb.append(groupSchedule());
             }
             return sb.toString();
         }
+
+
+        public String groupSchedule() {
+
+            if (this.alwaysOpen) {
+                return "Always Open";
+            }
+
+            List<String> result = new ArrayList<>();
+
+            String[] days = {
+                    "monday", "tuesday", "wednesday",
+                    "thursday", "friday", "saturday", "sunday"
+            };
+
+            String[] hours = {
+                    this.monday,
+                    this.tuesday,
+                    this.wednesday,
+                    this.thursday,
+                    this.friday,
+                    this.saturday,
+                    this.sunday
+            };
+
+            String startDay = days[0];
+            String prevDay = days[0];
+            String prevHours = hours[0];
+
+            for (int i = 1; i < days.length; i++) {
+                String currentHours = hours[i];
+
+                if (Objects.equals(currentHours, prevHours)) {
+                    prevDay = days[i];
+                } else {
+                    result.add(formatRange(startDay, prevDay, prevHours));
+                    startDay = days[i];
+                    prevDay = days[i];
+                    prevHours = currentHours;
+                }
+            }
+
+            result.add(formatRange(startDay, prevDay, prevHours));
+            StringBuilder sb = new StringBuilder();
+            for (String s : result) {
+                sb.append(s).append("\n");
+            }
+
+            return sb.toString();
+        }
+
+        private String formatRange(String start, String end, String hours) {
+            String startCap = capitalize(start);
+            String endCap = capitalize(end);
+
+            if (start.equals(end)) {
+                return startCap + ": " + hours;
+            }
+
+            return startCap + "–" + endCap + ": " + hours;
+        }
+
+        private String capitalize(String day) {
+            return day.substring(0, 1).toUpperCase() + day.substring(1);
+        }
     }
+
 }
