@@ -132,9 +132,27 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         setContentView(binding.getRoot());
         setupRoutePickerUi();
 
-        // TEMP: remove once calendar is in real nav
-        binding.btnTempCalendar.setOnClickListener(v ->
-                startActivity(new android.content.Intent(this, GoogleCalendarAuthActivity.class)));
+        binding.bottomNav.setOnItemSelectedListener(item -> {
+
+            int id = item.getItemId();
+
+            if (id == R.id.nav_home) {
+                Toast.makeText(this, "Home clicked", Toast.LENGTH_SHORT).show();
+                return true;
+            }
+
+            else if (id == R.id.nav_account) {
+                startActivity(new android.content.Intent(this, GoogleCalendarAuthActivity.class));
+                return true;
+            }
+
+            else if (id == R.id.nav_settings) {
+                Toast.makeText(this, "Settings clicked", Toast.LENGTH_SHORT).show();
+                return true;
+            }
+
+            return false;
+        });
 
         buildingClassifier = new BuildingClassifier();
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);

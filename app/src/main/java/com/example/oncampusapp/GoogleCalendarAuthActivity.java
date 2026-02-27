@@ -85,9 +85,19 @@ public class GoogleCalendarAuthActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_google_calendar_auth);
+
+        setContentView(R.layout.calendar_login_page);
 
         bindViews();
+
+        GoogleSignInAccount account =
+                GoogleSignIn.getLastSignedInAccount(this);
+
+        if (account != null) {
+            onSignInSuccess(account);
+            return;
+        }
+
         setupGoogleSignIn();
 
         connectButton.setOnClickListener(v -> startSignIn());
@@ -104,7 +114,7 @@ public class GoogleCalendarAuthActivity extends AppCompatActivity {
     // -------------------------------------------------------------------------
 
     private void bindViews() {
-        connectButton = findViewById(R.id.connectButton);
+        connectButton = findViewById(R.id.btn_calendar_signin);
         progressBar = findViewById(R.id.progressBar);
         statusText = findViewById(R.id.statusText);
     }
@@ -188,7 +198,7 @@ public class GoogleCalendarAuthActivity extends AppCompatActivity {
 
                 mainHandler.post(() -> {
                     showLoading(false);
-                    Intent intent = new Intent(GoogleCalendarAuthActivity.this, ScheduleViewer.class);
+                    Intent intent = new Intent(GoogleCalendarAuthActivity.this, AccountPage.class);
                     intent.putExtra("email", account.getEmail());
                     intent.putExtra("calendar_events_json", allEventsArray.toString());
                     startActivity(intent);

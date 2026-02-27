@@ -58,6 +58,8 @@
 
         <activity android:name=".ScheduleViewer" />
 
+        <activity android:name=".AccountPage" />
+
     </application>
 
 </manifest>
