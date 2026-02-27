@@ -190,7 +190,7 @@ public class GoogleCalendarAuthActivity extends AppCompatActivity {
                     showLoading(false);
                     Intent intent = new Intent(GoogleCalendarAuthActivity.this, ScheduleViewer.class);
                     intent.putExtra("email", account.getEmail());
-                    intent.putExtra("rawEvents", allEventsArray.toString());
+                    intent.putExtra("calendar_events_json", allEventsArray.toString());
                     startActivity(intent);
                     finish();
                 });
