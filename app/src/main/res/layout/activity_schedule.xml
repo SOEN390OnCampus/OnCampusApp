@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true">
+
+    <HorizontalScrollView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <LinearLayout
+            android:id="@+id/week_container"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:padding="8dp">
+
+            <!-- Each day column -->
+            <LinearLayout
+                android:id="@+id/day_monday"
+                android:layout_width="120dp"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="#f0f0f0"
+                android:padding="4dp">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Mon"
+                    android:textStyle="bold"
+                    android:gravity="center"
+                    android:paddingBottom="8dp"/>
+
+                <!-- Events will be added programmatically here -->
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/day_tuesday"
+                android:layout_width="120dp"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="#f9f9f9"
+                android:padding="4dp">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Tue"
+                    android:textStyle="bold"
+                    android:gravity="center"
+                    android:paddingBottom="8dp"/>
+            </LinearLayout>
+
+            <!-- Repeat for Wed–Sun -->
+            <LinearLayout
+                android:id="@+id/day_wednesday"
+                android:layout_width="120dp"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="#f0f0f0"
+                android:padding="4dp">
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Wed"
+                    android:textStyle="bold"
+                    android:gravity="center"
+                    android:paddingBottom="8dp"/>
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/day_thursday"
+                android:layout_width="120dp"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="#f9f9f9"
+                android:padding="4dp">
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Thu"
+                    android:textStyle="bold"
+                    android:gravity="center"
+                    android:paddingBottom="8dp"/>
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/day_friday"
+                android:layout_width="120dp"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="#f0f0f0"
+                android:padding="4dp">
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Fri"
+                    android:textStyle="bold"
+                    android:gravity="center"
+                    android:paddingBottom="8dp"/>
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/day_saturday"
+                android:layout_width="120dp"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="#f9f9f9"
+                android:padding="4dp">
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Sat"
+                    android:textStyle="bold"
+                    android:gravity="center"
+                    android:paddingBottom="8dp"/>
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/day_sunday"
+                android:layout_width="120dp"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="#f0f0f0"
+                android:padding="4dp">
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Sun"
+                    android:textStyle="bold"
+                    android:gravity="center"
+                    android:paddingBottom="8dp"/>
+            </LinearLayout>
+
+
+
+        </LinearLayout>
+    </HorizontalScrollView>
+</ScrollView>
