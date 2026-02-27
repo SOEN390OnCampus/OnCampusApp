@@ -33,6 +33,13 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.net.URLEncoder;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.List;
+import java.util.Locale;
+import java.util.TimeZone;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -145,51 +152,98 @@ public class GoogleCalendarAuthActivity extends AppCompatActivity {
         }
     }
 
-    // -------------------------------------------------------------------------
-    // Post-authentication: fetch calendar list
-    // -------------------------------------------------------------------------
-
-    /**
-     * Called when Google Sign-In succeeds.
-     * Starts a background fetch of the user's Google Calendar list.
-     */
     private void onSignInSuccess(GoogleSignInAccount account) {
         showLoading(true);
         setStatusText("Signed in as " + account.getEmail() + "\nFetching calendars…", false);
 
         executor.execute(() -> {
             try {
-                // Obtain an OAuth2 bearer token for the calendar scope.
                 String token = com.google.android.gms.auth.GoogleAuthUtil.getToken(
                         this,
                         account.getAccount(),
                         "oauth2:" + CALENDAR_SCOPE);
 
-                // Fetch the calendar list from the Google Calendar API.
-                String jsonResponse = fetchCalendarList(token);
-                JSONObject root = new JSONObject(jsonResponse);
-                JSONArray items = root.optJSONArray("items");
-                int count = (items != null) ? items.length() : 0;
+                String calendarListJson = fetchCalendarList(token);
+                JSONObject root = new JSONObject(calendarListJson);
+                JSONArray calendars = root.optJSONArray("items");
 
-                mainHandler.post(() -> onCalendarListFetched(account.getEmail(), count, items));
+                List<JSONObject> allEvents = new ArrayList<>();
+                if (calendars != null) {
+                    for (int i = 0; i < calendars.length(); i++) {
+                        JSONObject cal = calendars.getJSONObject(i);
+                        String calendarId = cal.getString("id");
+
+                        String eventsJson = fetchCalendarEvents(token, calendarId);
+                        JSONObject eventsRoot = new JSONObject(eventsJson);
+                        JSONArray events = eventsRoot.optJSONArray("items");
+                        if (events != null) {
+                            for (int j = 0; j < events.length(); j++) {
+                                allEvents.add(events.getJSONObject(j));
+                            }
+                        }
+                    }
+                }
+
+                JSONArray allEventsArray = new JSONArray(allEvents);
+
+                mainHandler.post(() -> {
+                    showLoading(false);
+                    Intent intent = new Intent(GoogleCalendarAuthActivity.this, ScheduleViewer.class);
+                    intent.putExtra("email", account.getEmail());
+                    intent.putExtra("rawEvents", allEventsArray.toString());
+                    startActivity(intent);
+                    finish();
+                });
 
             } catch (com.google.android.gms.auth.UserRecoverableAuthException e) {
-                // The user must grant additional permissions through a recovery intent.
                 Log.w(TAG, "UserRecoverableAuthException", e);
                 mainHandler.post(() -> {
                     showLoading(false);
                     startActivity(e.getIntent());
                 });
             } catch (Exception e) {
-                Log.e(TAG, "Failed to fetch calendar list", e);
+                Log.e(TAG, "Failed to fetch calendar events", e);
                 mainHandler.post(() -> showCalendarFetchError(e.getMessage()));
             }
         });
     }
 
-    /** Performs an authenticated GET request to the Calendar List endpoint. */
+    // -------------------------------------------------------------------------
+    // Post-authentication: fetch calendar list
+    // -------------------------------------------------------------------------
+
+
     private String fetchCalendarList(String accessToken) throws Exception {
-        URL url = new URL(CALENDAR_LIST_URL);
+        return fetchUrl("https://www.googleapis.com/calendar/v3/users/me/calendarList", accessToken);
+    }
+
+    private String fetchCalendarEvents(String accessToken, String calendarId) throws Exception {
+        Calendar past = Calendar.getInstance();
+        past.add(Calendar.MONTH, -6);   // 6 months back
+
+        Calendar future = Calendar.getInstance();
+        future.add(Calendar.MONTH, 6);  // 6 months forward
+
+        SimpleDateFormat sdf =
+                new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.getDefault());
+        sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
+
+        String timeMin = sdf.format(past.getTime());
+        String timeMax = sdf.format(future.getTime());
+
+        String url = "https://www.googleapis.com/calendar/v3/calendars/"
+                + URLEncoder.encode(calendarId, "UTF-8")
+                + "/events"
+                + "?singleEvents=true"
+                + "&orderBy=startTime"
+                + "&timeMin=" + URLEncoder.encode(timeMin, "UTF-8")
+                + "&timeMax=" + URLEncoder.encode(timeMax, "UTF-8");
+
+        return fetchUrl(url,accessToken);
+    }
+
+    private String fetchUrl(String urlStr, String accessToken) throws Exception {
+        URL url = new URL(urlStr);
         HttpURLConnection conn = (HttpURLConnection) url.openConnection();
         conn.setRequestMethod("GET");
         conn.setRequestProperty("Authorization", "Bearer " + accessToken);
@@ -198,16 +252,14 @@ public class GoogleCalendarAuthActivity extends AppCompatActivity {
 
         int responseCode = conn.getResponseCode();
         if (responseCode != HttpURLConnection.HTTP_OK) {
-            throw new Exception("HTTP " + responseCode + " from calendar API");
+            throw new Exception("HTTP " + responseCode + " from Google API");
         }
 
-        try (BufferedReader reader =
-                     new BufferedReader(new InputStreamReader(conn.getInputStream()))) {
+        try (BufferedReader reader = new BufferedReader(
+                new InputStreamReader(conn.getInputStream()))) {
             StringBuilder sb = new StringBuilder();
             String line;
-            while ((line = reader.readLine()) != null) {
-                sb.append(line);
-            }
+            while ((line = reader.readLine()) != null) sb.append(line);
             return sb.toString();
         } finally {
             conn.disconnect();
@@ -221,22 +273,21 @@ public class GoogleCalendarAuthActivity extends AppCompatActivity {
     private void onCalendarListFetched(String email, int calendarCount, JSONArray items) {
         showLoading(false);
         StringBuilder msg = new StringBuilder();
-        msg.append("✓ Connected as ").append(email).append("\n\n");
-        if (calendarCount == 0) {
-            msg.append("No calendars found.");
-        } else {
-            msg.append(calendarCount).append(" calendar(s) found:\n");
-            for (int i = 0; i < items.length(); i++) {
-                try {
-                    JSONObject cal = items.getJSONObject(i);
-                    String summary = cal.optString("summary", "Unnamed");
-                    msg.append("• ").append(summary).append("\n");
-                } catch (Exception ignored) { }
+        mainHandler.post(() -> {
+            try {
+                Intent intent = new Intent(GoogleCalendarAuthActivity.this, ScheduleViewer.class);
+                intent.putExtra("email", email);
+                intent.putExtra("calendarEventsJson", items != null ? items.toString() : "[]");
+                startActivity(intent);
+                finish(); // optional, closes auth activity
+            } catch (Exception e) {
+                e.printStackTrace();
+                setStatusText("Failed to open ScheduleViewer: " + e.getMessage(), true);
             }
-        }
-        setStatusText(msg.toString().trim(), false);
-        Snackbar.make(connectButton,
-                "Google Calendar connected successfully!", Snackbar.LENGTH_LONG).show();
+
+            Snackbar.make(connectButton,
+                    "Google Calendar connected successfully!", Snackbar.LENGTH_LONG).show();
+        });
     }
 
     /**
