@@ -31,6 +31,7 @@ import androidx.test.espresso.matcher.ViewMatchers.Visibility;
 
 import android.Manifest;
 import android.graphics.Point;
+import android.os.Build;
 import android.view.InputDevice;
 import android.view.MotionEvent;
 
@@ -40,6 +41,7 @@ import androidx.test.espresso.PerformException;
 import androidx.test.espresso.matcher.RootMatchers;
 import androidx.test.ext.junit.rules.ActivityScenarioRule;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
+import androidx.test.platform.app.InstrumentationRegistry;
 import androidx.test.rule.GrantPermissionRule;
 
 import com.example.oncampusapp.location.FakeLocationProvider;
@@ -70,16 +72,26 @@ public class MapsActivityEspressoTest {
                     Manifest.permission.ACCESS_FINE_LOCATION,
                     Manifest.permission.ACCESS_COARSE_LOCATION,
                     Manifest.permission.ACCESS_BACKGROUND_LOCATION
-
-                    // Notifications (Android 13+)
-//                    Manifest.permission.POST_NOTIFICATIONS
             );
+
+    @Before
+    public void grantNotificationPermission() {
+        // Only attempt to grant notification permission if the device is running API 33 (Tiramisu) or higher
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            InstrumentationRegistry.getInstrumentation().getUiAutomation()
+                    .grantRuntimePermission(
+                            InstrumentationRegistry.getInstrumentation().getTargetContext().getPackageName(),
+                            Manifest.permission.POST_NOTIFICATIONS
+                    );
+        }
+    }
 
     @Before
     public void setUp() {
         activityRule.getScenario().onActivity(activity -> {
             // Call your method here
             activity.setLocationProvider(new FakeLocationProvider(activity));
+            activity.fusedLocationClient.setFakeLocation(45.4973, -73.5789); // Set the default location to hall building
         });
     }
 
