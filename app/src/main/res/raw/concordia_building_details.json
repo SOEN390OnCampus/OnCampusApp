@@ -502,7 +502,7 @@
     "link": "https://www.concordia.ca/maps/buildings/ps.html",
     "schedule": {
       "wednesday" : "7 a.m. – 11 p.m.",
-      "thursday" : "7 a.m. – 11 p.m..",
+      "thursday" : "7 a.m. – 11 p.m.",
       "friday" : "7 a.m. – 11 p.m.",
       "saturday" : "7 a.m. – 9 p.m.",
       "sunday" : "7 a.m. – 9 p.m.",
@@ -527,12 +527,12 @@
     "link": "https://www.concordia.ca/maps/buildings/py.html",
     "schedule": {
       "wednesday" : "9 a.m. – 7 p.m.",
-      "thursday" : "9 a.m. – 5 p.m..",
-      "friday" : "9 a.m. – 5 p.m..",
+      "thursday" : "9 a.m. – 5 p.m.",
+      "friday" : "9 a.m. – 5 p.m.",
       "saturday" : "Closed",
       "sunday" : "Closed",
-      "monday" : "9 a.m. – 5 p.m..",
-      "tuesday" : "9 a.m. – 5 p.m.."
+      "monday" : "9 a.m. – 5 p.m.",
+      "tuesday" : "9 a.m. – 5 p.m."
     }
   },
   "QA": {
@@ -629,7 +629,7 @@
     "link": "https://www.concordia.ca/maps/buildings/si.html",
     "schedule": {
       "monday" : "8 a.m.–4 p.m.",
-      "tuesday" : "8 a.m.–4 p.m..",
+      "tuesday" : "8 a.m.–4 p.m.",
       "wednesday" : "8 a.m.–4 p.m.",
       "thursday" : "8 a.m.–4 p.m.",
       "friday" : "8 a.m.–4 p.m.",
