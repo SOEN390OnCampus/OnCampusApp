@@ -769,12 +769,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         if (buildingDetails.getAddress() != null && !buildingDetails.getAddress().isEmpty()) {
             txtBuildingAddress.setText(buildingDetails.getAddress());
         }
-        if (buildingDetails.isAccessibility()) {
+        if (buildingDetails.isAccessible()) {
             llAccessibility.setVisibility(View.VISIBLE);
         } else {
             llAccessibility.setVisibility(View.GONE);
         }
-        if (buildingDetails.isHasDirectTunnelToMetro()) {
+        if (buildingDetails.hasDirectTunnelToMetro()) {
             llMetroConnect.setVisibility(View.VISIBLE);
         } else {
             llMetroConnect.setVisibility(View.GONE);
