@@ -8,14 +8,14 @@
     <ImageView
         android:layout_marginStart="5dp"
         android:src="@drawable/ic_accessibility"
-        android:layout_width="30dp"
-        android:layout_height="30dp"/>
+        android:layout_width="25dp"
+        android:layout_height="25dp"/>
     <TextView
         android:layout_marginEnd="15dp"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:textColor="#1a56db"
-        android:textSize="15sp"
+        android:textSize="11sp"
         android:text="@string/accessible"
         android:layout_gravity="center"/>
 
