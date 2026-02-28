@@ -496,7 +496,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
                         // Special case for the SP building
                         if (id.equals("way/47331993")){
-                            center = new LatLng(45.45786742002923, -73.64158635998182);
+                            BuildingDetails details = geoIdToBuildingDetailsMap.get(id);
+                            center = new LatLng(details.getLat(), details.getLng());
                         }
 
                         if (geoIdToBuildingDetailsMap.containsKey(id)) {
@@ -671,7 +672,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             return;
         }
 
-        String buildingName = details.name;
+        String buildingName = details.getName();
 
         if (routePicker != null && routePicker.getVisibility() == View.VISIBLE) {
             if (startDestinationText != null && startDestinationText.hasFocus()) {
@@ -761,36 +762,36 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         ImageView imgBuilding = dialog.findViewById(R.id.img_building);
 
-        txtBuildingCode.setText(buildingDetails.code);
-        txtBuildingName.setText(buildingDetails.name);
+        txtBuildingCode.setText(buildingDetails.getCode());
+        txtBuildingName.setText(buildingDetails.getName());
         txtBuildingName.setPaintFlags(txtBuildingName.getPaintFlags() | Paint.UNDERLINE_TEXT_FLAG);
-        txtBuildingAddress.setText(buildingDetails.address);
-        if (buildingDetails.address != null && !buildingDetails.address.isEmpty()) {
-            txtBuildingAddress.setText(buildingDetails.address);
+        txtBuildingAddress.setText(buildingDetails.getAddress());
+        if (buildingDetails.getAddress() != null && !buildingDetails.getAddress().isEmpty()) {
+            txtBuildingAddress.setText(buildingDetails.getAddress());
         }
-        if (buildingDetails.accessibility) {
+        if (buildingDetails.isAccessibility()) {
             llAccessibility.setVisibility(View.VISIBLE);
         } else {
             llAccessibility.setVisibility(View.GONE);
         }
-        if (buildingDetails.hasDirectTunnelToMetro) {
+        if (buildingDetails.isHasDirectTunnelToMetro()) {
             llMetroConnect.setVisibility(View.VISIBLE);
         } else {
             llMetroConnect.setVisibility(View.GONE);
         }
-        if (buildingDetails.schedule == null) {
+        if (buildingDetails.getSchedule() == null) {
             llBuildingOpeningHours.setVisibility(View.GONE);
         } else {
             llBuildingOpeningHours.setVisibility(View.VISIBLE);
-            txtBuildingOpeningHours.setText(buildingDetails.schedule.toString());
+            txtBuildingOpeningHours.setText(buildingDetails.getSchedule().toString());
         }
         loadBuildingImage(imgBuilding, buildingDetails);
     }
 
     private void loadBuildingImage(ImageView imgBuilding, BuildingDetails buildingDetails) {
-        if (buildingDetails.image != null && !buildingDetails.image.isEmpty()) {
+        if (buildingDetails.getImage() != null && !buildingDetails.getImage().isEmpty()) {
             Glide.with(this)
-                    .load(buildingDetails.image)
+                    .load(buildingDetails.getImage())
                     .placeholder(android.R.color.darker_gray)
                     .error(android.R.color.darker_gray)
                     .into(imgBuilding);
