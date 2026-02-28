@@ -30,7 +30,7 @@ public class BuildingDetails {
         return image;
     }
 
-    public boolean isAccessibility() {
+    public boolean isAccessible() {
         return accessibility;
     }
 
@@ -38,7 +38,7 @@ public class BuildingDetails {
         return link;
     }
 
-    public boolean isHasDirectTunnelToMetro() {
+    public boolean hasDirectTunnelToMetro() {
         return hasDirectTunnelToMetro;
     }
 
