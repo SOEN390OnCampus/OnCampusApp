@@ -53,6 +53,9 @@ public class BuildingDetails {
     public double getLng() {
         return lng;
     }
+    public BuildingDetails(){
+        this.schedule = new Schedule();
+    }
 
     public static class Schedule {
         private boolean alwaysOpen;
@@ -63,23 +66,35 @@ public class BuildingDetails {
         private String friday;
         private String saturday;
         private String sunday;
+        public Schedule(){
+            this.alwaysOpen = false;
+            this.monday = "7 a.m.–11 p.m.";
+            this.tuesday = "7 a.m.–11 p.m.";
+            this.wednesday = "7 a.m.–11 p.m.";
+            this.thursday = "7 a.m.–11 p.m.";
+            this.friday = "7 a.m.–11 p.m.";
+            this.saturday = "7 a.m.–7 p.m.";
+            this.sunday = "7 a.m.–7 p.m.";
+        }
 
         @NonNull
         public String toString() {
+            List<String> result = groupSchedule();
+            if (result == null) {
+                return "Always Open";
+            }
             StringBuilder sb = new StringBuilder();
-            if (alwaysOpen) {
-                sb.append("Always Open");
-            } else {
-                sb.append(groupSchedule());
+            for (String s : result) {
+                sb.append(s).append("\n");
             }
             return sb.toString();
         }
 
 
-        public String groupSchedule() {
+        public List<String> groupSchedule() {
 
             if (this.alwaysOpen) {
-                return "Always Open";
+                return null;
             }
 
             List<String> result = new ArrayList<>();
@@ -117,12 +132,8 @@ public class BuildingDetails {
             }
 
             result.add(formatRange(startDay, prevDay, prevHours));
-            StringBuilder sb = new StringBuilder();
-            for (String s : result) {
-                sb.append(s).append("\n");
-            }
 
-            return sb.toString();
+            return result;
         }
 
         private String formatRange(String start, String end, String hours) {
