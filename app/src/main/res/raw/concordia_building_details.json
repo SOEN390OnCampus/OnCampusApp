@@ -643,7 +643,9 @@
     "address": "7141 Sherbrooke St. W.",
     "image": "https://www.concordia.ca/content/concordia/en/maps/buildings/sp/_jcr_content/content-main/grid_container_307846512/grid-container-parsys/box_427340212/box-parsys/image.img.jpg/1753215175111.jpg",
     "accessibility": true,
-    "link": "https://www.concordia.ca/maps/buildings/sp.html"
+    "link": "https://www.concordia.ca/maps/buildings/sp.html",
+    "lat" : 45.45786742002923,
+    "lng" : -73.64158635998182
   },
   "way/352622559": {
     "code": "TA",

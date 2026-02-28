@@ -4,23 +4,65 @@ import androidx.annotation.NonNull;
 import java.util.*;
 
 public class BuildingDetails {
-    public String code;
-    public String name;
-    public String address;
-    public String image;
-    public boolean accessibility;
-    public String link;
-    public boolean hasDirectTunnelToMetro;
-    public Schedule schedule;
+    private String code;
+    private String name;
+    private String address;
+    private String image;
+    private boolean accessibility;
+    private String link;
+    private boolean hasDirectTunnelToMetro;
+    private Schedule schedule;
+    private double lat;
+    private double lng;
+    public String getCode() {
+        return code;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public String getAddress() {
+        return address;
+    }
+
+    public String getImage() {
+        return image;
+    }
+
+    public boolean isAccessibility() {
+        return accessibility;
+    }
+
+    public String getLink() {
+        return link;
+    }
+
+    public boolean isHasDirectTunnelToMetro() {
+        return hasDirectTunnelToMetro;
+    }
+
+    public Schedule getSchedule() {
+        return schedule;
+    }
+
+    public double getLat() {
+        return lat;
+    }
+
+    public double getLng() {
+        return lng;
+    }
+
     public static class Schedule {
-        public boolean alwaysOpen;
-        public String monday;
-        public String tuesday;
-        public String wednesday;
-        public String thursday;
-        public String friday;
-        public String saturday;
-        public String sunday;
+        private boolean alwaysOpen;
+        private String monday;
+        private String tuesday;
+        private String wednesday;
+        private String thursday;
+        private String friday;
+        private String saturday;
+        private String sunday;
 
         @NonNull
         public String toString() {
