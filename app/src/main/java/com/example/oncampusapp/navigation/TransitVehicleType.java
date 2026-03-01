@@ -1,5 +1,8 @@
 package com.example.oncampusapp.navigation;
 
+/**
+ * This covers all transit types that Google Route API would returns, we might not need all
+ */
 public enum TransitVehicleType {
     TRANSIT_VEHICLE_TYPE_UNSPECIFIED,
     BUS,

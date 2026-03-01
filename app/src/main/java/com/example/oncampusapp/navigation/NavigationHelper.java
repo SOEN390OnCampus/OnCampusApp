@@ -67,13 +67,21 @@ public class NavigationHelper {
 
                Route route = convertResponseJsonToRoute(response.toString());
                 callback.onSuccess(route);
-            } catch (Exception e) {
-                Log.e("RouteError", "Error: " + e.getClass().getName() + " - " + e.getMessage());
-                e.printStackTrace();
+            } catch (JSONException e) {
+                Log.e("NavigationHelper", "Failed to parse route response", e);
+                callback.onError(e);
+            } catch (IOException e) {
+                Log.e("NavigationHelper", "Network error fetching route", e);
+                callback.onError(e);
             }
+
         }).start();
     }
 
+    /**
+     * Creates an HTTP connection to the Google Directions API.
+     * Set the request value to only contains the info we needs
+     */
     @NonNull
     private static HttpURLConnection getHttpURLConnection(String apiKey) throws IOException {
         URL url = new URL("https://routes.googleapis.com/directions/v2:computeRoutes");
@@ -96,6 +104,9 @@ public class NavigationHelper {
     }
 
 
+    /**
+     * Builds the request JSON. For transit set the routing preference to LESS_WALKING
+     */
     private static String buildRequestJson(LatLng start, LatLng end, RouteTravelMode mode) throws JSONException {
         JSONObject originLatLng = new JSONObject()
                 .put("latitude", start.latitude)
@@ -122,6 +133,9 @@ public class NavigationHelper {
 
     }
 
+    /**
+     * Converts the response JSON to a Route object.
+     */
     public static Route convertResponseJsonToRoute(String response) throws JSONException {
 
         JSONObject jsonResponse = new JSONObject(response);
