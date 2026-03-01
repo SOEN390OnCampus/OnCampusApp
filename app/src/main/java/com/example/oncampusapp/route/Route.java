@@ -1,6 +1,7 @@
 package com.example.oncampusapp.route;
 
-import com.google.maps.model.LatLng;
+
+import com.google.android.gms.maps.model.LatLng;
 
 import java.util.List;
 

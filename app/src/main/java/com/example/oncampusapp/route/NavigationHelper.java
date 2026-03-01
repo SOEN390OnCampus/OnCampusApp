@@ -2,6 +2,8 @@ package com.example.oncampusapp.route;
 
 import android.util.Log;
 
+import androidx.annotation.NonNull;
+
 import com.google.android.gms.maps.model.LatLng;
 import com.google.maps.android.PolyUtil;
 import com.google.maps.android.SphericalUtil;
@@ -11,6 +13,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
@@ -18,30 +21,15 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 
-public class RouteClient {
+public class NavigationHelper {
     /**
      * Fetches directions from Google API and parses the JSON.
      */
-    public static void fetchDirections(LatLng start, LatLng end, RouteTravelMode mode, String apiKey, RoutesCallback callback) {
+    public static void fetchRoute(LatLng start, LatLng end, RouteTravelMode mode, String apiKey, RoutesCallback callback) {
         new Thread(() -> {
             try {
 
-                URL url = new URL("https://routes.googleapis.com/directions/v2:computeRoutes");
-                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-                conn.setRequestMethod("POST");
-                conn.setRequestProperty("Content-Type", "application/json");
-                conn.setRequestProperty("X-Goog-Api-Key", apiKey);
-                conn.setRequestProperty("X-Goog-FieldMask",
-                                "routes.legs.steps.navigationInstruction," +
-                                "routes.legs.steps.transitDetails," +
-                                        "routes.legs.steps.polyline," +
-                                "routes.legs.steps.travelMode," +
-                                "routes.legs.steps.localizedValues," +
-                                "routes.duration," +
-                                "routes.distanceMeters");
-
-                conn.setRequestProperty("X-Goog-FieldMask", "routes");
-                conn.setDoOutput(true);
+                HttpURLConnection conn = getHttpURLConnection(apiKey);
 
                 String requestJson = buildRequestJson(start, end, mode);
                 Log.d("Request", requestJson);
@@ -86,6 +74,27 @@ public class RouteClient {
         }).start();
     }
 
+    @NonNull
+    private static HttpURLConnection getHttpURLConnection(String apiKey) throws IOException {
+        URL url = new URL("https://routes.googleapis.com/directions/v2:computeRoutes");
+        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+        conn.setRequestMethod("POST");
+        conn.setRequestProperty("Content-Type", "application/json");
+        conn.setRequestProperty("X-Goog-Api-Key", apiKey);
+        conn.setRequestProperty("X-Goog-FieldMask",
+                        "routes.legs.steps.navigationInstruction," +
+                        "routes.legs.steps.transitDetails," +
+                                "routes.legs.steps.polyline," +
+                        "routes.legs.steps.travelMode," +
+                        "routes.legs.steps.localizedValues," +
+                        "routes.duration," +
+                        "routes.distanceMeters");
+
+        conn.setRequestProperty("X-Goog-FieldMask", "routes");
+        conn.setDoOutput(true);
+        return conn;
+    }
+
 
     private static String buildRequestJson(LatLng start, LatLng end, RouteTravelMode mode) throws JSONException {
         JSONObject originLatLng = new JSONObject()
@@ -113,7 +122,7 @@ public class RouteClient {
 
     }
 
-    private static Route convertResponseJsonToRoute(String response) throws JSONException {
+    public static Route convertResponseJsonToRoute(String response) throws JSONException {
 
         JSONObject jsonResponse = new JSONObject(response);
         JSONArray routes = jsonResponse.optJSONArray("routes");
@@ -179,7 +188,7 @@ public class RouteClient {
 
                 transitDetailsObj.setArrivalStop(arrivalStopName);
                 transitDetailsObj.setArrivalStopLocation(new LatLng(arrivalStopLat, arrivalStopLng));
-                transitDetailsObj.setArrivalStop(arrivalTime);
+                transitDetailsObj.setArrivalTime(arrivalTime);
 
                 // Vehicle type
                 JSONObject transitLine = transitDetails.getJSONObject("transitLine");

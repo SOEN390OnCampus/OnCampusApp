@@ -32,6 +32,9 @@ import android.widget.Toast;
 import android.app.Dialog;
 import android.widget.ImageView;
 
+import com.example.oncampusapp.route.Route;
+import com.example.oncampusapp.route.RouteTravelMode;
+import com.example.oncampusapp.route.NavigationHelper;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.maps.CameraUpdateFactory;
@@ -88,7 +91,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private ImageView currentLocationIcon;
     private AutoCompleteTextView startDestinationText;
     private AutoCompleteTextView endDestinationText;
-    private NavigationHelper.Mode selectedMode = NavigationHelper.Mode.WALKING;
+    private RouteTravelMode selectedMode = RouteTravelMode.WALK;
     private LinearLayout routePicker;
     private ImageButton btnSwapAddress;
     public static final LatLng SGW_COORDS = new LatLng(45.496107243097704, -73.57725834380621);
@@ -272,21 +275,21 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         btnWalk.setOnClickListener(v -> {
             // Visuals
             btnModeListener.onClick(v);
-            this.selectedMode = NavigationHelper.Mode.WALKING;
+            this.selectedMode = RouteTravelMode.WALK;
             initiateRoutePreview();
         });
         btnCar.setOnClickListener(v -> {
             // Visuals
             btnModeListener.onClick(v);
             // Logic
-            this.selectedMode = NavigationHelper.Mode.DRIVING;
+            this.selectedMode = RouteTravelMode.DRIVE;
             initiateRoutePreview();
         });
         btnTransit.setOnClickListener(v -> {
             // Visuals
             btnModeListener.onClick(v);
             // Logic
-            this.selectedMode = NavigationHelper.Mode.TRANSIT;
+            this.selectedMode = RouteTravelMode.TRANSIT;
             initiateRoutePreview();
         });
         btnShuttle.setOnClickListener(v -> Toast.makeText(this, "Concordia Shuttle is currently unavailable", Toast.LENGTH_SHORT).show());
@@ -949,14 +952,15 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 imm.hideSoftInputFromWindow(getCurrentFocus().getWindowToken(), 0);
             }
 
-            // Use NavigationHelper Class
-            NavigationHelper.fetchDirections(startCoords, destCoords, selectedMode, BuildConfig.MAPS_API_KEY, new NavigationHelper.DirectionsCallback() {
+            NavigationHelper.fetchRoute(startCoords, destCoords, selectedMode, BuildConfig.MAPS_API_KEY, new NavigationHelper.RoutesCallback() {
                 @Override
-                public void onSuccess(List<LatLng> path, String durationText) {
-                    if (selectedMode== NavigationHelper.Mode.WALKING){
-                        runOnUiThread(() -> drawRouteOnMap(path, durationText, true)); // Dotted line for walking
+                public void onSuccess(Route route) {
+                    if (selectedMode== RouteTravelMode.WALK){
+                        Log.i("RouteClient", "Walking route found");
+                        runOnUiThread(() -> drawRouteOnMap(route.getPoints(), route.getDuration(), true)); // Dotted line for walking
                     } else {
-                        runOnUiThread(() -> drawRouteOnMap(path, durationText, false)); // Straight line for everything else
+                        Log.i("RouteClient", "Transit route found");
+                        runOnUiThread(() -> drawRouteOnMap(route.getPoints(), route.getDuration(), false)); // Straight line for everything else
                     }
                 }
 
