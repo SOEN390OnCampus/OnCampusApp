@@ -25,6 +25,7 @@ import android.view.animation.AnimationUtils;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
+import android.widget.FrameLayout;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -32,8 +33,10 @@ import android.widget.Toast;
 import android.app.Dialog;
 import android.widget.ImageView;
 
-import com.google.android.gms.location.FusedLocationProviderClient;
-import com.google.android.gms.location.LocationServices;
+import com.example.oncampusapp.location.FusedLocationProvider;
+import com.example.oncampusapp.location.FusedLocationSource;
+import com.example.oncampusapp.location.ILocationProvider;
+import com.google.android.gms.location.LocationCallback;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
@@ -70,7 +73,6 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 
 import com.bumptech.glide.Glide;
 
@@ -93,7 +95,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private ImageButton btnSwapAddress;
     public static final LatLng SGW_COORDS = new LatLng(45.496107243097704, -73.57725834380621);
     public static final LatLng LOY_COORDS = new LatLng(45.4582, -73.6405);
-    public FusedLocationProviderClient fusedLocationClient;
+    public ILocationProvider fusedLocationClient;
+    private FusedLocationSource myLocationSource;
+
+    private static final int LOCATION_PERMISSION_REQUEST_CODE = 1;
+
     private ActivityResultLauncher<String[]> locationPermissionRequest;
     private TextView btnSgwLoy;
     private static final String sgw = "SGW";
@@ -102,7 +108,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     // Navigation Variables
     private com.google.android.gms.maps.model.Polyline bluePolyline;
     private List<LatLng> currentRoutePoints;
-    private com.google.android.gms.location.LocationCallback navigationLocationCallback;
+    private LocationCallback navigationLocationCallback;
     private com.google.android.gms.maps.model.Circle startDot;
     private com.google.android.gms.maps.model.Marker endMarker;
 
@@ -110,6 +116,19 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         return this.mMap;
     }
 
+    // for tests. to mock location
+    public void setLocationProvider(ILocationProvider provider) {
+        this.fusedLocationClient = provider;
+        this.myLocationSource = new FusedLocationSource(this, this.fusedLocationClient);
+        if (mMap != null) {
+            mMap.setLocationSource(this.myLocationSource);
+        }
+
+        // Set it globally so the Service can use the mock too!
+        if (getApplication() instanceof OnCampusApplication) {
+            ((OnCampusApplication) getApplication()).setLocationProvider(provider);
+        }
+    }
     private void checkLocationPermissions() {
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
             // Request the permission
@@ -120,6 +139,23 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
     }
 
+    // Register for multiple permissions
+    private final ActivityResultLauncher<String[]> requestMultiplePermissionsLauncher =
+        registerForActivityResult(new ActivityResultContracts.RequestMultiplePermissions(), isGranted -> {
+            Boolean fineLocationGranted = isGranted.getOrDefault(Manifest.permission.ACCESS_FINE_LOCATION, false);
+            Boolean postNotificationsGranted = isGranted.getOrDefault(Manifest.permission.POST_NOTIFICATIONS, false);
+
+            if (Boolean.TRUE.equals(fineLocationGranted))
+                Log.d("LocationPermission", "Precise location access granted.");
+            else if (Boolean.TRUE.equals(isGranted.getOrDefault(Manifest.permission.ACCESS_COARSE_LOCATION, false)))
+                Log.d("LocationPermission", "Only approximate location access granted.");
+
+            if (Boolean.TRUE.equals(postNotificationsGranted))
+                Log.d("NotificationPermission", "Notifications granted.");
+            else
+                Log.d("NotificationPermission", "Notifications denied.");
+        });
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -127,13 +163,27 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
         getWindow().setStatusBarColor(Color.TRANSPARENT);
 
+        launchPermissionRequest();
+
         // ViewBinding: inflate, then set content view ONCE
         binding = ActivityMapsBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
         setupRoutePickerUi();
 
         buildingClassifier = new BuildingClassifier();
-        fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
+
+        OnCampusApplication app = (OnCampusApplication) getApplication();
+
+        // If a mock hasn't been injected yet, set the default one
+        if (app.getLocationProvider() == null) {
+            app.setLocationProvider(new FusedLocationProvider(this));
+        }
+
+        // Use the provider from the application
+        fusedLocationClient = app.getLocationProvider();
+
+        // Initialize our custom Location Source
+        myLocationSource = new FusedLocationSource(this, fusedLocationClient);
 
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
@@ -416,6 +466,17 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     @Override
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
+
+        // Tell the map to use our custom FusedLocationSource
+        mMap.setLocationSource(myLocationSource);
+
+        if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+            mMap.setMyLocationEnabled(true);
+        }
+
+        // Enable the blue dot (Requires permission check)
+        enableMyLocation();
+
         // Move camera to SGW campus
         mMap.animateCamera(
                 CameraUpdateFactory.newLatLngZoom(SGW_COORDS, 17f)
@@ -430,6 +491,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         btnSgwLoy = findViewById(R.id.btn_campus_switch);
         ImageButton btnLocation = findViewById(R.id.btn_location);
+
+        FrameLayout closeSearchLayout = findViewById(R.id.close_search);
 
         try {
             // Load the GeoJSON file
@@ -551,11 +614,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
 
         // String array for building suggestions
-        String[] buildingSuggestions = buildingsMap.values()
-                .stream()
-                .map(Building::getName)
-                .filter(Objects::nonNull)
-                .toArray(String[]::new);
+        String[] buildingSuggestions = geoIdToBuildingDetailsMap.values()
+            .stream()
+            .map(BuildingDetails::getName)
+            .toArray(String[]::new);
 
         // Create the adapter for building suggestions
         ArrayAdapter<String> adapter = new ArrayAdapter<>(this,
@@ -576,6 +638,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         btnSgwLoy.setOnClickListener(v -> switchCampus());
         btnLocation.setOnClickListener(v -> goToCurrentLocation());
+        closeSearchLayout.setOnClickListener(v -> handleCloseSearch());
     }
 
     private GeoJsonFeature createSquareFeature(LatLng center, String id){
@@ -999,5 +1062,41 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     }
     public Dialog getCurrentBuildingDialog(){
         return currentBuildingDialog;
+    }
+    private void handleCloseSearch() {
+        getOnBackPressedDispatcher().onBackPressed();
+    }
+
+    private void enableMyLocation() {
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+            // This triggers the activate() method in our FusedLocationSource
+            mMap.setMyLocationEnabled(true);
+        } else {
+            // Request permissions if not already granted
+            ActivityCompat.requestPermissions(this,
+                    new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
+                    LOCATION_PERMISSION_REQUEST_CODE);
+        }
+    }
+
+    private void launchPermissionRequest() {
+        List<String> permissionsToRequest = new ArrayList<>();
+
+        // Check Location
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            permissionsToRequest.add(Manifest.permission.ACCESS_FINE_LOCATION);
+            permissionsToRequest.add(Manifest.permission.ACCESS_COARSE_LOCATION);
+        }
+
+        // Check Notifications (API 33+)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                permissionsToRequest.add(Manifest.permission.POST_NOTIFICATIONS);
+            }
+        }
+
+        if (!permissionsToRequest.isEmpty()) {
+            requestMultiplePermissionsLauncher.launch(permissionsToRequest.toArray(new String[0]));
+        }
     }
 }

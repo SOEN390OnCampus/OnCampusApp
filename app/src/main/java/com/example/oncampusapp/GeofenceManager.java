@@ -56,7 +56,11 @@ public class GeofenceManager {
             return; // permission not granted
         }
 
-        geofencingClient.addGeofences(request, getGeofencePendingIntent());
+        geofencingClient.addGeofences(request, getGeofencePendingIntent())
+                .addOnSuccessListener(aVoid ->
+                        Log.d("GEOFENCE", "Geofence added"))
+                .addOnFailureListener(e ->
+                        Log.e("GEOFENCE", "Failed: " + e.getMessage()));;
     }
 
     private int enterAndExit() {
