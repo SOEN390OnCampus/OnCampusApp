@@ -223,11 +223,11 @@ public class GoogleCalendarAuthActivity extends AppCompatActivity {
     // -------------------------------------------------------------------------
 
 
-    private String fetchCalendarList(String accessToken) throws Exception {
+    String fetchCalendarList(String accessToken) throws Exception {
         return fetchUrl("https://www.googleapis.com/calendar/v3/users/me/calendarList", accessToken);
     }
 
-    private String fetchCalendarEvents(String accessToken, String calendarId) throws Exception {
+    String fetchCalendarEvents(String accessToken, String calendarId) throws Exception {
         Calendar past = Calendar.getInstance();
         past.add(Calendar.MONTH, -6);   // 6 months back
 
@@ -252,7 +252,7 @@ public class GoogleCalendarAuthActivity extends AppCompatActivity {
         return fetchUrl(url,accessToken);
     }
 
-    private String fetchUrl(String urlStr, String accessToken) throws Exception {
+    String fetchUrl(String urlStr, String accessToken) throws Exception {
         URL url = new URL(urlStr);
         HttpURLConnection conn = (HttpURLConnection) url.openConnection();
         conn.setRequestMethod("GET");
