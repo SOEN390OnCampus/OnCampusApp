@@ -67,7 +67,7 @@ public class PlaceDetailsService {
      * @param placeId the Google Places ID of the building
      * @param callback the callback to invoke with results or errors
      */
-    public void fetchBuildingDetails(String placeId, FetchBuildingDetailsCallback callback){
+    public void fetchBuildingDetails(String placeId, FetchPlaceDetailsCallback callback){
         if (placeId == null || placeId.isEmpty()){
             callback.onFailure(new IllegalArgumentException("Invalid placeId"));
             return;
@@ -91,11 +91,11 @@ public class PlaceDetailsService {
      * @param response the FetchPlaceResponse containing place information
      * @param callback the callback to invoke with the constructed BuildingDetailsDto
      */
-    private void processFetchPlaceResponse(FetchPlaceResponse response, FetchBuildingDetailsCallback callback){
+    private void processFetchPlaceResponse(FetchPlaceResponse response, FetchPlaceDetailsCallback callback){
 
         final Place place = response.getPlace();
         // Constructing Dto
-        BuildingDetailsDto dto = new BuildingDetailsDto();
+        PlaceDetails dto = new PlaceDetails();
         dto.setName(place.getDisplayName());
         dto.setAddress(place.getFormattedAddress());
         final List<PhotoMetadata> metadata = place.getPhotoMetadatas();
@@ -137,8 +137,8 @@ public class PlaceDetailsService {
      * Callback interface for handling building details fetch results.
      * Provides methods to handle both successful and failed fetch operations.
      */
-    public interface FetchBuildingDetailsCallback {
-        void onSuccess(BuildingDetailsDto buildingDetailsDto);
+    public interface FetchPlaceDetailsCallback {
+        void onSuccess(PlaceDetails placeDetails);
         void onFailure(Exception e);
     }
 

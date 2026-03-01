@@ -47,7 +47,7 @@ public class PlaceDetailsServiceTest {
     @Mock
     PlacesClient placesClient;
     @Mock
-    PlaceDetailsService.FetchBuildingDetailsCallback callback;
+    PlaceDetailsService.FetchPlaceDetailsCallback callback;
     @Mock
     Task<FetchPlaceResponse> fetchPlaceTask;
     @Mock
@@ -97,13 +97,13 @@ public class PlaceDetailsServiceTest {
         service.fetchBuildingDetails(fakePlaceId, callback);
 
         // Assert callback was called
-        ArgumentCaptor<BuildingDetailsDto> dtoCaptor =
-                ArgumentCaptor.forClass(BuildingDetailsDto.class);
+        ArgumentCaptor<PlaceDetails> dtoCaptor =
+                ArgumentCaptor.forClass(PlaceDetails.class);
         verify(callback).onSuccess(any());
         verify(callback, times(1)).onSuccess(dtoCaptor.capture());
 
         // Assert correct Dto
-        BuildingDetailsDto dto = dtoCaptor.getValue();
+        PlaceDetails dto = dtoCaptor.getValue();
         assertEquals(fakePlaceName, dto.getName());
         assertEquals(fakeAddress, dto.getAddress());
         assertEquals(fakeUriLink,dto.getImgUri());
@@ -120,13 +120,13 @@ public class PlaceDetailsServiceTest {
         service.fetchBuildingDetails(fakePlaceId, callback);
 
         // Assert callback was called
-        ArgumentCaptor<BuildingDetailsDto> dtoCaptor =
-                ArgumentCaptor.forClass(BuildingDetailsDto.class);
+        ArgumentCaptor<PlaceDetails> dtoCaptor =
+                ArgumentCaptor.forClass(PlaceDetails.class);
         verify(callback).onSuccess(any());
         verify(callback, times(1)).onSuccess(dtoCaptor.capture());
 
         // Assert correct Dto
-        BuildingDetailsDto dto = dtoCaptor.getValue();
+        PlaceDetails dto = dtoCaptor.getValue();
         assertNull(dto.getName());
         assertNull(dto.getAddress());
         assertNull(dto.getImgUri());
@@ -219,14 +219,14 @@ public class PlaceDetailsServiceTest {
         service.fetchBuildingDetails(fakePlaceId, callback);
 
         // Assert callback
-        ArgumentCaptor<BuildingDetailsDto> dtoCaptor =
-                ArgumentCaptor.forClass(BuildingDetailsDto.class);
+        ArgumentCaptor<PlaceDetails> dtoCaptor =
+                ArgumentCaptor.forClass(PlaceDetails.class);
         verify(callback).onSuccess(any());
 
         verify(callback, times(1)).onSuccess(dtoCaptor.capture());
 
         // Assert correct Dto
-        BuildingDetailsDto dto = dtoCaptor.getValue();
+        PlaceDetails dto = dtoCaptor.getValue();
         assertEquals(fakePlaceName, dto.getName());
         assertEquals(fakeAddress, dto.getAddress());
         assertNull(dto.getImgUri());
@@ -260,13 +260,13 @@ public class PlaceDetailsServiceTest {
         service.fetchBuildingDetails(fakePlaceId, callback);
 
         // Assert callback
-        ArgumentCaptor<BuildingDetailsDto> dtoCaptor =
-                ArgumentCaptor.forClass(BuildingDetailsDto.class);
+        ArgumentCaptor<PlaceDetails> dtoCaptor =
+                ArgumentCaptor.forClass(PlaceDetails.class);
         verify(callback).onSuccess(any());
         verify(callback, times(1)).onSuccess(dtoCaptor.capture());
 
         // Assert correct Dto
-        BuildingDetailsDto dto = dtoCaptor.getValue();
+        PlaceDetails dto = dtoCaptor.getValue();
         assertEquals(fakePlaceName, dto.getName());
         assertEquals(fakeAddress, dto.getAddress());
         assertNull(dto.getImgUri());
