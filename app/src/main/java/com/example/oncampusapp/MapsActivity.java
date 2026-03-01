@@ -11,8 +11,10 @@ import androidx.fragment.app.FragmentActivity;
 
 import android.Manifest;
 import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.net.Uri;
 import android.content.res.Resources;
 import android.graphics.Color;
 import android.graphics.Paint;
@@ -93,6 +95,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private ImageButton btnSwapAddress;
     public static final LatLng SGW_COORDS = new LatLng(45.496107243097704, -73.57725834380621);
     public static final LatLng LOY_COORDS = new LatLng(45.4582, -73.6405);
+    
     public FusedLocationProviderClient fusedLocationClient;
     private ActivityResultLauncher<String[]> locationPermissionRequest;
     private TextView btnSgwLoy;
@@ -105,7 +108,24 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private com.google.android.gms.location.LocationCallback navigationLocationCallback;
     private com.google.android.gms.maps.model.Circle startDot;
     private com.google.android.gms.maps.model.Marker endMarker;
+    
+    // Shuttle Stop Markers - managed by ShuttleHelper
+    private com.google.android.gms.maps.model.Marker[] shuttleMarkers = new com.google.android.gms.maps.model.Marker[2];
 
+    // Transport UI buttons (class-level for access across methods)
+    private ImageButton btnWalk;
+    private android.widget.Button btnShuttleTimetable;
+    private android.widget.Button btnGo;
+
+
+    //Shuttle 3 leg routes polylines
+    private Polyline walkToStopPolyline;
+    private Polyline shuttlePolyline;
+    private Polyline walkFromStopPolyline;
+
+
+    
+    
     public GoogleMap getMap() {
         return this.mMap;
     }
@@ -130,6 +150,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         // ViewBinding: inflate, then set content view ONCE
         binding = ActivityMapsBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
+
+        // Pre-load shuttle route data from bundled JSON
+        ShuttleHelper.init(this);
+
         setupRoutePickerUi();
 
         buildingClassifier = new BuildingClassifier();
@@ -200,13 +224,13 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         LinearLayout layoutNavActive = findViewById(R.id.layout_navigation_active);
 
         // Buttons & Text
-        android.widget.Button btnGo = findViewById(R.id.btn_go);
+        btnGo = findViewById(R.id.btn_go);
         android.widget.Button btnEndTrip = findViewById(R.id.btn_end_trip);
         TextView txtNavInstruction = findViewById(R.id.txt_nav_instruction);
         TextView txtDuration = findViewById(R.id.txt_duration);
 
         // Transport Tabs
-        ImageButton btnWalk = findViewById(R.id.btn_mode_walking);
+        btnWalk = findViewById(R.id.btn_mode_walking);
         ImageButton btnCar = findViewById(R.id.btn_mode_driving);
         ImageButton btnTransit = findViewById(R.id.btn_mode_transit);
         View btnShuttle = findViewById(R.id.btn_mode_shuttle);
@@ -253,9 +277,20 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         });
 
         // AUTO-PREVIEW LOGIC
-        // Trigger preview immediately when user selects from the dropdown list
-        startDestinationText.setOnItemClickListener((parent, view, position, id) -> initiateRoutePreview());
-        endDestinationText.setOnItemClickListener((parent, view, position, id) -> initiateRoutePreview());
+        // Read the selected name directly from the adapter to avoid AutoCompleteTextView
+        // timing quirks where getText() may still hold the partial typed string.
+        startDestinationText.setOnItemClickListener((parent, view, position, id) -> {
+            String selected = (String) parent.getItemAtPosition(position);
+            startDestinationText.setText(selected);
+            startDestinationText.setSelection(selected.length());
+            initiateRoutePreview();
+        });
+        endDestinationText.setOnItemClickListener((parent, view, position, id) -> {
+            String selected = (String) parent.getItemAtPosition(position);
+            endDestinationText.setText(selected);
+            endDestinationText.setSelection(selected.length());
+            initiateRoutePreview();
+        });
 
         //Transport Tab Logic
         View.OnClickListener btnModeListener = v -> {
@@ -269,10 +304,18 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             }
         };
 
+        //Shuttle Timetable Button
+        btnShuttleTimetable = findViewById(R.id.btn_shuttle_timetable);
+        btnShuttleTimetable.setOnClickListener(v -> ShuttleHelper.openTimetable(this));
+
         btnWalk.setOnClickListener(v -> {
             // Visuals
             btnModeListener.onClick(v);
             this.selectedMode = NavigationHelper.Mode.WALKING;
+            btnShuttleTimetable.setVisibility(View.GONE);
+            adjustGoButtonWidth(btnGo, false);
+            ShuttleHelper.hideShuttleStops(shuttleMarkers);
+            clearShuttleRoute(); 
             initiateRoutePreview();
         });
         btnCar.setOnClickListener(v -> {
@@ -280,6 +323,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             btnModeListener.onClick(v);
             // Logic
             this.selectedMode = NavigationHelper.Mode.DRIVING;
+            btnShuttleTimetable.setVisibility(View.GONE);
+            adjustGoButtonWidth(btnGo, false);
+            ShuttleHelper.hideShuttleStops(shuttleMarkers);
+            clearShuttleRoute(); 
             initiateRoutePreview();
         });
         btnTransit.setOnClickListener(v -> {
@@ -287,9 +334,23 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             btnModeListener.onClick(v);
             // Logic
             this.selectedMode = NavigationHelper.Mode.TRANSIT;
+            btnShuttleTimetable.setVisibility(View.GONE);
+            adjustGoButtonWidth(btnGo, false);
+            ShuttleHelper.hideShuttleStops(shuttleMarkers);
+            clearShuttleRoute(); 
             initiateRoutePreview();
         });
-        btnShuttle.setOnClickListener(v -> Toast.makeText(this, "Concordia Shuttle is currently unavailable", Toast.LENGTH_SHORT).show());
+        btnShuttle.setOnClickListener(v -> {
+            // Visuals
+            btnModeListener.onClick(v);
+            // Logic
+            this.selectedMode = NavigationHelper.Mode.SHUTTLE;
+            btnShuttleTimetable.setVisibility(View.VISIBLE);
+            adjustGoButtonWidth(btnGo, true);
+            clearNormalRoute(); 
+            shuttleMarkers = ShuttleHelper.showShuttleStops(this, mMap, shuttleMarkers);
+            initiateRoutePreview();
+        });
 
         //Helper Buttons
         btnSwapAddress.setOnClickListener(v -> { swapAddresses(); initiateRoutePreview(); });
@@ -306,8 +367,18 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 return;
             }
 
+            // Always re-check same-campus rule before starting navigation
+            LatLng startCoords = BuildingLookup.getLatLngFromBuildingName(startText, buildingsMap);
+            LatLng destCoords = BuildingLookup.getLatLngFromBuildingName(destText, buildingsMap);
+            if (startCoords != null && destCoords != null
+                    && applySameCampusCheck(startCoords, destCoords)) {
+                // Mode was switched — recalculate route and let user press GO again
+                initiateRoutePreview();
+                return;
+            }
+
             // SAFETY CHECK
-            if (bluePolyline == null) {
+            if (selectedMode != NavigationHelper.Mode.SHUTTLE && bluePolyline == null) {
                 Toast.makeText(this, "Calculating route, please wait...", Toast.LENGTH_SHORT).show();
                 initiateRoutePreview();
                 return;
@@ -335,9 +406,16 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             }
 
             //Zoom Camera for Navigation
-            if (currentRoutePoints != null && !currentRoutePoints.isEmpty()) {
+            LatLng cameraTarget = null;
+            if (selectedMode == NavigationHelper.Mode.SHUTTLE) {
+                // For shuttle mode, focus on the start building directly
+                cameraTarget = BuildingLookup.getLatLngFromBuildingName(startText, buildingsMap);
+            } else if (currentRoutePoints != null && !currentRoutePoints.isEmpty()) {
+                cameraTarget = currentRoutePoints.get(0);
+            }
+            if (cameraTarget != null) {
                 CameraPosition cameraPosition = new CameraPosition.Builder()
-                        .target(currentRoutePoints.get(0))
+                        .target(cameraTarget)
                         .zoom(19f)
                         .tilt(0)
                         .build();
@@ -381,6 +459,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
                     // Clean up map
                     if (bluePolyline != null) bluePolyline.remove();
+                    clearShuttleRoute();
                     if (navigationLocationCallback != null) {
                         fusedLocationClient.removeLocationUpdates(navigationLocationCallback);
                     }
@@ -423,6 +502,16 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         mMap.setBuildingsEnabled(false);
         mMap.getUiSettings().setTiltGesturesEnabled(false);
+        
+        // Set up marker click listener for shuttle stops
+        mMap.setOnMarkerClickListener(marker -> {
+            if (ShuttleHelper.isShuttleStopMarker(this, marker)) {
+                marker.showInfoWindow();
+                ShuttleHelper.openTimetable(this);
+                return true;
+            }
+            return false; // Let default behavior handle other markers
+        });
 
         GeofenceManager geofenceManager = new GeofenceManager(this);
         FeatureStyler featureStyler = new FeatureStyler();
@@ -933,6 +1022,31 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         fusedLocationClient.requestLocationUpdates(request, navigationLocationCallback, android.os.Looper.getMainLooper());
     }
 
+    /**
+     * Checks if shuttle mode should auto-switch to walking because both locations are on the same campus.
+     * @return true if the mode was switched (caller should re-preview and abort current action)
+     */
+    private boolean applySameCampusCheck(LatLng startCoords, LatLng destCoords) {
+        if (selectedMode != NavigationHelper.Mode.SHUTTLE) return false;
+        if (!ShuttleHelper.isSameCampus(startCoords, destCoords, SGW_COORDS, LOY_COORDS)) return false;
+
+        selectedMode = NavigationHelper.Mode.WALKING;
+        if (btnWalk != null) {
+            btnWalk.setBackgroundColor(Color.parseColor("#D3D3D3"));
+            btnWalk.setAlpha(1.0f);
+            int[] otherTabIds = {R.id.btn_mode_driving, R.id.btn_mode_transit, R.id.btn_mode_shuttle};
+            for (int id : otherTabIds) {
+                View tab = findViewById(id);
+                if (tab != null) { tab.setBackgroundResource(0); tab.setAlpha(0.5f); }
+            }
+        }
+        if (btnShuttleTimetable != null) btnShuttleTimetable.setVisibility(View.GONE);
+        if (btnGo != null) adjustGoButtonWidth(btnGo, false);
+        ShuttleHelper.hideShuttleStops(shuttleMarkers);
+        Toast.makeText(this, "Both locations are on the same campus — switched to walking", Toast.LENGTH_SHORT).show();
+        return true;
+    }
+
     private void initiateRoutePreview() {
         String startName = startDestinationText.getText().toString().trim();
         String destName = endDestinationText.getText().toString().trim();
@@ -949,11 +1063,95 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 imm.hideSoftInputFromWindow(getCurrentFocus().getWindowToken(), 0);
             }
 
-            // Use NavigationHelper Class
+            // If shuttle mode but both locations are on the same campus, auto-switch to walking
+            applySameCampusCheck(startCoords, destCoords);
+
+            // Shuttle mode: draw the fixed KML-based route, but fetch real duration from API
+            if (selectedMode == NavigationHelper.Mode.SHUTTLE) {
+
+            if (mMap != null && (shuttleMarkers[0] == null || shuttleMarkers[1] == null)) {
+                shuttleMarkers = ShuttleHelper.showShuttleStops(this, mMap, shuttleMarkers);
+            }
+
+                if (shuttleMarkers[0] == null || shuttleMarkers[1] == null) {
+                    Toast.makeText(this, "Shuttle stops are still loading, please try again", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+
+                LatLng stopA = shuttleMarkers[0].getPosition();
+                LatLng stopB = shuttleMarkers[1].getPosition();
+
+                double distToA = SphericalUtil.computeDistanceBetween(startCoords, stopA);
+                double distToB = SphericalUtil.computeDistanceBetween(startCoords, stopB);
+
+                LatLng pickupStop = (distToA <= distToB) ? stopA : stopB;
+                LatLng dropoffStop = (pickupStop == stopA) ? stopB : stopA;
+
+                clearNormalRoute();
+                clearShuttleRoute();
+
+                    // Shuttle leg
+                    List<LatLng> shuttlePath =
+                    ShuttleHelper.getShuttleRoute(pickupStop, dropoffStop);
+
+                    shuttlePolyline = drawSegmentPolyline(shuttlePath, false);
+
+                // Walk A → pickup
+                NavigationHelper.fetchDirections(
+                    startCoords,
+                    pickupStop,
+                    NavigationHelper.Mode.WALKING,
+                    BuildConfig.MAPS_API_KEY,
+                        new NavigationHelper.DirectionsCallback() {
+
+                @Override
+                public void onSuccess(List<LatLng> path, String durationText) {
+                    runOnUiThread(() ->
+                    walkToStopPolyline = drawSegmentPolyline(path, true));
+                    }
+
+                @Override
+                 public void onError(Exception e) {
+                    e.printStackTrace();
+                }
+            });
+
+            // Walk dropoff → B
+                NavigationHelper.fetchDirections(
+                  dropoffStop,
+                  destCoords,
+                    NavigationHelper.Mode.WALKING,
+                    BuildConfig.MAPS_API_KEY,
+                    new NavigationHelper.DirectionsCallback() {
+
+                @Override
+                public void onSuccess(List<LatLng> path, String durationText) {
+                    runOnUiThread(() ->
+                    walkFromStopPolyline = drawSegmentPolyline(path, true));
+                }
+
+                    @Override
+                public void onError(Exception e) {
+                    e.printStackTrace();
+            }
+                });
+
+                TextView txtDuration = findViewById(R.id.txt_duration);
+                    if (txtDuration != null) {
+                txtDuration.setText(
+                ShuttleHelper.SHUTTLE_DURATION_FALLBACK.toUpperCase()
+                );
+                }
+
+            return;
+            }
+               
+
+            // Use NavigationHelper Class for all other modes
             NavigationHelper.fetchDirections(startCoords, destCoords, selectedMode, BuildConfig.MAPS_API_KEY, new NavigationHelper.DirectionsCallback() {
                 @Override
                 public void onSuccess(List<LatLng> path, String durationText) {
-                    if (selectedMode== NavigationHelper.Mode.WALKING){
+                    if (selectedMode == NavigationHelper.Mode.WALKING){
                         runOnUiThread(() -> drawRouteOnMap(path, durationText, true)); // Dotted line for walking
                     } else {
                         runOnUiThread(() -> drawRouteOnMap(path, durationText, false)); // Straight line for everything else
@@ -967,7 +1165,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 }
             });
         } else {
-            Toast.makeText(this, "Could not find one of the locations", Toast.LENGTH_SHORT).show();
+            if (buildingsMap.isEmpty()) {
+                Toast.makeText(this, "Map is still loading, please wait", Toast.LENGTH_SHORT).show();
+            } else {
+                String missing = (startCoords == null) ? startName : destName;
+                Toast.makeText(this, "Could not find: \"" + missing + "\"", Toast.LENGTH_LONG).show();
+            }
         }
     }
 
@@ -994,6 +1197,72 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     public Polyline getBluePolyline(){
         return bluePolyline;
     }
+
+    /**
+     * Adjusts the GO button width based on whether timetable button is visible
+     */
+    private void adjustGoButtonWidth(android.widget.Button btnGo, boolean timetableVisible) {
+        LinearLayout.LayoutParams params = (LinearLayout.LayoutParams) btnGo.getLayoutParams();
+        if (timetableVisible) {
+            // Shared width - GO button takes less space
+            params.width = 0;
+            params.weight = 1.3f;
+            int margin = (int) (4 * getResources().getDisplayMetrics().density);
+            params.setMarginEnd(margin);
+        } else {
+            // Full width - GO button takes all space
+            params.width = 0;
+            params.weight = 1.0f;
+            params.setMarginEnd(0);
+        }
+        btnGo.setLayoutParams(params);
+    }
+
+
+    //Helper methods for shuttle 3 leg addition
+     private void clearNormalRoute() {
+        if (bluePolyline != null) bluePolyline.remove();
+        bluePolyline = null;
+
+        if (startDot != null) startDot.remove();
+        startDot = null;
+
+        if (endMarker != null) endMarker.remove();
+        endMarker = null;
+
+        if (currentRoutePoints != null) currentRoutePoints.clear();
+    }
+
+    private void clearShuttleRoute() {
+        if (walkToStopPolyline != null) walkToStopPolyline.remove();
+        walkToStopPolyline = null;
+
+        if (shuttlePolyline != null) shuttlePolyline.remove();
+        shuttlePolyline = null;
+
+        if (walkFromStopPolyline != null) walkFromStopPolyline.remove();
+        walkFromStopPolyline = null;
+    }
+
+    private Polyline drawSegmentPolyline(List<LatLng> path, boolean isDotted) {
+        if (mMap == null || path == null || path.isEmpty()) return null;
+
+        PolylineOptions options = new PolylineOptions()
+                .addAll(path)
+                .color(Color.parseColor("#4285F4"))
+                .width(20)
+                .zIndex(2)
+                .geodesic(true);
+
+        if (isDotted){
+            List<PatternItem> pattern = Arrays.asList(new Dot(), new Gap(20));
+            options.pattern(pattern);
+        }
+
+        return mMap.addPolyline(options);
+    }
+
+
     public GeoJsonLayer getLayer(){
         return layer;
     }

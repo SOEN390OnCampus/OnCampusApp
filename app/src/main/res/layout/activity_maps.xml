@@ -200,16 +200,35 @@
                 android:textColor="#4CAF50"
                 android:textSize="16sp"/>
         </LinearLayout>
-        <Button
-            android:id="@+id/btn_go"
+        <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="55dp"
-            android:backgroundTint="@android:color/black"
-            android:text="@string/go"
-            android:textColor="@android:color/white"
-            android:textSize="18sp"
-            android:textStyle="bold"
-            app:cornerRadius="25dp" />
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center">
+            <Button
+                android:id="@+id/btn_go"
+                android:layout_width="0dp"
+                android:layout_height="55dp"
+                android:layout_weight="1"
+                android:backgroundTint="@android:color/black"
+                android:text="@string/go"
+                android:textColor="@android:color/white"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                app:cornerRadius="25dp" />
+            <Button
+                android:id="@+id/btn_shuttle_timetable"
+                android:layout_width="0dp"
+                android:layout_height="55dp"
+                android:layout_weight="0.7"
+                android:layout_marginStart="4dp"
+                android:backgroundTint="#912338"
+                android:text="🚌"
+                android:textColor="@android:color/white"
+                android:textSize="24sp"
+                android:visibility="gone"
+                app:cornerRadius="25dp" />
+        </LinearLayout>
         <LinearLayout
             android:id="@+id/layout_navigation_active"
             android:layout_width="match_parent"

@@ -10,6 +10,9 @@
     <string name="concordia_university">Concordia University</string>
     <string name="sgw_campus_en">SGW Campus</string>
     <string name="loyola_campus_en">Loyola Campus</string>
+    <string name="sgw_shuttle_stop">SGW Shuttle Stop</string>
+    <string name="loyola_shuttle_stop">Loyola Shuttle Stop</string>
+    <string name="tap_for_shuttle_timetable">Tap for shuttle timetable</string>
     <string name="sgw_campus_fr">Campus SGW</string>
     <string name="loyola_campus_fr">Campus Loyola</string>
 
