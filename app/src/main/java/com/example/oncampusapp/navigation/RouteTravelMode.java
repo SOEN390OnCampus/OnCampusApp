@@ -1,4 +1,4 @@
-package com.example.oncampusapp.route;
+package com.example.oncampusapp.navigation;
 
 public enum RouteTravelMode {
     WALK("WALK"),

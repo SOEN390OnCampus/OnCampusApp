@@ -1,4 +1,4 @@
-package com.example.oncampusapp.route;
+package com.example.oncampusapp.navigation;
 
 
 import com.google.android.gms.maps.model.LatLng;

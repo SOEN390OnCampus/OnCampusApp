@@ -32,9 +32,9 @@ import android.widget.Toast;
 import android.app.Dialog;
 import android.widget.ImageView;
 
-import com.example.oncampusapp.route.Route;
-import com.example.oncampusapp.route.RouteTravelMode;
-import com.example.oncampusapp.route.NavigationHelper;
+import com.example.oncampusapp.navigation.NavigationHelper;
+import com.example.oncampusapp.navigation.Route;
+import com.example.oncampusapp.navigation.RouteTravelMode;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.maps.CameraUpdateFactory;

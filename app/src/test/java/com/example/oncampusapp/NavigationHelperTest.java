@@ -5,21 +5,14 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 
-import com.example.oncampusapp.route.NavigationHelper;
-import com.example.oncampusapp.route.Route;
-import com.example.oncampusapp.route.RouteTravelMode;
+import com.example.oncampusapp.navigation.NavigationHelper;
+import com.example.oncampusapp.navigation.RouteTravelMode;
 import com.google.android.gms.maps.model.LatLng;
 
-import org.json.JSONException;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.MockedStatic;
-import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import java.util.ArrayList;
@@ -33,14 +26,6 @@ public class NavigationHelperTest {
     private LatLng startPoint;
     private LatLng midPoint;
     private LatLng destinationPoint;
-    private final String VALID_RESPONSE = "{" +
-            "\"routes\": [{" +
-            "\"overview_polyline\": { \"points\": \"_p~iF~ps|U_ulLnnqC_mqNvxq`@\" }," +
-            "\"legs\": [{" +
-            "\"duration\": { \"text\": \"1 hour\" }" +
-            "}]" +
-            "}]" +
-            "}";
 
     @Before
     public void setUp() {

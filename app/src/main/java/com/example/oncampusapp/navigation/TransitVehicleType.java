@@ -1,4 +1,4 @@
-package com.example.oncampusapp.route;
+package com.example.oncampusapp.navigation;
 
 public enum TransitVehicleType {
     TRANSIT_VEHICLE_TYPE_UNSPECIFIED,
