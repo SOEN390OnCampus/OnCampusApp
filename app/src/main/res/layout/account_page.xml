@@ -1,53 +1,100 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout
+<androidx.constraintlayout.widget.ConstraintLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:gravity="center"
-    android:background="#ECEFF1">
+    android:background="#F5F5F5">
 
     <!-- White Square Card -->
+
+    <ImageView
+        android:id="@+id/btn_back"
+        android:layout_width="47dp"
+        android:layout_height="53dp"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="24dp"
+        android:src="@drawable/ic_back"
+        android:tint="#7A1C1C"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <TextView
+        android:id="@+id/txt_title"
+        android:layout_width="104dp"
+        android:layout_height="30dp"
+        android:layout_marginStart="88dp"
+        android:text="OnCampus"
+        android:textColor="#7A1C1C"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        app:layout_constraintBottom_toBottomOf="@id/btn_back"
+        app:layout_constraintStart_toEndOf="@id/btn_back"
+        app:layout_constraintTop_toTopOf="@id/btn_back"
+        app:layout_constraintVertical_bias="0.478" />
+
     <LinearLayout
         android:layout_width="300dp"
         android:layout_height="400dp"
-        android:orientation="vertical"
-        android:gravity="center"
-        android:padding="32dp"
         android:background="@android:color/white"
-        android:elevation="10dp">
+        android:elevation="10dp"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:padding="32dp"
+        tools:layout_editor_absoluteX="55dp"
+        tools:layout_editor_absoluteY="101dp"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
 
         <!-- Title -->
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_marginBottom="40dp"
             android:text="My Schedule"
-            android:textSize="22sp"
-            android:textStyle="bold"
             android:textColor="#333333"
-            android:layout_marginBottom="40dp"/>
+            android:textSize="22sp"
+            android:textStyle="bold" />
 
         <!-- Red Calendar Button -->
         <Button
             android:id="@+id/btnOpenCalendar"
             android:layout_width="match_parent"
             android:layout_height="60dp"
+            android:layout_marginBottom="40dp"
+            android:backgroundTint="#8B1E2D"
             android:text="Open Calendar"
-            android:textSize="16sp"
             android:textAllCaps="false"
             android:textColor="#FFFFFF"
-            android:backgroundTint="#8B1E2D"
-            android:layout_marginBottom="40dp"/>
+            android:textSize="16sp" />
 
         <!-- Logged In Email -->
         <TextView
             android:id="@+id/txtUserEmail"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:gravity="center"
             android:text="Logged in as:"
-            android:textSize="14sp"
             android:textColor="#666666"
-            android:gravity="center"/>
+            android:textSize="14sp" />
 
     </LinearLayout>
 
-</LinearLayout>
+    <com.google.android.material.bottomnavigation.BottomNavigationView
+        android:id="@+id/bottom_nav"
+        android:layout_width="0dp"
+        android:layout_height="70dp"
+        android:background="#7A1C1C"
+        app:itemIconSize="28dp"
+        app:itemIconTint="@android:color/white"
+        app:itemTextColor="@android:color/white"
+        app:labelVisibilityMode="unlabeled"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:menu="@menu/bottom_nav_menu" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>
