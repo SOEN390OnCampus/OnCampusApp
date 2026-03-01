@@ -15,6 +15,7 @@ import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.content.res.Resources;
 import android.graphics.Color;
+import android.graphics.Paint;
 import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
@@ -59,7 +60,6 @@ import com.google.maps.android.data.geojson.GeoJsonLayer;
 import com.google.maps.android.data.geojson.GeoJsonLineStringStyle;
 import com.google.maps.android.data.geojson.GeoJsonPolygon;
 import com.google.maps.android.data.geojson.GeoJsonPolygonStyle;
-import com.google.maps.android.SphericalUtil;
 
 import org.json.JSONException;
 
@@ -557,6 +557,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                                 radius
                         );
 
+                        // Special case for the SP building
+                        if (id.equals("way/47331993")){
+                            BuildingDetails details = geoIdToBuildingDetailsMap.get(id);
+                            center = new LatLng(details.getLat(), details.getLng());
+                        }
+
                         if (geoIdToBuildingDetailsMap.containsKey(id)) {
                             // Create a feature to allow click
                             pointFeatures.add(createSquareFeature(center,id));
@@ -729,7 +735,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             return;
         }
 
-        String buildingName = details.name;
+        String buildingName = details.getName();
 
         if (routePicker != null && routePicker.getVisibility() == View.VISIBLE) {
             if (startDestinationText != null && startDestinationText.hasFocus()) {
@@ -744,12 +750,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             }
         }
 
-        BuildingDetailsDto buildingDetailsDto = new BuildingDetailsDto();
-        buildingDetailsDto.setName(details.name);
-        buildingDetailsDto.setAddress(details.address);
-        buildingDetailsDto.setImgUri(details.image);
-        buildingDetailsDto.setAccessibility(details.accessibility);
-        showBuildingInfoDialog(buildingDetailsDto, geojsonId);
+        showBuildingInfoDialog(details);
     }
 
     /**
@@ -781,42 +782,27 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
      * population, and display of the building information dialog.
      *
      * @param buildingDetails the building details retrieved from the Places API
-     * @param featureId the building's feature ID used for campus determination
      */
-    private void showBuildingInfoDialog(BuildingDetailsDto buildingDetails, String featureId) {
+    private void showBuildingInfoDialog(BuildingDetails buildingDetails) {
         if (currentBuildingDialog != null && currentBuildingDialog.isShowing()) {
             currentBuildingDialog.dismiss();
         }
 
-        String campus = determineCampus(featureId);
         Dialog dialog = createAndConfigureDialog();
-        populateDialogViews(dialog, buildingDetails, campus);
+        populateDialogViews(dialog, buildingDetails);
         setupDialogListeners(dialog);
 
         dialog.show();
         currentBuildingDialog = dialog;
     }
 
-    private String determineCampus(String featureId) {
-        String campus = getString(R.string.concordia_university);
-        Building building = buildingsMap.get(featureId);
-
-        if (building != null && building.polygon != null && !building.polygon.isEmpty()) {
-            LatLng buildingLocation = building.polygon.get(0);
-            double distToSGW = SphericalUtil.computeDistanceBetween(buildingLocation, SGW_COORDS);
-            double distToLoyola = SphericalUtil.computeDistanceBetween(buildingLocation, LOY_COORDS);
-            campus = (distToSGW < distToLoyola) ? getString(R.string.sgw_campus_en) : getString(R.string.loyola_campus_en);
-        }
-        return campus;
-    }
-
     private Dialog createAndConfigureDialog() {
         Dialog dialog = new Dialog(this);
-        dialog.setContentView(R.layout.dialog_building_info);
+        dialog.setContentView(R.layout.dialog_building_details);
 
         if (dialog.getWindow() != null) {
             dialog.getWindow().setLayout(
-                    (int) (getResources().getDisplayMetrics().widthPixels * 0.9),
+                    (int) (getResources().getDisplayMetrics().widthPixels * 0.8),
                     android.view.ViewGroup.LayoutParams.WRAP_CONTENT
             );
             dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
@@ -824,50 +810,51 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         return dialog;
     }
 
-    private void populateDialogViews(Dialog dialog, BuildingDetailsDto buildingDetails, String campus) {
-        ImageView imgBuilding = dialog.findViewById(R.id.img_building);
+    private void populateDialogViews(Dialog dialog, BuildingDetails buildingDetails) {
+
+        TextView txtBuildingCode = dialog.findViewById(R.id.txt_building_code);
+
         TextView txtBuildingName = dialog.findViewById(R.id.txt_building_name);
         TextView txtBuildingAddress = dialog.findViewById(R.id.txt_building_address);
-        TextView txtBuildingDescription = dialog.findViewById(R.id.txt_building_description);
-        TextView txtBuildingDescriptionFr = dialog.findViewById(R.id.txt_building_description_fr);
-        ImageView imgAccessibility = dialog.findViewById(R.id.img_accessibility);
-        TextView txtAccessibility = dialog.findViewById(R.id.txt_accessibility);
 
+        LinearLayout llBuildingOpeningHours = dialog.findViewById(R.id.layout_building_opening_hours);
+        TextView txtBuildingOpeningHours = dialog.findViewById(R.id.txt_building_opening_hours);
 
-        if (buildingDetails.getName() != null && !buildingDetails.getName().isEmpty()) {
-            String fullName = buildingDetails.getName();
-            String buildingName = fullName.contains(",") ? fullName.substring(0, fullName.indexOf(",")).trim() : fullName;
-            txtBuildingName.setText(buildingName.toUpperCase());
+        LinearLayout llAccessibility = dialog.findViewById(R.id.item_accessibility);
+        LinearLayout llMetroConnect = dialog.findViewById(R.id.item_metro_connect);
 
-            String description = getString(R.string.building_description_en, buildingName, campus);
-            txtBuildingDescription.setText(description);
+        ImageView imgBuilding = dialog.findViewById(R.id.img_building);
 
-            String campusFr = campus.equals(getString(R.string.sgw_campus_en))
-                    ? getString(R.string.sgw_campus_fr)
-                    : getString(R.string.loyola_campus_fr);
-
-            String buildingNameFr = buildingName.replace(" Building", "").replace(" building", "");
-            String descriptionFr = getString(R.string.building_description_fr, buildingNameFr, campusFr);
-            txtBuildingDescriptionFr.setText(descriptionFr);
-        }
-
+        txtBuildingCode.setText(buildingDetails.getCode());
+        txtBuildingName.setText(buildingDetails.getName());
+        txtBuildingName.setPaintFlags(txtBuildingName.getPaintFlags() | Paint.UNDERLINE_TEXT_FLAG);
+        txtBuildingAddress.setText(buildingDetails.getAddress());
         if (buildingDetails.getAddress() != null && !buildingDetails.getAddress().isEmpty()) {
             txtBuildingAddress.setText(buildingDetails.getAddress());
         }
-        if (buildingDetails.getAccessibility()) {
-            imgAccessibility.setVisibility(View.VISIBLE);
-            txtAccessibility.setText(R.string.building_accessible);
+        if (buildingDetails.isAccessible()) {
+            llAccessibility.setVisibility(View.VISIBLE);
         } else {
-            imgAccessibility.setVisibility(View.GONE);
-            txtAccessibility.setText(R.string.building_not_accessible);
+            llAccessibility.setVisibility(View.GONE);
+        }
+        if (buildingDetails.hasDirectTunnelToMetro()) {
+            llMetroConnect.setVisibility(View.VISIBLE);
+        } else {
+            llMetroConnect.setVisibility(View.GONE);
+        }
+        if (buildingDetails.getSchedule() == null) {
+            llBuildingOpeningHours.setVisibility(View.GONE);
+        } else {
+            llBuildingOpeningHours.setVisibility(View.VISIBLE);
+            txtBuildingOpeningHours.setText(buildingDetails.getSchedule().toString());
         }
         loadBuildingImage(imgBuilding, buildingDetails);
     }
 
-    private void loadBuildingImage(ImageView imgBuilding, BuildingDetailsDto buildingDetails) {
-        if (buildingDetails.getImgUri() != null && !buildingDetails.getImgUri().isEmpty()) {
+    private void loadBuildingImage(ImageView imgBuilding, BuildingDetails buildingDetails) {
+        if (buildingDetails.getImage() != null && !buildingDetails.getImage().isEmpty()) {
             Glide.with(this)
-                    .load(buildingDetails.getImgUri())
+                    .load(buildingDetails.getImage())
                     .placeholder(android.R.color.darker_gray)
                     .error(android.R.color.darker_gray)
                     .into(imgBuilding);
