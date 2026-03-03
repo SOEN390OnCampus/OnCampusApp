@@ -60,23 +60,27 @@ public class BuildingDetailsUITest {
     }
     @Test
     public void testBuildingDetailsButton_demo() throws InterruptedException {
-        Thread.sleep(10000);
+        Thread.sleep(5000);
 
+        // First dialog
+        activityRule.getScenario().onActivity(activity -> activity.handleBuildingDetailsButtonClick("way/103248064"));
+        Thread.sleep(5000);
         activityRule.getScenario().onActivity(activity -> {
-            activity.handleBuildingDetailsButtonClick("way/103248064");
-        });
-
-        Thread.sleep(2000);
-        activityRule.getScenario().onActivity(activity -> {
+            assertNotNull(activity.getCurrentBuildingDialog());
             assertTrue(activity.getCurrentBuildingDialog().isShowing());
         });
+
+        activityRule.getScenario().onActivity(activity -> activity.getCurrentBuildingDialog().dismiss());
+        Thread.sleep(2000); // wait for dismiss animation to finish
+
+        // Second dialog
+        activityRule.getScenario().onActivity(activity -> activity.handleBuildingDetailsButtonClick("way/103248058"));
+        Thread.sleep(5000);
+
         activityRule.getScenario().onActivity(activity -> {
+            assertNotNull(activity.getCurrentBuildingDialog());
+            assertTrue(activity.getCurrentBuildingDialog().isShowing());
             activity.getCurrentBuildingDialog().dismiss();
-            activity.handleBuildingDetailsButtonClick("way/103248058");
-        });
-        Thread.sleep(4000);
-        activityRule.getScenario().onActivity(activity -> {
-            assertTrue(activity.getCurrentBuildingDialog().isShowing());
         });
     }
 
