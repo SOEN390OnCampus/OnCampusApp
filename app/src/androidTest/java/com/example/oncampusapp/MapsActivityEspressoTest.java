@@ -9,20 +9,31 @@ import static androidx.test.espresso.action.ViewActions.click;
 import static androidx.test.espresso.action.ViewActions.typeText;
 import static androidx.test.espresso.assertion.ViewAssertions.matches;
 import static androidx.test.espresso.matcher.ViewMatchers.hasFocus;
+import static androidx.test.espresso.matcher.ViewMatchers.isDisplayed;
 import static androidx.test.espresso.matcher.ViewMatchers.withId;
 import static androidx.test.espresso.matcher.ViewMatchers.withText;
 import static androidx.test.espresso.action.ViewActions.closeSoftKeyboard;
 
-
 import static org.hamcrest.Matchers.anything;
+import static org.hamcrest.Matchers.isEmptyString;
 import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 import static androidx.test.espresso.matcher.ViewMatchers.withEffectiveVisibility;
+
+import androidx.test.espresso.Espresso;
+import androidx.test.espresso.ViewAction;
+import androidx.test.espresso.action.GeneralClickAction;
+import androidx.test.espresso.action.Press;
+import androidx.test.espresso.action.Tap;
 import androidx.test.espresso.matcher.ViewMatchers.Visibility;
 
-
 import android.Manifest;
+import android.graphics.Point;
+import android.os.Build;
+import android.view.InputDevice;
+import android.view.MotionEvent;
 
 import androidx.test.espresso.NoMatchingRootException;
 import androidx.test.espresso.NoMatchingViewException;
@@ -30,10 +41,15 @@ import androidx.test.espresso.PerformException;
 import androidx.test.espresso.matcher.RootMatchers;
 import androidx.test.ext.junit.rules.ActivityScenarioRule;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
+import androidx.test.platform.app.InstrumentationRegistry;
 import androidx.test.rule.GrantPermissionRule;
 
+import com.example.oncampusapp.location.FakeLocationProvider;
+import com.google.android.gms.maps.CameraUpdateFactory;
+import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.model.LatLng;
 
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -51,7 +67,33 @@ public class MapsActivityEspressoTest {
 
     @Rule
     public GrantPermissionRule permissionRule =
-            GrantPermissionRule.grant(Manifest.permission.ACCESS_FINE_LOCATION);
+            GrantPermissionRule.grant(
+                    // Location
+                    Manifest.permission.ACCESS_FINE_LOCATION,
+                    Manifest.permission.ACCESS_COARSE_LOCATION,
+                    Manifest.permission.ACCESS_BACKGROUND_LOCATION
+            );
+
+    @Before
+    public void grantNotificationPermission() {
+        // Only attempt to grant notification permission if the device is running API 33 (Tiramisu) or higher
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            InstrumentationRegistry.getInstrumentation().getUiAutomation()
+                    .grantRuntimePermission(
+                            InstrumentationRegistry.getInstrumentation().getTargetContext().getPackageName(),
+                            Manifest.permission.POST_NOTIFICATIONS
+                    );
+        }
+    }
+
+    @Before
+    public void setUp() {
+        activityRule.getScenario().onActivity(activity -> {
+            // Call your method here
+            activity.setLocationProvider(new FakeLocationProvider(activity));
+            activity.fusedLocationClient.setFakeLocation(45.4973, -73.5789); // Set the default location to hall building
+        });
+    }
 
     private void sleep(int ms) {
         try {
@@ -64,28 +106,36 @@ public class MapsActivityEspressoTest {
      * Opens route picker by clicking the search bar.
      */
     private void openRoutePicker() {
-        // Wait a bit for activity + map init to settle (still not perfect, but reduces flake)
-        sleep(5000);
-        onView(withId(R.id.search_bar_container)).check(matches(withEffectiveVisibility(Visibility.VISIBLE)));
+        // Verify initial state: Search Bar is visible, Route Picker is hidden
+        onView(withId(R.id.search_bar_container)).check(matches(isDisplayed()));
+        onView(withId(R.id.route_picker_container)).check(matches(not(isDisplayed())));
+
+        // Click Search Bar to open Route Picker
         onView(withId(R.id.search_bar_container)).perform(click());
-        onView(withId(R.id.route_picker_container)).check(matches(withEffectiveVisibility(Visibility.VISIBLE)));
-        onView(withId(R.id.search_bar_container)).check(matches(withEffectiveVisibility(Visibility.GONE)));
+
+        // Verify Route Picker is now visible and Search Bar is hidden
+        onView(withId(R.id.route_picker_container)).check(matches(isDisplayed()));
+        onView(withId(R.id.search_bar_container)).check(matches(not(isDisplayed())));
+        onView(withId(R.id.et_start)).check(matches(hasFocus()));
     }
 
     /**
      * Closes route picker using back.
      */
     private void closeRoutePickerWithBack() {
-        onView(withId(R.id.et_start)).perform(closeSoftKeyboard()); // closes keyboard (ViewAction)
-        pressBack();
-        sleep(1500);
+        // Verify if the close route section is displayed
+        onView(withId(R.id.close_search)).check(matches(isDisplayed()));
 
-        onView(withId(R.id.search_bar_container))
-                .check(matches(withEffectiveVisibility(Visibility.VISIBLE)));
-        onView(withId(R.id.route_picker_container))
-                .check(matches(withEffectiveVisibility(Visibility.GONE)));
+        // Close the keyboard if it is open
+        Espresso.closeSoftKeyboard();
+
+        // Perform click on the route picker close section
+        onView(withId(R.id.close_search)).perform(click());
+
+        // Verify it closed via the animation logic
+        onView(withId(R.id.search_bar_container)).check(matches(isDisplayed()));
+        onView(withId(R.id.route_picker_container)).check(matches(not(isDisplayed())));
     }
-
 
     /**
      * Tries to select the first dropdown suggestion if the popup is present and has items.
@@ -101,6 +151,36 @@ public class MapsActivityEspressoTest {
         } catch (NoMatchingRootException | NoMatchingViewException | PerformException e) {
             return false;
         }
+    }
+
+    /**
+     * Creates a click action on the map, on the device, based off a provided lat and long
+     *
+     * @param map The view map instance
+     * @param targetLatLng location on the map to be clicked
+     * @return click action
+     */
+    private ViewAction clickOnLatLng(GoogleMap map, LatLng targetLatLng) {
+        return new GeneralClickAction(
+            Tap.SINGLE,
+                view -> {
+                    // Convert LatLng to point coordinates relative to the map view
+                    Point screenPoint = map.getProjection().toScreenLocation(targetLatLng);
+
+                    // Get the absolute screen position of the map view's top-left corner
+                    int[] viewLocation = new int[2];
+                    view.getLocationOnScreen(viewLocation);
+
+                    // Add them together to get the absolute screen coordinates for Espresso
+                    float x = viewLocation[0] + screenPoint.x;
+                    float y = viewLocation[1] + screenPoint.y;
+
+                    return new float[]{x, y};
+                },
+            Press.FINGER,
+            InputDevice.SOURCE_UNKNOWN,
+            MotionEvent.BUTTON_PRIMARY
+        );
     }
 
     // -------------------------
@@ -167,7 +247,7 @@ public class MapsActivityEspressoTest {
         });
 
         boolean completed = latch.await(5, TimeUnit.SECONDS);
-        assertEquals(true, completed);
+        assertTrue(completed);
     }
 
     // -------------------------
@@ -205,7 +285,7 @@ public class MapsActivityEspressoTest {
     public void startText_typingDisplaysInField() {
         openRoutePicker();
         onView(withId(R.id.et_start)).perform(clearText(), typeText("Hall"));
-        closeSoftKeyboard();
+        Espresso.closeSoftKeyboard();
         onView(withId(R.id.et_start)).check(matches(withText("Hall")));
     }
 
@@ -262,7 +342,7 @@ public class MapsActivityEspressoTest {
         closeRoutePickerWithBack();
 
         openRoutePicker();
-        onView(withId(R.id.et_start)).check(matches(withText("TEST123")));
+        onView(withId(R.id.et_start)).check(matches(withText("")));
     }
 
     @Test
@@ -281,6 +361,96 @@ public class MapsActivityEspressoTest {
         closeRoutePickerWithBack();
     }
 
+    // -------------------------------------------------------------------------------------------
+    // For US-2.1: Display search options and select buildings as start destination for navigation
+    // -------------------------------------------------------------------------------------------
+
+    @Test
+    public void displayNavigationSearch() {
+        // Wait for map to load properly
+        sleep(3000);
+
+        openRoutePicker();
+
+        // Type into et_start
+        onView(withId(R.id.et_start))
+            .perform(typeText("Building"), closeSoftKeyboard());
+
+        // Check if suggestions are displayed and click the first one
+        onData(anything())
+            .inRoot(RootMatchers.isPlatformPopup())
+            .atPosition(0)
+            .perform(click());
+
+        // Type into et_destination
+        onView(withId(R.id.et_destination))
+            .perform(typeText("john"), closeSoftKeyboard());
+
+        // Click the first suggestion for the destination
+        onData(anything())
+            .inRoot(RootMatchers.isPlatformPopup())
+            .atPosition(0)
+            .perform(click());
+
+        closeRoutePickerWithBack();
+
+        openRoutePicker();
+
+        // Check if the text in bot et_start and et_destination was cleared after route picker was closed
+        onView(withId(R.id.et_start))
+            .check(matches(withText(isEmptyString())));
+
+        onView(withId(R.id.et_destination))
+            .check(matches(withText(isEmptyString())));
+
+        // Close the opened keyboard
+        Espresso.closeSoftKeyboard();
+
+        final GoogleMap[] mapInstance = new GoogleMap[1];
+        LatLng jmsbCoords = new LatLng(45.49547770602248, -73.57914911481745); // Coordinates to the center of the JMSB building
+        LatLng vanierCoords = new LatLng(45.45886468564086, -73.63880278032387); // Coordinates to the center of the Vanier library
+
+        // Get map instance and move to the JMSB building
+        activityRule.getScenario().onActivity(activity -> {
+            mapInstance[0] = activity.getMap();
+
+            mapInstance[0].animateCamera(CameraUpdateFactory.newLatLngZoom(jmsbCoords, 18f));
+        });
+        sleep(1500);
+
+        // Click on the JMSB building
+        onView(withId(R.id.map))
+            .perform(clickOnLatLng(mapInstance[0], jmsbCoords));
+        sleep(200);
+
+        // Assert that text in start textview changed to JMSB
+        onView(withId(R.id.et_start))
+            .check(matches(withText("MB - John Molson School of Business")));
+
+        // Click on destination textview to set focus
+        onView(withId(R.id.et_destination))
+            .perform(click());
+        Espresso.closeSoftKeyboard();
+
+        // Move to the JMSB building
+        activityRule.getScenario().onActivity(activity -> mapInstance[0].animateCamera(CameraUpdateFactory.newLatLngZoom(vanierCoords, 18f)));
+        sleep(1500);
+
+        // Click on the vanier building
+        onView(withId(R.id.map))
+            .perform(clickOnLatLng(mapInstance[0], vanierCoords));
+        sleep(200);
+
+        // Assert that text in destination textview changed to vanier library
+        onView(withId(R.id.et_destination))
+            .check(matches(withText("Concordia Vanier Library")));
+
+        // Test the device back press button click and verify if it closes the route search
+        pressBack();
+        onView(withId(R.id.search_bar_container)).check(matches(isDisplayed()));
+        onView(withId(R.id.route_picker_container)).check(matches(not(isDisplayed())));
+    }
+
     // ----------------------------------------
     // For US-2.2: Clicking on current location
     // ----------------------------------------
@@ -289,18 +459,19 @@ public class MapsActivityEspressoTest {
     public void clickingOnCurrentLocation() {
         AtomicReference<Building> ref = new AtomicReference<>();
 
-
-        onView(withId(R.id.btn_location)).perform(click());
-        openRoutePicker();
-
         activityRule.getScenario().onActivity(activity -> {
-            ref.set(activity.buildingManager.getCurrentBuilding());
+            activity.fusedLocationClient.setFakeLocation(45.4973, -73.5789); // A coordinate inside H - Henry F. Hall Building
         });
+
+        sleep(5000);
+        onView(withId(R.id.btn_location)).perform(click());
+        sleep(1000);
+
+        activityRule.getScenario().onActivity(activity -> ref.set(activity.buildingManager.getCurrentBuilding()));
 
         String name = ref.get().getName();
 
-        onView(withId(R.id.currentLocationIcon)).perform(click());
-        onView(withId(R.id.et_start)).check(matches(withText(name)));
+        assertEquals("H - Henry F. Hall Building", name);
     }
 
 }
