@@ -26,6 +26,10 @@ public class NavigationHelper {
      * Fetches directions from Google API and parses the JSON.
      */
     public static void fetchRoute(LatLng start, LatLng end, RouteTravelMode mode, String apiKey, RoutesCallback callback) {
+        if (apiKey == null || apiKey.isEmpty()){
+            callback.onError(new IllegalArgumentException("Invalid API key"));
+            return;
+        }
         new Thread(() -> {
             try {
 
@@ -43,7 +47,6 @@ public class NavigationHelper {
                 int responseCode = conn.getResponseCode();
 
                 // read response
-                new BufferedReader(new InputStreamReader(conn.getInputStream()));
                 BufferedReader br;
                 if (responseCode == HttpURLConnection.HTTP_OK) {
                     br = new BufferedReader(new InputStreamReader(conn.getInputStream()));
@@ -73,6 +76,12 @@ public class NavigationHelper {
             } catch (IOException e) {
                 Log.e("NavigationHelper", "Network error fetching route", e);
                 callback.onError(e);
+            } catch (NullPointerException e) {
+                Log.e("NavigationHelper", "Null pointer exception", e);
+                callback.onError(e);
+            } catch (Exception e) {
+                Log.e("NavigationHelper", "Exception", e);
+                callback.onError(e);
             }
 
         }).start();
@@ -89,14 +98,6 @@ public class NavigationHelper {
         conn.setRequestMethod("POST");
         conn.setRequestProperty("Content-Type", "application/json");
         conn.setRequestProperty("X-Goog-Api-Key", apiKey);
-        conn.setRequestProperty("X-Goog-FieldMask",
-                        "routes.legs.steps.navigationInstruction," +
-                        "routes.legs.steps.transitDetails," +
-                                "routes.legs.steps.polyline," +
-                        "routes.legs.steps.travelMode," +
-                        "routes.legs.steps.localizedValues," +
-                        "routes.duration," +
-                        "routes.distanceMeters");
 
         conn.setRequestProperty("X-Goog-FieldMask", "routes");
         conn.setDoOutput(true);
@@ -107,7 +108,7 @@ public class NavigationHelper {
     /**
      * Builds the request JSON. For transit set the routing preference to LESS_WALKING
      */
-    private static String buildRequestJson(LatLng start, LatLng end, RouteTravelMode mode) throws JSONException {
+    public static String buildRequestJson(LatLng start, LatLng end, RouteTravelMode mode) throws JSONException {
         JSONObject originLatLng = new JSONObject()
                 .put("latitude", start.latitude)
                 .put("longitude", start.longitude);

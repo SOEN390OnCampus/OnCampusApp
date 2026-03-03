@@ -1,0 +1,49 @@
+{
+  "routes": [{
+    "distanceMeters": 7976,
+    "duration": "2191s",
+    "polyline": {"encodedPolyline": "{_utGnva`MsD~Jq@fB"},
+    "localizedValues": {
+      "distance": {"text": "8.0 km"},
+      "duration": {"text": "37 mins"}
+    },
+    "legs": [{
+      "steps": [
+        {
+          "travelMode": "WALK",
+          "polyline": {"encodedPolyline": "{_utGnva`MsD~Jq@fB"},
+          "navigationInstruction": {
+            "maneuver": "DEPART",
+            "instructions": "Head northwest on Rue Mackay"
+          }
+        },
+        {
+          "travelMode": "TRANSIT",
+          "polyline": {"encodedPolyline": "ijutGhdb`MHU"},
+          "navigationInstruction": {"instructions": "Bus towards Ouest"},
+          "transitDetails": {
+            "stopDetails": {
+              "departureStop": {
+                "name": "Sherbrooke / Redpath",
+                "location": {"latLng": {"latitude": 45.4981, "longitude": -73.5803}}
+              },
+              "departureTime": "2026-03-01T08:13:25Z",
+              "arrivalStop": {
+                "name": "Sherbrooke / West Broadway",
+                "location": {"latLng": {"latitude": 45.4566, "longitude": -73.6401}}
+              },
+              "arrivalTime": "2026-03-01T08:42:39Z"
+            },
+            "transitLine": {
+              "vehicle": {"type": "BUS"}
+            }
+          }
+        },
+        {
+          "travelMode": "WALK",
+          "polyline": {"encodedPolyline": "kgmtGjzm`Mw@w@"}
+        }
+      ]
+    }]
+  }]
+}
