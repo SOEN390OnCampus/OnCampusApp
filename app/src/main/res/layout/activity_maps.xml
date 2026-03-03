@@ -57,7 +57,7 @@
         android:elevation="10dp"
         android:orientation="vertical"
         android:paddingHorizontal="16dp"
-        android:paddingBottom="20dp"
+        android:paddingBottom="0dp"
         android:paddingTop="85dp"
         android:visibility="gone"
         app:layout_constraintTop_toTopOf="parent">
@@ -210,6 +210,22 @@
             android:textSize="18sp"
             android:textStyle="bold"
             app:cornerRadius="25dp" />
+        <FrameLayout
+            android:id="@+id/close_search"
+            android:layout_width="match_parent"
+            android:layout_height="32dp"
+            android:layout_marginTop="10dp"
+            android:background="?attr/selectableItemBackground"
+            android:clickable="true"
+            android:focusable="true">
+            <ImageView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="bottom|center_horizontal"
+                android:contentDescription="@string/hide_the_search_section"
+                android:src="@drawable/baseline_arrow_drop_up" />
+
+        </FrameLayout>
         <LinearLayout
             android:id="@+id/layout_navigation_active"
             android:layout_width="match_parent"
