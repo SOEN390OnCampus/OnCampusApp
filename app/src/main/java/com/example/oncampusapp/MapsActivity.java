@@ -70,9 +70,11 @@ import java.io.InputStreamReader;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import com.bumptech.glide.Glide;
 
@@ -516,6 +518,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         FrameLayout closeSearchLayout = findViewById(R.id.close_search);
 
+        ArrayList<String> buildingSuggestions = new ArrayList<>();
+
         try {
             // Load the GeoJSON file
             layer = new GeoJsonLayer(mMap, R.raw.concordia_buildings, getApplicationContext());
@@ -528,6 +532,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 String name = feature.getProperty("name");
                 String id = feature.getProperty("@id");
                 String operator = feature.getProperty("operator");
+
+                if (name != null && !name.trim().isEmpty() && !buildingSuggestions.contains(name)) {
+                    buildingSuggestions.add(name);
+                }
 
                 // Identify if it is a Concordia Building
                 boolean isConcordiaBuilding = buildingClassifier.isConcordiaBuilding(building, name, operator);
@@ -635,11 +643,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             btnSgwLoy.setText(sgw);
         }
 
-        // String array for building suggestions
-        String[] buildingSuggestions = geoIdToBuildingDetailsMap.values()
-            .stream()
-            .map(BuildingDetails::getName)
-            .toArray(String[]::new);
+        // Sort suggestions for better UX
+        Collections.sort(buildingSuggestions);
 
         // Create the adapter for building suggestions
         ArrayAdapter<String> adapter = new ArrayAdapter<>(this,
