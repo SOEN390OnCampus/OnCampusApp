@@ -8,6 +8,7 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.core.view.WindowCompat;
 import androidx.fragment.app.FragmentActivity;
+import android.os.Handler;
 
 import android.Manifest;
 import android.content.Context;
@@ -78,9 +79,21 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     private GoogleMap mMap;
 
+
     public static Map<String, Building> buildingsMap = new HashMap<>();
     private Map<String, BuildingDetails> geoIdToBuildingDetailsMap;
     private ActivityMapsBinding binding;
+
+    private final Handler bannerHandler = new Handler();
+    private final Runnable bannerRunnable = new Runnable() {
+        @Override
+        public void run() {
+            checkAndDisplayNextEventBanner();
+            // Re-run this check every 30 seconds
+            bannerHandler.postDelayed(this, 30000);
+        }
+    };
+
     private BuildingClassifier buildingClassifier;
     protected BuildingManager buildingManager;
     private GeoJsonLayer layer;
@@ -205,7 +218,26 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         // Load building details
         loadBuildingDetails();
+
+        checkAndDisplayNextEventBanner();
+
     }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        bannerHandler.post(bannerRunnable); // Start the timer
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        bannerHandler.removeCallbacks(bannerRunnable); // Stop to save battery
+    }
+
+
+
+
 
     private void setupRoutePickerUi() {
         //Initialize Views
@@ -1035,4 +1067,60 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     public Dialog getCurrentBuildingDialog(){
         return currentBuildingDialog;
     }
+
+    /**
+     * Requirement 5: Identifies the next event and updates the persistent top banner.
+     */
+
+    private void checkAndDisplayNextEventBanner() {
+        // Retrieve the JSON string from the intent
+        String eventsJson = CalendarEventManager.globalEventsJson;
+
+        if (eventsJson != null && !eventsJson.isEmpty()) {
+            // Identifies next event (now returns ongoing OR next future event)
+            org.json.JSONObject nextClass = CalendarEventManager.findNextUpcomingEvent(eventsJson);
+
+            View bannerView = findViewById(R.id.included_banner);
+
+            if (nextClass != null && bannerView != null) {
+                bannerView.setVisibility(View.VISIBLE);
+
+                TextView titleView = bannerView.findViewById(R.id.banner_event_title);
+                TextView detailsView = bannerView.findViewById(R.id.banner_event_details);
+
+                String title = nextClass.optString("summary", "Class");
+
+                try {
+                    // 1. Get current time and class times
+                    long now = System.currentTimeMillis();
+                    String startStr = nextClass.getJSONObject("start").getString("dateTime");
+                    String endStr = nextClass.getJSONObject("end").getString("dateTime");
+
+                    java.text.SimpleDateFormat exactTimeFormat = new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX", java.util.Locale.getDefault());
+                    long startTime = exactTimeFormat.parse(startStr).getTime();
+                    long endTime = exactTimeFormat.parse(endStr).getTime();
+
+                    // 2. State Machine Logic
+                    if (now >= startTime && now <= endTime) {
+                        // STATE: CLASS IS ONGOING
+                        titleView.setText("Ongoing: " + title);
+                        detailsView.setText("Class has started");
+                    } else {
+                        // STATE: CLASS IS UPCOMING
+                        titleView.setText("Next: " + title);
+                        detailsView.setText("Starts soon - Check notification for building info");
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    // Fallback if date parsing fails
+                    titleView.setText("Next: " + title);
+                    detailsView.setText("Check schedule for details");
+                }
+            } else if (bannerView != null) {
+                // Hide the banner if there are no more classes today/upcoming
+                bannerView.setVisibility(View.GONE);
+            }
+        }
+    }
+
 }

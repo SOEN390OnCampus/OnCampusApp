@@ -8,17 +8,25 @@
     android:background="#F5F5F5">
 
     <!-- White Square Card -->
+    <include
+        android:id="@+id/included_banner"
+        layout="@layout/layout_next_event_banner"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
 
     <ImageView
         android:id="@+id/btn_back"
         android:layout_width="47dp"
         android:layout_height="53dp"
         android:layout_marginStart="16dp"
-        android:layout_marginTop="24dp"
+        android:layout_marginTop="16dp"
         android:src="@drawable/ic_back"
         android:tint="#7A1C1C"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintTop_toBottomOf="@id/included_banner" />
 
     <TextView
         android:id="@+id/txt_title"

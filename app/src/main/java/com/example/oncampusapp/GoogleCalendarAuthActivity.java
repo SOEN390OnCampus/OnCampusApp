@@ -198,9 +198,15 @@ public class GoogleCalendarAuthActivity extends AppCompatActivity {
 
                 mainHandler.post(() -> {
                     showLoading(false);
+
+                    // 1. Save the massive JSON string to the global variable instead!
+                    CalendarEventManager.globalEventsJson = allEventsArray.toString();
+
                     Intent intent = new Intent(GoogleCalendarAuthActivity.this, AccountPage.class);
-                    intent.putExtra("email", account.getEmail());
-                    intent.putExtra("calendar_events_json", allEventsArray.toString());
+                    intent.putExtra("email", account.getEmail()); // Email is tiny, so this is safe!
+
+                    // 2. We removed the calendar_events_json putExtra line
+
                     startActivity(intent);
                     finish();
                 });
