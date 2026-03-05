@@ -7,6 +7,10 @@ import androidx.cardview.widget.CardView;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.core.view.WindowCompat;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
+import androidx.core.graphics.Insets;
+import android.view.ViewGroup;
 import androidx.fragment.app.FragmentActivity;
 import android.os.Handler;
 
@@ -83,6 +87,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     public static Map<String, Building> buildingsMap = new HashMap<>();
     private Map<String, BuildingDetails> geoIdToBuildingDetailsMap;
     private ActivityMapsBinding binding;
+    private boolean isRoutePickerOpen = false;
 
     private final Handler bannerHandler = new Handler();
     private final Runnable bannerRunnable = new Runnable() {
@@ -143,6 +148,19 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         // ViewBinding: inflate, then set content view ONCE
         binding = ActivityMapsBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
+
+        View bannerView = findViewById(R.id.included_banner);
+        if (bannerView != null) {
+            ViewCompat.setOnApplyWindowInsetsListener(bannerView, (v, windowInsets) -> {
+                Insets insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars());
+                ViewGroup.MarginLayoutParams mlp = (ViewGroup.MarginLayoutParams) v.getLayoutParams();
+                // Push the banner down by the height of the status bar + 16 pixels for a nice gap
+                mlp.topMargin = insets.top + 16;
+                v.setLayoutParams(mlp);
+                return windowInsets; // Return the original insets untouched
+            });
+        }
+
         setupRoutePickerUi();
 
         binding.bottomNav.setOnItemSelectedListener(item -> {
@@ -226,7 +244,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     @Override
     protected void onResume() {
         super.onResume();
-        bannerHandler.post(bannerRunnable); // Start the timer
+        bannerHandler.post(bannerRunnable);// Start the timer
     }
 
     @Override
@@ -278,6 +296,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     routePicker.setVisibility(View.GONE);
                     searchBar.setVisibility(View.VISIBLE);
                     slideUp.setAnimationListener(null);
+
+                    isRoutePickerOpen = false;
+                    checkAndDisplayNextEventBanner();
                 }
                 @Override public void onAnimationRepeat(Animation animation) {}
             });
@@ -286,6 +307,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         //Search Bar Click Listener
         searchBar.setOnClickListener(v -> {
+
+            isRoutePickerOpen = true;
+
+            View bannerView = findViewById(R.id.included_banner);
+            if (bannerView != null) bannerView.setVisibility(View.GONE);
+
             searchBar.setVisibility(View.GONE);
             routePicker.setVisibility(View.VISIBLE);
             routePicker.startAnimation(slideDown);
@@ -1073,53 +1100,121 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
      */
 
     private void checkAndDisplayNextEventBanner() {
-        // Retrieve the JSON string from the intent
+        if (isRoutePickerOpen) return;
+
         String eventsJson = CalendarEventManager.globalEventsJson;
+        if (eventsJson == null || eventsJson.isEmpty()) return;
 
-        if (eventsJson != null && !eventsJson.isEmpty()) {
-            // Identifies next event (now returns ongoing OR next future event)
-            org.json.JSONObject nextClass = CalendarEventManager.findNextUpcomingEvent(eventsJson);
+        org.json.JSONObject nextClass = CalendarEventManager.findNextUpcomingEvent(eventsJson);
+        View bannerView = findViewById(R.id.included_banner);
 
-            View bannerView = findViewById(R.id.included_banner);
+        if (nextClass != null && bannerView != null) {
 
-            if (nextClass != null && bannerView != null) {
+            TextView titleView = bannerView.findViewById(R.id.banner_event_title);
+            TextView detailsView = bannerView.findViewById(R.id.banner_event_details);
+
+            // Failsafe if views aren't found
+            if (titleView == null || detailsView == null) return;
+
+            String title = nextClass.optString("summary", "Class");
+
+            try {
+                long now = System.currentTimeMillis();
+                String startStr = nextClass.getJSONObject("start").getString("dateTime");
+                String endStr = nextClass.getJSONObject("end").getString("dateTime");
+                String rawLocation = nextClass.optString("location", "");
+                String description = nextClass.optString("description", "");
+
+                java.text.SimpleDateFormat exactTimeFormat = new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX", java.util.Locale.getDefault());
+                long startTime = exactTimeFormat.parse(startStr).getTime();
+                long endTime = exactTimeFormat.parse(endStr).getTime();
+
+                // 60-MINUTE FILTER
+                long sixtyMinutesInMillis = 60 * 60 * 1000;
+                if (now < startTime && (startTime - now) > sixtyMinutesInMillis) {
+                    bannerView.setVisibility(View.GONE);
+                    return;
+                }
+
                 bannerView.setVisibility(View.VISIBLE);
 
-                TextView titleView = bannerView.findViewById(R.id.banner_event_title);
-                TextView detailsView = bannerView.findViewById(R.id.banner_event_details);
+                // Find the extra banner views
+                TextView timeStatusView = bannerView.findViewById(R.id.banner_time_status);
+                TextView onlineTagView = bannerView.findViewById(R.id.banner_online_tag);
 
-                String title = nextClass.optString("summary", "Class");
+                // Set Main Title
+                titleView.setText(title);
 
-                try {
-                    // 1. Get current time and class times
-                    long now = System.currentTimeMillis();
-                    String startStr = nextClass.getJSONObject("start").getString("dateTime");
-                    String endStr = nextClass.getJSONObject("end").getString("dateTime");
+                // 2. Set Countdown Timer Status and Force Icons
+                if (timeStatusView != null && detailsView != null) {
+                    String timeStatus = NotificationTimeFormatter.getBannerTimeStatus(now, startTime, endTime);
+                    timeStatusView.setText(timeStatus);
 
-                    java.text.SimpleDateFormat exactTimeFormat = new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX", java.util.Locale.getDefault());
-                    long startTime = exactTimeFormat.parse(startStr).getTime();
-                    long endTime = exactTimeFormat.parse(endStr).getTime();
+                    int redColor = Color.parseColor("#8B1E2D");
+                    int greyColor = Color.parseColor("#808080");
 
-                    // 2. State Machine Logic
-                    if (now >= startTime && now <= endTime) {
-                        // STATE: CLASS IS ONGOING
-                        titleView.setText("Ongoing: " + title);
-                        detailsView.setText("Class has started");
-                    } else {
-                        // STATE: CLASS IS UPCOMING
-                        titleView.setText("Next: " + title);
-                        detailsView.setText("Starts soon - Check notification for building info");
+                    // Apply red to the text
+                    timeStatusView.setTextColor(redColor);
+
+                    // BULLETPROOF ICON INJECTION
+                    try {
+                        // 1. Clock icon - using built-in Android system icon
+                        android.graphics.drawable.Drawable clockIcon = androidx.core.content.ContextCompat.getDrawable(
+                                this, android.R.drawable.ic_menu_recent_history);
+                        if (clockIcon != null) {
+                            clockIcon = androidx.core.graphics.drawable.DrawableCompat.wrap(clockIcon).mutate();
+                            androidx.core.graphics.drawable.DrawableCompat.setTint(clockIcon, redColor);
+                            // Resize to 16dp
+                            int size = (int) (16 * getResources().getDisplayMetrics().density);
+                            clockIcon.setBounds(0, 0, size, size);
+                            timeStatusView.setCompoundDrawables(clockIcon, null, null, null);
+                            timeStatusView.setCompoundDrawablePadding(16);
+                        }
+
+                        // 2. Location icon - using built-in Android system icon
+                        android.graphics.drawable.Drawable targetIcon = androidx.core.content.ContextCompat.getDrawable(
+                                this, android.R.drawable.ic_menu_mylocation);
+                        if (targetIcon != null) {
+                            targetIcon = androidx.core.graphics.drawable.DrawableCompat.wrap(targetIcon).mutate();
+                            androidx.core.graphics.drawable.DrawableCompat.setTint(targetIcon, greyColor);
+                            int size = (int) (16 * getResources().getDisplayMetrics().density);
+                            targetIcon.setBounds(0, 0, size, size);
+                            detailsView.setCompoundDrawables(targetIcon, null, null, null);
+                            detailsView.setCompoundDrawablePadding(16);
+                        }
+                    } catch (Exception e) {
+                        e.printStackTrace();
                     }
-                } catch (Exception e) {
-                    e.printStackTrace();
-                    // Fallback if date parsing fails
-                    titleView.setText("Next: " + title);
-                    detailsView.setText("Check schedule for details");
                 }
-            } else if (bannerView != null) {
-                // Hide the banner if there are no more classes today/upcoming
-                bannerView.setVisibility(View.GONE);
+
+                // Set Smart Location Data
+                String parsedLocation = LocationParser.parseSmartLocation(title, rawLocation, description);
+
+                if (parsedLocation.equals("Online")) {
+                    if (onlineTagView != null) onlineTagView.setVisibility(View.VISIBLE);
+
+                    String searchString = (rawLocation + " " + description).toLowerCase();
+                    if (searchString.contains("zoom")) {
+                        detailsView.setText("ZOOM MEETING");
+                    } else if (searchString.contains("teams")) {
+                        detailsView.setText("MICROSOFT TEAMS");
+                    } else if (searchString.contains("meet.google")) {
+                        detailsView.setText("GOOGLE MEET");
+                    } else {
+                        detailsView.setText(rawLocation.isEmpty() ? "ONLINE CLASS" : rawLocation.toUpperCase());
+                    }
+                } else {
+                    if (onlineTagView != null) onlineTagView.setVisibility(View.GONE);
+                    detailsView.setText(parsedLocation.equals("TBD") && !rawLocation.isEmpty() ? rawLocation : parsedLocation);
+                }
+
+            } catch (Exception e) {
+                e.printStackTrace();
+                titleView.setText("Next: " + title);
+                detailsView.setText("Check schedule for details");
             }
+        } else if (bannerView != null) {
+            bannerView.setVisibility(View.GONE);
         }
     }
 

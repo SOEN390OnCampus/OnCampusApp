@@ -96,12 +96,9 @@ public class AccountPage extends AppCompatActivity {
         View bannerView = findViewById(R.id.included_banner);
 
         if (nextClass != null && bannerView != null) {
-
             TextView titleView = bannerView.findViewById(R.id.banner_event_title);
             TextView detailsView = bannerView.findViewById(R.id.banner_event_details);
 
-            // --- THE CRASH FAILSAFE ---
-            // If the text fields are missing from the XML, stop here!
             if (titleView == null || detailsView == null) {
                 android.util.Log.e("BannerCrash", "Missing TextViews in XML!");
                 return;
@@ -120,53 +117,59 @@ public class AccountPage extends AppCompatActivity {
                 long startTime = exactTimeFormat.parse(startStr).getTime();
                 long endTime = exactTimeFormat.parse(endStr).getTime();
 
-                // If the class is in the future AND it is more than 60 minutes away, hide the banner
                 long sixtyMinutesInMillis = 60 * 60 * 1000;
-
                 if (now < startTime && (startTime - now) > sixtyMinutesInMillis) {
                     bannerView.setVisibility(View.GONE);
                     return;
                 }
-                // If it is within an hour (or currently ongoing), show the banner
                 bannerView.setVisibility(View.VISIBLE);
 
-                // Find views in XML
                 TextView timeStatusView = bannerView.findViewById(R.id.banner_time_status);
                 TextView onlineTagView = bannerView.findViewById(R.id.banner_online_tag);
 
-                // Set the main title
                 titleView.setText(title);
 
-                // --- 1. Use NotificationTimeFormatter for the math ---
+                // --- 1. SET COLORS AND ICON SIZE (16dp) ---
+                int redColor = Color.parseColor("#8B1E2D");
+                int greyColor = Color.parseColor("#808080");
+                int iconSizePx = (int) (16 * getResources().getDisplayMetrics().density);
+
+                // --- 2. TIME STATUS LOGIC ---
                 String timeStatus = NotificationTimeFormatter.getBannerTimeStatus(now, startTime, endTime);
                 timeStatusView.setText(timeStatus);
+                timeStatusView.setTextColor(redColor);
 
-                // Set color based on status
-                if (timeStatus.equals("Class is ongoing")) {
-                    timeStatusView.setTextColor(Color.parseColor("#808080")); // Gray
-                } else {
-                    timeStatusView.setTextColor(Color.parseColor("#8B1E2D")); // Red
+                // Inject Scaled Red Clock Icon
+                android.graphics.drawable.Drawable clockIcon = androidx.core.content.ContextCompat.getDrawable(this, android.R.drawable.ic_menu_recent_history);
+                if (clockIcon != null) {
+                    clockIcon = androidx.core.graphics.drawable.DrawableCompat.wrap(clockIcon).mutate();
+                    androidx.core.graphics.drawable.DrawableCompat.setTint(clockIcon, redColor);
+                    clockIcon.setBounds(0, 0, iconSizePx, iconSizePx);
+                    timeStatusView.setCompoundDrawables(clockIcon, null, null, null);
+                    timeStatusView.setCompoundDrawablePadding(16);
                 }
 
-                // --- 2. Use LocationParser for the logic ---
+                // --- 3. LOCATION LOGIC ---
                 String parsedLocation = LocationParser.parseSmartLocation(title, rawLocation, description);
+
+                // Inject Scaled Grey Pin Icon
+                android.graphics.drawable.Drawable targetIcon = androidx.core.content.ContextCompat.getDrawable(this, android.R.drawable.ic_menu_mylocation);
+                if (targetIcon != null) {
+                    targetIcon = androidx.core.graphics.drawable.DrawableCompat.wrap(targetIcon).mutate();
+                    androidx.core.graphics.drawable.DrawableCompat.setTint(targetIcon, greyColor);
+                    targetIcon.setBounds(0, 0, iconSizePx, iconSizePx);
+                    detailsView.setCompoundDrawables(targetIcon, null, null, null);
+                    detailsView.setCompoundDrawablePadding(16);
+                }
 
                 if (parsedLocation.equals("Online")) {
                     onlineTagView.setVisibility(View.VISIBLE);
-
-                    // Display the specific software
                     String searchString = (rawLocation + " " + description).toLowerCase();
-                    if (searchString.contains("zoom")) {
-                        detailsView.setText("ZOOM MEETING");
-                    } else if (searchString.contains("teams")) {
-                        detailsView.setText("MICROSOFT TEAMS");
-                    } else if (searchString.contains("meet.google")) {
-                        detailsView.setText("GOOGLE MEET");
-                    } else {
-                        detailsView.setText(rawLocation.isEmpty() ? "ONLINE CLASS" : rawLocation.toUpperCase());
-                    }
+                    if (searchString.contains("zoom")) detailsView.setText("ZOOM MEETING");
+                    else if (searchString.contains("teams")) detailsView.setText("MICROSOFT TEAMS");
+                    else if (searchString.contains("meet.google")) detailsView.setText("GOOGLE MEET");
+                    else detailsView.setText(rawLocation.isEmpty() ? "ONLINE CLASS" : rawLocation.toUpperCase());
                 } else {
-                    // Physical Class
                     onlineTagView.setVisibility(View.GONE);
                     detailsView.setText(parsedLocation.equals("TBD") && !rawLocation.isEmpty() ? rawLocation : parsedLocation);
                 }
