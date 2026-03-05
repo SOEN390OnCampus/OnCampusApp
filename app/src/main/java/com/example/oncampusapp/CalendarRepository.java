@@ -64,7 +64,7 @@ public class CalendarRepository {
     /**
      * Fetch user's calendar list
      */
-    private String fetchCalendarList(String accessToken) throws Exception {
+    protected String fetchCalendarList(String accessToken) throws Exception {
 
         return fetchUrl(
                 "https://www.googleapis.com/calendar/v3/users/me/calendarList",
@@ -79,7 +79,7 @@ public class CalendarRepository {
     /**
      * Fetch events for a specific calendar
      */
-    private String fetchCalendarEvents(String accessToken, String calendarId) throws Exception {
+    protected String fetchCalendarEvents(String accessToken, String calendarId) throws Exception {
 
         Calendar past = Calendar.getInstance();
         past.add(Calendar.MONTH, -6);
@@ -109,7 +109,7 @@ public class CalendarRepository {
     /**
      * Generic GET request
      */
-    private String fetchUrl(String urlStr, String accessToken) throws Exception {
+    protected String fetchUrl(String urlStr, String accessToken) throws Exception {
 
         URL url = new URL(urlStr);
 

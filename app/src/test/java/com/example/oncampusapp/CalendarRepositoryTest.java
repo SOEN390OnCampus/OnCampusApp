@@ -7,6 +7,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.verify;
 
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
@@ -15,14 +16,20 @@ import org.mockito.junit.MockitoJUnitRunner;
 import java.lang.reflect.Method;
 
 @RunWith(MockitoJUnitRunner.class)
-public class GoogleCalendarAuthActivityTest {
+public class CalendarRepositoryTest {
+
+    CalendarRepository activity;
+
+    @Before
+    public void setUp() {
+        activity = Mockito.mock(CalendarRepository.class, Mockito.CALLS_REAL_METHODS);
+    }
 
     /**
      * Test that fetchCalendarList calls fetchUrl with the correct endpoint and token
      */
     @Test
     public void fetchCalendarList_callsFetchUrl() throws Exception{
-        GoogleCalendarAuthActivity activity = Mockito.mock(GoogleCalendarAuthActivity.class, Mockito.CALLS_REAL_METHODS);
         doReturn("concordia_calendar_list_json").when(activity).fetchUrl(anyString(), anyString());
 
         String result = activity.fetchCalendarList("concordia_student_token");
@@ -35,11 +42,10 @@ public class GoogleCalendarAuthActivityTest {
      */
     @Test
     public void fetchCalendarEvents_buildsCorrectUrl() throws Exception{
-        GoogleCalendarAuthActivity activity = Mockito.mock(GoogleCalendarAuthActivity.class, Mockito.CALLS_REAL_METHODS);
         doReturn("soen341_events_json").when(activity).fetchUrl(anyString(), anyString());
 
         String result = activity.fetchCalendarEvents("concordia_student_token", "soen390_schedule");
-        assertEquals("soen390_events_json", result);
+        assertEquals("soen341_events_json", result);
         verify(activity).fetchUrl(contains("calendars/soen390_schedule/events"), eq("concordia_student_token"));
     }
 
@@ -48,7 +54,6 @@ public class GoogleCalendarAuthActivityTest {
      */
     @Test(expected = Exception.class)
     public void fetchUrl_invalidUrl_throwsException() throws Exception {
-        GoogleCalendarAuthActivity activity = Mockito.mock(GoogleCalendarAuthActivity.class, Mockito.CALLS_REAL_METHODS);
         activity.fetchUrl("http://invalid.concordia.local", "concordia_student_token");
     }
 
@@ -57,10 +62,9 @@ public class GoogleCalendarAuthActivityTest {
      */
     @Test
     public void fetchCalendarList_reflectionCall() throws Exception{
-        GoogleCalendarAuthActivity activity = Mockito.mock(GoogleCalendarAuthActivity.class, Mockito.CALLS_REAL_METHODS);
         doReturn("concordia_calendar_reflection_json").when(activity).fetchUrl(anyString(), anyString());
 
-        Method method = GoogleCalendarAuthActivity.class.getDeclaredMethod("fetchCalendarList", String.class);
+        Method method = CalendarRepository.class.getDeclaredMethod("fetchCalendarList", String.class);
         method.setAccessible(true);
         String result = (String) method.invoke(activity, "reflection_student_token");
         assertEquals("concordia_calendar_reflection_json", result);
@@ -71,7 +75,6 @@ public class GoogleCalendarAuthActivityTest {
      */
     @Test
     public void fetchUrl_success_returnsResponse() throws Exception {
-        GoogleCalendarAuthActivity activity = Mockito.mock(GoogleCalendarAuthActivity.class, Mockito.CALLS_REAL_METHODS);
         doReturn("concordia_success_response_json").when(activity).fetchUrl(anyString(), anyString());
 
         String result = activity.fetchUrl("https://api.concordia.ca/test", "concordia_student_token_123");
@@ -83,7 +86,6 @@ public class GoogleCalendarAuthActivityTest {
      */
     @Test
     public void fetchCalendarEvents_withSpecialCharactersInCalendarId() throws Exception {
-        GoogleCalendarAuthActivity activity = Mockito.mock(GoogleCalendarAuthActivity.class, Mockito.CALLS_REAL_METHODS);
         doReturn("concordia_encoded_events_json").when(activity).fetchUrl(anyString(), anyString());
 
         String result = activity.fetchCalendarEvents("concordia_student_token", "concordia@encs.concordia.ca");
@@ -96,7 +98,6 @@ public class GoogleCalendarAuthActivityTest {
      */
     @Test
     public void fetchCalendarList_withEmptyToken() throws Exception {
-        GoogleCalendarAuthActivity activity = Mockito.mock(GoogleCalendarAuthActivity.class, Mockito.CALLS_REAL_METHODS);
         doReturn("unauthorized_concordia_calendar_response").when(activity).fetchUrl(anyString(), anyString());
 
         String result = activity.fetchCalendarList("");
@@ -108,7 +109,6 @@ public class GoogleCalendarAuthActivityTest {
      */
     @Test
     public void fetchCalendarEvents_multipleCallsCoverage() throws Exception {
-        GoogleCalendarAuthActivity activity = Mockito.mock(GoogleCalendarAuthActivity.class, Mockito.CALLS_REAL_METHODS);
         doReturn("semester_events_json").when(activity).fetchUrl(anyString(), anyString());
 
         String result1 = activity.fetchCalendarEvents("fall2026_student_token", "fall2026_schedule");
@@ -123,7 +123,6 @@ public class GoogleCalendarAuthActivityTest {
      */
     @Test(expected = Exception.class)
     public void fetchUrl_nullUrl_throwsException() throws Exception {
-        GoogleCalendarAuthActivity activity = new GoogleCalendarAuthActivity();
         activity.fetchUrl(null, "concordia_student_token");
     }
 
@@ -132,7 +131,6 @@ public class GoogleCalendarAuthActivityTest {
      */
     @Test
     public void fetchCalendarEvents_returnsMockedValue() throws Exception {
-        GoogleCalendarAuthActivity activity = Mockito.mock(GoogleCalendarAuthActivity.class, Mockito.CALLS_REAL_METHODS);
         doReturn("concordia_mocked_events_json").when(activity).fetchUrl(anyString(), anyString());
 
         String result = activity.fetchCalendarEvents("encs_student_token", "concordia_course_calendar");
