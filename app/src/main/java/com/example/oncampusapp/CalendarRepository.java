@@ -19,6 +19,17 @@ public class CalendarRepository {
     /**
      * Fetch all events from all calendars.
      */
+
+    private static CalendarRepository instance;
+
+    private CalendarRepository() {}
+
+    public static CalendarRepository getInstance() {
+        if (instance == null) {
+            instance = new CalendarRepository();
+        }
+        return instance;
+    }
     public JSONArray fetchAllEvents(String accessToken) throws Exception {
 
         String calendarListJson = fetchCalendarList(accessToken);
@@ -59,6 +70,10 @@ public class CalendarRepository {
                 "https://www.googleapis.com/calendar/v3/users/me/calendarList",
                 accessToken
         );
+    }
+
+    public JSONArray refreshEvents(String accessToken) throws Exception {
+        return fetchAllEvents(accessToken);
     }
 
     /**

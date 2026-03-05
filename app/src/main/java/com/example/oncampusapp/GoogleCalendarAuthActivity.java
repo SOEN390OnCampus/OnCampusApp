@@ -86,7 +86,7 @@ public class GoogleCalendarAuthActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        calendarRepository = new CalendarRepository();
+        calendarRepository = CalendarRepository.getInstance();
 
         setContentView(R.layout.calendar_login_page);
 
