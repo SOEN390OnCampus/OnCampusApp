@@ -1,6 +1,7 @@
 package com.example.oncampusapp;
 
 import android.content.Intent;
+import android.graphics.Color;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
@@ -14,6 +15,8 @@ import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
 
 import org.json.JSONObject;
 
+import java.util.concurrent.TimeUnit;
+
 public class AccountPage extends AppCompatActivity {
 
     private ImageView backButton;
@@ -24,7 +27,7 @@ public class AccountPage extends AppCompatActivity {
         @Override
         public void run() {
             refreshBannerUI();
-            bannerHandler.postDelayed(this, 30000);
+            bannerHandler.postDelayed(this, 1000);
         }
     };
 
@@ -113,22 +116,72 @@ public class AccountPage extends AppCompatActivity {
                 long now = System.currentTimeMillis();
                 String startStr = nextClass.getJSONObject("start").getString("dateTime");
                 String endStr = nextClass.getJSONObject("end").getString("dateTime");
+                String rawLocation = nextClass.optString("location", "");
+                String description = nextClass.optString("description", "");
 
                 java.text.SimpleDateFormat exactTimeFormat = new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX", java.util.Locale.getDefault());
                 long startTime = exactTimeFormat.parse(startStr).getTime();
                 long endTime = exactTimeFormat.parse(endStr).getTime();
 
+                // Find views in XML
+                TextView timeStatusView = bannerView.findViewById(R.id.banner_time_status);
+                TextView onlineTagView = bannerView.findViewById(R.id.banner_online_tag);
+
+                // Set the main title
+                titleView.setText(title);
+
+                // Dynamic Time and Placement Logic
                 if (now >= startTime && now <= endTime) {
-                    titleView.setText("Ongoing: " + title);
-                    detailsView.setText("Class has started");
-                } else {
-                    titleView.setText("Next: " + title);
-                    detailsView.setText("Starts soon - Check notification for building info");
+                    timeStatusView.setText("Class is ongoing");
+
+                } else if (now < startTime) {
+                    long diffInMillis = startTime - now;
+
+                    long diffInMins = TimeUnit.MILLISECONDS.toMinutes(diffInMillis);
+                    long diffInSecs = TimeUnit.MILLISECONDS.toSeconds(diffInMillis) % 60;
+
+                    // Condition to switch from minutes to seconds when very close
+                    if (diffInMins < 1) {
+                        // At 0min, transform to seconds count
+                        timeStatusView.setText("Next class starting in " + diffInSecs + " secs");
+                    } else {
+                        // General minute countdown
+                        timeStatusView.setText("Next class starting in " + diffInMins + " mins");
+                    }
+                    timeStatusView.setTextColor(Color.parseColor("#8B1E2D"));
                 }
+
+                // Identify and format online vs. physical location
+                String searchString = (rawLocation + " " + description).toLowerCase();
+
+                // Check if any online keywords exist
+                if (searchString.contains("zoom") || searchString.contains("teams") ||
+                        searchString.contains("online") || searchString.contains("meet.google")) {
+
+                    onlineTagView.setVisibility(View.VISIBLE);
+
+                    // Set the bottom location pin text based on the specific platform
+                    if (searchString.contains("zoom")) {
+                        detailsView.setText("ZOOM MEETING");
+                    } else if (searchString.contains("teams")) {
+                        detailsView.setText("MICROSOFT TEAMS");
+                    } else if (searchString.contains("meet.google")) {
+                        detailsView.setText("GOOGLE MEET");
+                    } else {
+                        // Fallback if it just says "online" somewhere
+                        detailsView.setText(rawLocation.isEmpty() ? "ONLINE CLASS" : rawLocation.toUpperCase());
+                    }
+
+                } else {
+                    // It's a physical class
+                    onlineTagView.setVisibility(View.GONE);
+                    detailsView.setText(rawLocation.isEmpty() ? "Check schedule for details" : rawLocation);
+                }
+
             } catch (Exception e) {
                 e.printStackTrace();
-                titleView.setText("Next: " + title);
-                detailsView.setText("Starts soon - Check notification for building info");
+                titleView.setText(title);
+                detailsView.setText("Check schedule for details");
             }
         } else if (bannerView != null) {
             bannerView.setVisibility(View.GONE);
