@@ -15,8 +15,6 @@ import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
 
 import org.json.JSONObject;
 
-import java.util.concurrent.TimeUnit;
-
 public class AccountPage extends AppCompatActivity {
 
     private ImageView backButton;
@@ -109,7 +107,6 @@ public class AccountPage extends AppCompatActivity {
                 return;
             }
 
-            bannerView.setVisibility(View.VISIBLE);
             String title = nextClass.optString("summary", "Class");
 
             try {
@@ -123,6 +120,16 @@ public class AccountPage extends AppCompatActivity {
                 long startTime = exactTimeFormat.parse(startStr).getTime();
                 long endTime = exactTimeFormat.parse(endStr).getTime();
 
+                // If the class is in the future AND it is more than 60 minutes away, hide the banner
+                long sixtyMinutesInMillis = 60 * 60 * 1000;
+
+                if (now < startTime && (startTime - now) > sixtyMinutesInMillis) {
+                    bannerView.setVisibility(View.GONE);
+                    return;
+                }
+                // If it is within an hour (or currently ongoing), show the banner
+                bannerView.setVisibility(View.VISIBLE);
+
                 // Find views in XML
                 TextView timeStatusView = bannerView.findViewById(R.id.banner_time_status);
                 TextView onlineTagView = bannerView.findViewById(R.id.banner_online_tag);
@@ -130,37 +137,25 @@ public class AccountPage extends AppCompatActivity {
                 // Set the main title
                 titleView.setText(title);
 
-                // Dynamic Time and Placement Logic
-                if (now >= startTime && now <= endTime) {
-                    timeStatusView.setText("Class is ongoing");
+                // --- 1. Use NotificationTimeFormatter for the math ---
+                String timeStatus = NotificationTimeFormatter.getBannerTimeStatus(now, startTime, endTime);
+                timeStatusView.setText(timeStatus);
 
-                } else if (now < startTime) {
-                    long diffInMillis = startTime - now;
-
-                    long diffInMins = TimeUnit.MILLISECONDS.toMinutes(diffInMillis);
-                    long diffInSecs = TimeUnit.MILLISECONDS.toSeconds(diffInMillis) % 60;
-
-                    // Condition to switch from minutes to seconds when very close
-                    if (diffInMins < 1) {
-                        // At 0min, transform to seconds count
-                        timeStatusView.setText("Next class starting in " + diffInSecs + " secs");
-                    } else {
-                        // General minute countdown
-                        timeStatusView.setText("Next class starting in " + diffInMins + " mins");
-                    }
-                    timeStatusView.setTextColor(Color.parseColor("#8B1E2D"));
+                // Set color based on status
+                if (timeStatus.equals("Class is ongoing")) {
+                    timeStatusView.setTextColor(Color.parseColor("#808080")); // Gray
+                } else {
+                    timeStatusView.setTextColor(Color.parseColor("#8B1E2D")); // Red
                 }
 
-                // Identify and format online vs. physical location
-                String searchString = (rawLocation + " " + description).toLowerCase();
+                // --- 2. Use LocationParser for the logic ---
+                String parsedLocation = LocationParser.parseSmartLocation(title, rawLocation, description);
 
-                // Check if any online keywords exist
-                if (searchString.contains("zoom") || searchString.contains("teams") ||
-                        searchString.contains("online") || searchString.contains("meet.google")) {
-
+                if (parsedLocation.equals("Online")) {
                     onlineTagView.setVisibility(View.VISIBLE);
 
-                    // Set the bottom location pin text based on the specific platform
+                    // Display the specific software
+                    String searchString = (rawLocation + " " + description).toLowerCase();
                     if (searchString.contains("zoom")) {
                         detailsView.setText("ZOOM MEETING");
                     } else if (searchString.contains("teams")) {
@@ -168,14 +163,12 @@ public class AccountPage extends AppCompatActivity {
                     } else if (searchString.contains("meet.google")) {
                         detailsView.setText("GOOGLE MEET");
                     } else {
-                        // Fallback if it just says "online" somewhere
                         detailsView.setText(rawLocation.isEmpty() ? "ONLINE CLASS" : rawLocation.toUpperCase());
                     }
-
                 } else {
-                    // It's a physical class
+                    // Physical Class
                     onlineTagView.setVisibility(View.GONE);
-                    detailsView.setText(rawLocation.isEmpty() ? "Check schedule for details" : rawLocation);
+                    detailsView.setText(parsedLocation.equals("TBD") && !rawLocation.isEmpty() ? rawLocation : parsedLocation);
                 }
 
             } catch (Exception e) {
