@@ -1,8 +1,12 @@
 package com.example.oncampusapp;
 
+import android.app.Dialog;
 import android.content.Intent;
+import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -50,8 +54,6 @@ public class AccountPage extends AppCompatActivity {
         setContentView(R.layout.account_page);
         setViews();
         setUpBottomNav();
-        setRefreshButton();
-
 
         backButton.setOnClickListener(v -> {
             Intent intent = new Intent(AccountPage.this, MapsActivity.class);
@@ -73,6 +75,10 @@ public class AccountPage extends AppCompatActivity {
             Intent intent = new Intent(this, ScheduleViewer.class);
             intent.putExtra("calendar_events_json", eventsJson);
             startActivity(intent);
+        });
+
+        btnRefresh.setOnClickListener(v -> {
+            showConnectDialog();
         });
     }
 
@@ -112,7 +118,6 @@ public class AccountPage extends AppCompatActivity {
             return false;
         });
     }
-
 
     public void setRefreshButton() {
         btnRefresh.setOnClickListener(v -> {
@@ -158,5 +163,46 @@ public class AccountPage extends AppCompatActivity {
 
             }).start();
         });
+    }
+
+    private void showConnectDialog() {
+        Dialog dialog = new Dialog(this);
+        dialog.setContentView(R.layout.dialog_google_connect);
+        dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+        dialog.getWindow().setLayout(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+        );
+        dialog.getWindow().getDecorView().setPadding(32,0,32,0);
+
+        // Populate account info
+        GoogleSignInAccount account = GoogleSignIn.getLastSignedInAccount(this);
+        if (account != null) {
+            TextView txtName = dialog.findViewById(R.id.txt_account_name);
+            TextView txtEmail = dialog.findViewById(R.id.txt_account_email);
+            TextView txtAvatar = dialog.findViewById(R.id.txt_avatar);
+
+            txtName.setText(account.getDisplayName());
+            txtEmail.setText(account.getEmail());
+
+            // Set initials from name
+            if (account.getDisplayName() != null) {
+                String[] parts = account.getDisplayName().split(" ");
+                String initials = parts.length >= 2
+                        ? String.valueOf(parts[0].charAt(0)) + parts[1].charAt(0)
+                        : String.valueOf(parts[0].charAt(0));
+                txtAvatar.setText(initials.toUpperCase());
+            }
+        }
+
+        dialog.findViewById(R.id.btn_cancel).setOnClickListener(v -> dialog.dismiss());
+
+        dialog.findViewById(R.id.btn_allow).setOnClickListener(v -> {
+            dialog.dismiss();
+            setRefreshButton(); // triggers the actual calendar sync
+            btnRefresh.performClick();
+        });
+
+        dialog.show();
     }
 }
