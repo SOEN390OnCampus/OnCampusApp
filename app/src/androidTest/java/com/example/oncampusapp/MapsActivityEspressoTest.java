@@ -23,10 +23,14 @@ import static org.junit.Assert.assertTrue;
 import static androidx.test.espresso.matcher.ViewMatchers.withEffectiveVisibility;
 
 import androidx.test.espresso.Espresso;
+import androidx.test.espresso.IdlingRegistry;
+import androidx.test.espresso.UiController;
 import androidx.test.espresso.ViewAction;
+import androidx.test.espresso.action.CoordinatesProvider;
 import androidx.test.espresso.action.GeneralClickAction;
 import androidx.test.espresso.action.Press;
 import androidx.test.espresso.action.Tap;
+import androidx.test.espresso.idling.CountingIdlingResource;
 import androidx.test.espresso.matcher.ViewMatchers.Visibility;
 
 import android.Manifest;
@@ -34,6 +38,7 @@ import android.graphics.Point;
 import android.os.Build;
 import android.view.InputDevice;
 import android.view.MotionEvent;
+import android.view.View;
 
 import androidx.test.espresso.NoMatchingRootException;
 import androidx.test.espresso.NoMatchingViewException;
@@ -49,6 +54,8 @@ import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.model.LatLng;
 
+import org.hamcrest.Matcher;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -91,8 +98,30 @@ public class MapsActivityEspressoTest {
         activityRule.getScenario().onActivity(activity -> {
             // Call your method here
             activity.setLocationProvider(new FakeLocationProvider(activity));
-            activity.fusedLocationClient.setFakeLocation(45.4973, -73.5789); // Set the default location to hall building
+            activity.fusedLocationClient.setFakeLocation(45.5009, -73.5724); // Set a random default location
         });
+    }
+
+    @Before
+    public void registerIdlingResource() {
+        activityRule.getScenario().onActivity(activity -> {
+            IdlingRegistry.getInstance().register(activity.mapIdlingResource);
+        });
+    }
+
+    @After
+    public void unregisterIdlingResource() {
+        activityRule.getScenario().onActivity(activity -> {
+            IdlingRegistry.getInstance().unregister(activity.mapIdlingResource);
+        });
+    }
+
+    /**
+     * Check if the map is displayed properly
+     */
+    private void checkMapDisplayed(){
+        onView(withId(R.id.map))
+            .check(matches(isDisplayed()));
     }
 
     private void sleep(int ms) {
@@ -160,27 +189,36 @@ public class MapsActivityEspressoTest {
      * @param targetLatLng location on the map to be clicked
      * @return click action
      */
-    private ViewAction clickOnLatLng(GoogleMap map, LatLng targetLatLng) {
-        return new GeneralClickAction(
-            Tap.SINGLE,
-                view -> {
-                    // Convert LatLng to point coordinates relative to the map view
-                    Point screenPoint = map.getProjection().toScreenLocation(targetLatLng);
+    private ViewAction clickOnLatLng(GoogleMap map, LatLng targetLatLng, CountingIdlingResource idleResource) {
+        CoordinatesProvider coordinatesProvider = view -> {
+            Point screenPoint = map.getProjection().toScreenLocation(targetLatLng);
+            int[] viewLocation = new int[2];
+            view.getLocationOnScreen(viewLocation);
+            return new float[]{viewLocation[0] + screenPoint.x, viewLocation[1] + screenPoint.y};
+        };
 
-                    // Get the absolute screen position of the map view's top-left corner
-                    int[] viewLocation = new int[2];
-                    view.getLocationOnScreen(viewLocation);
-
-                    // Add them together to get the absolute screen coordinates for Espresso
-                    float x = viewLocation[0] + screenPoint.x;
-                    float y = viewLocation[1] + screenPoint.y;
-
-                    return new float[]{x, y};
-                },
-            Press.FINGER,
-            InputDevice.SOURCE_UNKNOWN,
-            MotionEvent.BUTTON_PRIMARY
+        ViewAction clickAction = new GeneralClickAction(
+            Tap.SINGLE, coordinatesProvider, Press.FINGER,
+            InputDevice.SOURCE_UNKNOWN, MotionEvent.BUTTON_PRIMARY
         );
+
+        return new ViewAction() {
+            @Override
+            public Matcher<View> getConstraints() {
+                return clickAction.getConstraints();
+            }
+
+            @Override
+            public String getDescription() {
+                return "Clicking on LatLng and incrementing IdlingResource";
+            }
+
+            @Override
+            public void perform(UiController uiController, View view) {
+                clickAction.perform(uiController, view);
+                idleResource.increment();
+            }
+        };
     }
 
     // -------------------------
@@ -367,9 +405,7 @@ public class MapsActivityEspressoTest {
 
     @Test
     public void displayNavigationSearch() {
-        // Wait for map to load properly
-        sleep(3000);
-
+        checkMapDisplayed();
         openRoutePicker();
 
         // Type into et_start
@@ -396,32 +432,34 @@ public class MapsActivityEspressoTest {
 
         openRoutePicker();
 
-        // Check if the text in bot et_start and et_destination was cleared after route picker was closed
+        // Check if the text in both et_start and et_destination was cleared after route picker was closed
         onView(withId(R.id.et_start))
             .check(matches(withText(isEmptyString())));
 
         onView(withId(R.id.et_destination))
             .check(matches(withText(isEmptyString())));
 
-        // Close the opened keyboard
+        // Click on start textview to set focus
+        onView(withId(R.id.et_start))
+            .perform(click());
         Espresso.closeSoftKeyboard();
 
         final GoogleMap[] mapInstance = new GoogleMap[1];
+        final CountingIdlingResource[] mapIdleResource = new CountingIdlingResource[1];
         LatLng jmsbCoords = new LatLng(45.49547770602248, -73.57914911481745); // Coordinates to the center of the JMSB building
         LatLng vanierCoords = new LatLng(45.45886468564086, -73.63880278032387); // Coordinates to the center of the Vanier library
 
         // Get map instance and move to the JMSB building
         activityRule.getScenario().onActivity(activity -> {
             mapInstance[0] = activity.getMap();
+            mapIdleResource[0] = activity.mapIdlingResource;
 
-            mapInstance[0].animateCamera(CameraUpdateFactory.newLatLngZoom(jmsbCoords, 18f));
+            activity.moveMapToLocation(jmsbCoords, 18f);
         });
-        sleep(1500);
 
         // Click on the JMSB building
         onView(withId(R.id.map))
-            .perform(clickOnLatLng(mapInstance[0], jmsbCoords));
-        sleep(200);
+            .perform(clickOnLatLng(mapInstance[0], jmsbCoords, mapIdleResource[0]));
 
         // Assert that text in start textview changed to JMSB
         onView(withId(R.id.et_start))
@@ -432,14 +470,14 @@ public class MapsActivityEspressoTest {
             .perform(click());
         Espresso.closeSoftKeyboard();
 
-        // Move to the JMSB building
-        activityRule.getScenario().onActivity(activity -> mapInstance[0].animateCamera(CameraUpdateFactory.newLatLngZoom(vanierCoords, 18f)));
-        sleep(1500);
+        // Move to the vanier building
+        activityRule.getScenario().onActivity(activity -> {
+            activity.moveMapToLocation(vanierCoords, 18f);
+        });
 
         // Click on the vanier building
         onView(withId(R.id.map))
-            .perform(clickOnLatLng(mapInstance[0], vanierCoords));
-        sleep(200);
+            .perform(clickOnLatLng(mapInstance[0], vanierCoords, mapIdleResource[0]));
 
         // Assert that text in destination textview changed to vanier library
         onView(withId(R.id.et_destination))

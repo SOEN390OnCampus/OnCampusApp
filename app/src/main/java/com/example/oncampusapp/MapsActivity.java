@@ -8,6 +8,7 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.core.view.WindowCompat;
 import androidx.fragment.app.FragmentActivity;
+import androidx.test.espresso.idling.CountingIdlingResource;
 
 import android.Manifest;
 import android.content.Context;
@@ -114,6 +115,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private com.google.android.gms.maps.model.Circle startDot;
     private com.google.android.gms.maps.model.Marker endMarker;
 
+    // A counter that tells Espresso tests to wait for the map to load
+    public CountingIdlingResource mapIdlingResource = new CountingIdlingResource("MapReadyResource");
+
     public GoogleMap getMap() {
         return this.mMap;
     }
@@ -212,6 +216,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
         assert mapFragment != null;
+
+        // Increment before starting the async task
+        mapIdlingResource.increment();
         mapFragment.getMapAsync(this);
 
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
@@ -410,12 +417,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
             //Zoom Camera for Navigation
             if (currentRoutePoints != null && !currentRoutePoints.isEmpty()) {
-                CameraPosition cameraPosition = new CameraPosition.Builder()
-                        .target(currentRoutePoints.get(0))
-                        .zoom(19f)
-                        .tilt(0)
-                        .build();
-                mMap.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPosition));
+                moveMapToLocation(currentRoutePoints.get(0), 19f);
             }
         });
 
@@ -501,10 +503,24 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         // Enable the blue dot (Requires permission check)
         enableMyLocation();
 
-        // Move camera to SGW campus
-        mMap.animateCamera(
-                CameraUpdateFactory.newLatLngZoom(SGW_COORDS, 17f)
-        );
+        btnSgwLoy = findViewById(R.id.btn_campus_switch);
+        ImageButton btnLocation = findViewById(R.id.btn_location);
+
+        // Get the last accessed campus from memory
+        SharedPreferences sharedPref = getSharedPreferences("OnCampusPrefs", MODE_PRIVATE);
+        String savedCampus = sharedPref.getString("campus", "SGW");
+        LatLng defaultLatLng;
+
+        if (savedCampus.equals(sgw)) {
+            defaultLatLng = SGW_COORDS;
+            btnSgwLoy.setText(loy);
+        } else {
+            defaultLatLng = LOY_COORDS;
+            btnSgwLoy.setText(sgw);
+        }
+
+        // Move camera to the saved campus
+        moveMapToLocation(defaultLatLng, 16f);
 
         mMap.setBuildingsEnabled(false);
         mMap.getUiSettings().setTiltGesturesEnabled(false);
@@ -512,9 +528,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         GeofenceManager geofenceManager = new GeofenceManager(this);
         FeatureStyler featureStyler = new FeatureStyler();
         buildingManager = new BuildingManager();
-
-        btnSgwLoy = findViewById(R.id.btn_campus_switch);
-        ImageButton btnLocation = findViewById(R.id.btn_location);
 
         FrameLayout closeSearchLayout = findViewById(R.id.close_search);
 
@@ -630,19 +643,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             e.printStackTrace();
         }
 
-        // Get the last accessed campus from memory
-        SharedPreferences sharedPref = getSharedPreferences("OnCampusPrefs", MODE_PRIVATE);
-        String savedCampus = sharedPref.getString("campus", "SGW");
-        LatLng defaultLatLng;
-
-        if (savedCampus.equals(sgw)) {
-            defaultLatLng = SGW_COORDS;
-            btnSgwLoy.setText(loy);
-        } else {
-            defaultLatLng = LOY_COORDS;
-            btnSgwLoy.setText(sgw);
-        }
-
         // Sort suggestions for better UX
         Collections.sort(buildingSuggestions);
 
@@ -654,18 +654,13 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         startDestinationText.setAdapter(adapter);
         endDestinationText.setAdapter(adapter);
 
-        // Move camera to a wider view of Montreal
-        mMap.animateCamera(CameraUpdateFactory.newCameraPosition(
-                new CameraPosition.Builder()
-                        .target(defaultLatLng)
-                        .zoom(16f)
-                        .tilt(0f)
-                        .build()
-        ));
-
         btnSgwLoy.setOnClickListener(v -> switchCampus());
         btnLocation.setOnClickListener(v -> goToCurrentLocation());
         closeSearchLayout.setOnClickListener(v -> handleCloseSearch());
+
+        // Decrement to signal that the map is now Idle
+        if (!mapIdlingResource.isIdleNow())
+            mapIdlingResource.decrement();
     }
 
     private GeoJsonFeature createSquareFeature(LatLng center, String id){
@@ -712,11 +707,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         if (currentText.equals(sgw)) {
             btnSgwLoy.setText(loy);
-            mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(SGW_COORDS, 16f));
+            moveMapToLocation(SGW_COORDS, 16f);
             editor.putString("campus", sgw);
         } else {
             btnSgwLoy.setText(sgw);
-            mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(LOY_COORDS, 16f));
+            moveMapToLocation(LOY_COORDS, 16f);
             editor.putString("campus", loy);
         }
         editor.apply();
@@ -733,7 +728,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                             double lat = location.getLatitude();
                             double lng = location.getLongitude();
                             LatLng currentLatLng = new LatLng(lat, lng);
-                            mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(currentLatLng, 16f));
+                            moveMapToLocation(currentLatLng, 16f);
                         }
                     });
         }
@@ -793,14 +788,16 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             if (startDestinationText != null && startDestinationText.hasFocus()) {
                 startDestinationText.setText(buildingName);
                 startDestinationText.dismissDropDown();
-                return;
             }
 
-            if (endDestinationText != null && endDestinationText.hasFocus()) {
+            else if (endDestinationText != null && endDestinationText.hasFocus()) {
                 endDestinationText.setText(buildingName);
                 endDestinationText.dismissDropDown();
             }
         }
+
+        if (!mapIdlingResource.isIdleNow())
+            mapIdlingResource.decrement();
     }
 
     /**
@@ -1125,5 +1122,35 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         if (!permissionsToRequest.isEmpty()) {
             requestMultiplePermissionsLauncher.launch(permissionsToRequest.toArray(new String[0]));
         }
+    }
+
+    public void moveMapToLocation(LatLng location, float zoom) {
+        mapIdlingResource.increment();
+
+        mMap.animateCamera(CameraUpdateFactory.newCameraPosition(
+                new CameraPosition.Builder()
+                        .target(location)
+                        .zoom(zoom)
+                        .tilt(0f)
+                        .build()
+            ), new GoogleMap.CancelableCallback() {
+
+            @Override
+            public void onFinish() {
+                mMap.setOnMapLoadedCallback(new GoogleMap.OnMapLoadedCallback() {
+                    @Override
+                    public void onMapLoaded() {
+                        if (!mapIdlingResource.isIdleNow())
+                            mapIdlingResource.decrement();
+                    }
+                });
+            }
+
+            @Override
+            public void onCancel() {
+                if (!mapIdlingResource.isIdleNow())
+                    mapIdlingResource.decrement();
+            }
+        });
     }
 }
