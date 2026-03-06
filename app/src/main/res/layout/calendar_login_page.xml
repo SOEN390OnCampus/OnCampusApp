@@ -14,24 +14,32 @@
         android:layout_marginStart="16dp"
         android:layout_marginTop="24dp"
         android:src="@drawable/ic_back"
-        android:tint="#7A1C1C"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
-
+        app:layout_constraintTop_toTopOf="parent"
+        app:tint="#7A1C1C" />
 
     <TextView
         android:id="@+id/txt_title"
-        android:layout_width="104dp"
-        android:layout_height="30dp"
-        android:layout_marginStart="88dp"
-        android:text="OnCampus"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:text="O(n)Campus"
         android:textColor="#7A1C1C"
         android:textSize="20sp"
         android:textStyle="bold"
-        app:layout_constraintBottom_toBottomOf="@id/btn_back"
         app:layout_constraintStart_toEndOf="@id/btn_back"
         app:layout_constraintTop_toTopOf="@id/btn_back"
-        app:layout_constraintVertical_bias="1.0" />
+        app:layout_constraintBottom_toBottomOf="@id/btn_back" />
+
+    <ImageView
+        android:id="@+id/ic_maps"
+        android:layout_width="30dp"
+        android:layout_height="30dp"
+        android:layout_marginStart="10dp"
+        android:src="@drawable/ic_maps"
+        app:layout_constraintStart_toEndOf="@id/txt_title"
+        app:layout_constraintTop_toTopOf="@id/txt_title"
+        app:layout_constraintBottom_toBottomOf="@id/txt_title"/>
 
     <com.google.android.material.card.MaterialCardView
         android:id="@+id/card_login"
@@ -46,6 +54,17 @@
 
     </com.google.android.material.card.MaterialCardView>
 
+    <TextView
+        android:id="@+id/tv_no_account"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="8dp"
+        android:text="Don't have an account?"
+        android:textColor="#666666"
+        android:textSize="14sp"
+        app:layout_constraintBottom_toTopOf="@id/btn_create_account"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
 
     <com.google.android.material.button.MaterialButton
         android:id="@+id/btn_create_account"
@@ -64,7 +83,7 @@
         app:layout_constraintHorizontal_bias="0.0"
         app:layout_constraintStart_toStartOf="parent"
         app:strokeColor="#1976D2"
-        app:strokeWidth="2dp" />
+        app:strokeWidth="3dp" />
 
     <com.google.android.material.bottomnavigation.BottomNavigationView
         android:id="@+id/bottom_nav"
@@ -84,18 +103,23 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="200dp"
-        android:backgroundTint="#FAFAFA"
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="16dp"
+        android:background="@drawable/card_background"
+        android:elevation="6dp"
         android:orientation="vertical"
         android:padding="24dp"
         app:layout_constraintTop_toTopOf="parent"
-        tools:layout_editor_absoluteX="16dp">
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center_horizontal"
+            android:textColor="#000000"
             android:text="Welcome Back"
-            android:textSize="18sp"
+            android:textSize="24sp"
             android:textStyle="bold" />
 
         <TextView
@@ -103,7 +127,7 @@
             android:layout_height="wrap_content"
             android:layout_gravity="center_horizontal"
             android:layout_marginTop="4dp"
-            android:text="Sign in to continue to OnCampus"
+            android:text="Sign in to continue to O(n)Campus"
             android:textSize="14sp" />
 
         <!-- Google Sign In Button -->
@@ -115,15 +139,15 @@
             android:layout_width="match_parent"
             android:layout_height="48dp"
             android:layout_marginTop="24dp"
-            android:backgroundTint="#FFFFFF"
-            android:text="Sign in to Google Calendar"
+            android:backgroundTint="#FFFFFA"
+            android:text="Sign in to Google"
             android:textAllCaps="false"
             android:textColor="#000000"
             app:cornerRadius="12dp"
             app:icon="@drawable/googleg_standard_color_18"
             app:iconGravity="textStart"
             app:iconPadding="8dp"
-            app:iconTint="#120C0C"
+            app:iconTint="@null"
             app:strokeColor="#DDDDDD"
             app:strokeWidth="1dp" />
 
@@ -132,7 +156,7 @@
             android:layout_height="wrap_content"
             android:layout_gravity="center_horizontal"
             android:layout_marginTop="16dp"
-            android:text="OR"
+            android:text="--------------   OR   --------------"
             android:textColor="#888888"
             android:textSize="12sp" />
 
