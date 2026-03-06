@@ -1,12 +1,21 @@
+# IDE - Android Studio
+.idea/
 *.iml
-.gradle
-/local.properties
-/.idea/
+*.ipr
+*.iws
+
+# Build outputs
+build/
+bin/
+gen/
+out/
+.gradle/
+
+# Local configuration
+local.properties
 .DS_Store
-/build
+
+# Android Specific
 /captures
 .externalNativeBuild
 .cxx
-local.properties
-.idea/deploymentTargetSelector.xml
-.idea/misc.xml
