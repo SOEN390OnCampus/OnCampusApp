@@ -1,27 +1,46 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:orientation="vertical"
-    android:background="#FFCDD2"
-    android:padding="4dp"
-    android:layout_marginBottom="4dp"
-    android:layout_marginTop="2dp"
-    android:elevation="2dp">
+    android:layout_height="match_parent"
+    android:orientation="horizontal"
+    android:background="@drawable/bg_event_rounded"
+    android:clipToOutline="true"
+    android:layout_marginHorizontal="1dp">
 
-    <TextView
-        android:id="@+id/event_title"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Event Title"
-        android:textSize="12sp"
-        android:textStyle="bold"/>
+    <View
+        android:id="@+id/event_strip"
+        android:layout_width="2dp"
+        android:layout_height="match_parent"
+        android:background="#F4B400"/>
 
-    <TextView
-        android:id="@+id/event_time"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="10:00 AM - 11:00 AM"
-        android:textSize="10sp"/>
+    <LinearLayout
+        android:id="@+id/event_bg"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:padding="2dp"
+        android:background="#F4E7C5">
+
+        <TextView
+            android:id="@+id/event_title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="MATH"
+            android:textSize="9sp"
+            android:textStyle="bold"
+            android:textColor="#D19100"
+            android:maxLines="1"
+            android:ellipsize="end"/>
+
+        <TextView
+            android:id="@+id/event_location"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="LB-361"
+            android:textSize="8sp"
+            android:textColor="#888888"
+            android:maxLines="1"
+            android:ellipsize="end"/>
+    </LinearLayout>
 </LinearLayout>
