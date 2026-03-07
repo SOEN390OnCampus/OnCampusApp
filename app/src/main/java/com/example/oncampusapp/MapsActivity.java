@@ -1179,8 +1179,19 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                             public void onSuccess(List<LatLng> path, String durationText) {
                                 walkToMinutes[0] = parseDurationToMinutes(durationText);
                                 walkToDone[0] = true;
-                                runOnUiThread(() ->
-                                        walkToStopPolyline = drawSegmentPolyline(path, true));
+                                runOnUiThread(() -> {
+                                    walkToStopPolyline = drawSegmentPolyline(path, true);
+                                    View walkToLayout = findViewById(R.id.layout_walk_to_shuttle);
+                                    TextView walkToView = findViewById(R.id.txt_walk_to_shuttle);
+                                    if (walkToLayout != null && walkToView != null) {
+                                        if (walkToMinutes[0] > 0) {
+                                            walkToView.setText((walkToMinutes[0] + " MIN TO STOP").toUpperCase());
+                                            walkToLayout.setVisibility(View.VISIBLE);
+                                        } else {
+                                            walkToLayout.setVisibility(View.GONE);
+                                        }
+                                    }
+                                });
                                 updateTotalDuration.run();
                             }
 
@@ -1339,6 +1350,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         if (walkFromStopPolyline != null) walkFromStopPolyline.remove();
         walkFromStopPolyline = null;
+
+        View walkToLayout = findViewById(R.id.layout_walk_to_shuttle);
+        if (walkToLayout != null) walkToLayout.setVisibility(View.GONE);
     }
 
     private Polyline drawSegmentPolyline(List<LatLng> path, boolean isDotted) {
