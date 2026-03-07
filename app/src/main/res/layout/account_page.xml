@@ -5,8 +5,6 @@
     android:layout_height="match_parent"
     android:background="#F5F5F5">
 
-    <!-- HEADER BAR -->
-
     <LinearLayout
         android:id="@+id/header_bar"
         android:layout_width="0dp"
@@ -24,7 +22,7 @@
             android:layout_width="26dp"
             android:layout_height="26dp"
             android:src="@drawable/ic_back"
-            android:tint="@android:color/white" />
+            app:tint="@android:color/white" />
 
         <TextView
             android:layout_width="wrap_content"
@@ -35,8 +33,9 @@
             android:textSize="16sp" />
     </LinearLayout>
 
-
-    <!-- SCROLL CONTENT -->
+    <include
+        android:id="@+id/included_banner"
+        layout="@layout/layout_next_event_banner" />
 
     <ScrollView
         android:layout_width="0dp"
@@ -51,8 +50,6 @@
             android:layout_height="wrap_content"
             android:orientation="vertical"
             android:padding="20dp">
-
-            <!-- GOOGLE CALENDAR CARD -->
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -69,10 +66,6 @@
                     android:textColor="#333"
                     android:textSize="24sp"
                     android:textStyle="bold" />
-
-                <!-- REFRESH BUTTON -->
-
-                <!-- CONNECTED STATUS -->
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/refreshCalendar"
@@ -121,8 +114,6 @@
                         android:textSize="12sp"/>
                 </LinearLayout>
 
-                <!-- CALENDAR LIST TITLE -->
-
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
@@ -131,8 +122,6 @@
                     android:textColor="#777"
                     android:textSize="12sp" />
 
-                <!-- CALENDAR ITEM -->
-
                 <LinearLayout
                     android:id="@+id/calendarListContainer"
                     android:layout_width="match_parent"
@@ -140,11 +129,7 @@
                     android:orientation="vertical"
                     android:layout_marginTop="10dp"/>
 
-
             </LinearLayout>
-
-
-            <!-- REVIEW CARD -->
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -174,11 +159,8 @@
                     app:iconSize="30dp"/>
             </LinearLayout>
 
-
         </LinearLayout>
     </ScrollView>
-    >
-
 
     <com.google.android.material.bottomnavigation.BottomNavigationView
         android:id="@+id/bottom_nav"
