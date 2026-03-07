@@ -40,6 +40,7 @@ import android.widget.Toast;
 import android.app.Dialog;
 import android.widget.ImageView;
 
+import com.google.maps.android.SphericalUtil;
 import com.example.oncampusapp.location.FusedLocationProvider;
 import com.example.oncampusapp.location.FusedLocationSource;
 import com.example.oncampusapp.location.ILocationProvider;
