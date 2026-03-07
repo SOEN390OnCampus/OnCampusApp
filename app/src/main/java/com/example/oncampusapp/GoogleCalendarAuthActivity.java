@@ -8,6 +8,7 @@ import android.util.Log;
 import android.view.View;
 import android.widget.ProgressBar;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.activity.result.ActivityResult;
 import androidx.activity.result.ActivityResultLauncher;
@@ -23,6 +24,7 @@ import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
 import com.google.android.gms.common.api.Scope;
 import com.google.android.gms.common.api.ApiException;
 import com.google.android.gms.tasks.Task;
+import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.snackbar.Snackbar;
 
@@ -58,6 +60,8 @@ import java.util.concurrent.Executors;
  */
 public class GoogleCalendarAuthActivity extends AppCompatActivity {
 
+    private CalendarRepository calendarRepository;
+
     private static final String TAG = "GoogleCalendarAuth";
     private static final String CALENDAR_SCOPE =
             "https://www.googleapis.com/auth/calendar.readonly";
@@ -67,6 +71,8 @@ public class GoogleCalendarAuthActivity extends AppCompatActivity {
     private GoogleSignInClient googleSignInClient;
     private MaterialButton connectButton;
     private ProgressBar progressBar;
+
+    private BottomNavigationView bottomNav;
     private TextView statusText;
 
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
@@ -86,9 +92,12 @@ public class GoogleCalendarAuthActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
+        calendarRepository = CalendarRepository.getInstance();
+
         setContentView(R.layout.calendar_login_page);
 
         bindViews();
+        setUpBottomNav();
 
         GoogleSignInAccount account =
                 GoogleSignIn.getLastSignedInAccount(this);
@@ -114,9 +123,38 @@ public class GoogleCalendarAuthActivity extends AppCompatActivity {
     // -------------------------------------------------------------------------
 
     private void bindViews() {
+        bottomNav = findViewById(R.id.bottom_nav);
         connectButton = findViewById(R.id.btn_calendar_signin);
         progressBar = findViewById(R.id.progressBar);
         statusText = findViewById(R.id.statusText);
+    }
+
+    private void setUpBottomNav() {
+        bottomNav.setSelectedItemId(R.id.nav_account); // highlight account tab
+
+        bottomNav.setOnItemSelectedListener(item -> {
+
+            int id = item.getItemId();
+
+            if (id == R.id.nav_home) {
+                Intent intent = new Intent(GoogleCalendarAuthActivity.this, MapsActivity.class);
+                startActivity(intent);
+                finish();
+                return true;
+            }
+
+            else if (id == R.id.nav_account) {
+                // Already on account page
+                return true;
+            }
+
+            else if (id == R.id.nav_settings) {
+                Toast.makeText(this, "Settings clicked", Toast.LENGTH_SHORT).show();
+                return true;
+            }
+
+            return false;
+        });
     }
 
     private void setupGoogleSignIn() {
@@ -173,39 +211,21 @@ public class GoogleCalendarAuthActivity extends AppCompatActivity {
                         account.getAccount(),
                         "oauth2:" + CALENDAR_SCOPE);
 
-                String calendarListJson = fetchCalendarList(token);
-                JSONObject root = new JSONObject(calendarListJson);
-                JSONArray calendars = root.optJSONArray("items");
-
-                List<JSONObject> allEvents = new ArrayList<>();
-                if (calendars != null) {
-                    for (int i = 0; i < calendars.length(); i++) {
-                        JSONObject cal = calendars.getJSONObject(i);
-                        String calendarId = cal.getString("id");
-
-                        String eventsJson = fetchCalendarEvents(token, calendarId);
-                        JSONObject eventsRoot = new JSONObject(eventsJson);
-                        JSONArray events = eventsRoot.optJSONArray("items");
-                        if (events != null) {
-                            for (int j = 0; j < events.length(); j++) {
-                                allEvents.add(events.getJSONObject(j));
-                            }
-                        }
-                    }
-                }
-
-                JSONArray allEventsArray = new JSONArray(allEvents);
+                // ---> INSERTED HERE <---
+                // Fetch events on the background thread using the clean logic from main
+                JSONArray allEventsArray = calendarRepository.fetchAllEvents(token);
 
                 mainHandler.post(() -> {
                     showLoading(false);
 
-                    // 1. Save the massive JSON string to the global variable instead!
+                    // Save the massive JSON string to the global variable instead!
                     CalendarEventManager.globalEventsJson = allEventsArray.toString();
 
                     Intent intent = new Intent(GoogleCalendarAuthActivity.this, AccountPage.class);
-                    intent.putExtra("email", account.getEmail()); // Email is tiny, so this is safe!
 
-                    // 2. We removed the calendar_events_json putExtra line
+                    // ---> INSERTED HERE <---
+                    // Pass only the email string through the Intent so it doesn't crash
+                    intent.putExtra("email", account.getEmail());
 
                     startActivity(intent);
                     finish();

@@ -1,14 +1,18 @@
 package com.example.oncampusapp;
 
+import android.content.res.ColorStateList;
 import android.graphics.Color;
 import android.os.Bundle;
+import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.ViewGroup;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -53,12 +57,13 @@ public class ScheduleViewer extends AppCompatActivity {
         LinearLayout headerBar = new LinearLayout(this);
         headerBar.setOrientation(LinearLayout.HORIZONTAL);
         headerBar.setPadding(32,32,32,32);
-        headerBar.setBackgroundColor(Color.parseColor("#8B1E2D"));
+        headerBar.setBackgroundColor(ContextCompat.getColor(this, R.color.header_bar_background));
 
-        TextView leftArrow = new TextView(this);
-        leftArrow.setText("◀");
-        leftArrow.setTextSize(22f);
-        leftArrow.setTextColor(Color.WHITE);
+        ImageView leftArrow = new ImageView(this);
+        leftArrow.setImageResource(android.R.drawable.ic_media_previous);
+        leftArrow.setImageTintList(ColorStateList.valueOf(Color.WHITE));
+        int sizePx = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 24, getResources().getDisplayMetrics());
+        leftArrow.setLayoutParams(new LinearLayout.LayoutParams(sizePx, sizePx));
 
         weekTitle = new TextView(this);
         weekTitle.setTextColor(Color.WHITE);
