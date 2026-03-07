@@ -16,6 +16,7 @@ playServicesMaps = "18.1.0"
 rules = "1.7.0"
 playServicesLocation = "21.3.0"
 glide = "4.16.0"
+playServicesAuth = "20.7.0"
 
 [libraries]
 android-maps-utils = { module = "com.google.maps.android:android-maps-utils", version.ref = "androidMapsUtils" }
@@ -34,6 +35,7 @@ play-services-maps = { group = "com.google.android.gms", name = "play-services-m
 rules = { module = "androidx.test:rules", version.ref = "rules" }
 play-services-location = { group = "com.google.android.gms", name = "play-services-location", version.ref = "playServicesLocation" }
 glide = { module = "com.github.bumptech.glide:glide", version.ref = "glide" }
+play-services-auth = { group = "com.google.android.gms", name = "play-services-auth", version.ref = "playServicesAuth" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

@@ -3,4 +3,5 @@
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
     <color name="concordia_red">#912338</color>
+    <color name="header_bar_background">#8B1E2D</color>
 </resources>

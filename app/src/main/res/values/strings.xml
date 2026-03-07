@@ -25,6 +25,13 @@
     <string name="toast_building_id_not_found">Building ID not found</string>
     <string name="toast_no_place_id_mapping">No Place ID mapping for: %s</string>
 
+    <!-- Google Calendar -->    
+    <string name="connect_google_calendar">Connect Google Calendar</string>
+    <string name="google_calendar_title">Google Calendar</string>
+    <string name="google_calendar_subtitle">Connect your Google Calendar to see your upcoming university events.</string>
+    <string name="calendar_icon_desc">Calendar icon</string>
+    <string name="title_activity_google_calendar">Connect Google Calendar</string>
+
     <!-- Building accessibility -->
     <string name="building_accessible">Wheel chair accessible</string>
     <string name="building_not_accessible">Not wheel chair accessible</string>
