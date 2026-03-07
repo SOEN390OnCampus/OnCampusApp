@@ -31,18 +31,6 @@ public class CalendarRepository {
         return instance;
     }
 
-    public JSONArray fetchCalendars(String accessToken) throws Exception {
-        String calendarListJson = fetchCalendarList(accessToken);
-
-        JSONObject root = new JSONObject(calendarListJson);
-        JSONArray calendars = root.optJSONArray("items");
-
-        if (calendars != null)
-            return calendars;
-
-        return new JSONArray();
-
-    }
     public JSONArray fetchAllEvents(String accessToken) throws Exception {
 
         String calendarListJson = fetchCalendarList(accessToken);
@@ -77,7 +65,7 @@ public class CalendarRepository {
     /**
      * Fetch user's calendar list
      */
-    protected String fetchCalendarList(String accessToken) throws Exception {
+    public String fetchCalendarList(String accessToken) throws Exception {
 
         return fetchUrl(
                 "https://www.googleapis.com/calendar/v3/users/me/calendarList",
@@ -92,7 +80,7 @@ public class CalendarRepository {
     /**
      * Fetch events for a specific calendar
      */
-    protected String fetchCalendarEvents(String accessToken, String calendarId) throws Exception {
+    public static String fetchCalendarEvents(String accessToken, String calendarId) throws Exception {
 
         Calendar past = Calendar.getInstance();
         past.add(Calendar.MONTH, -6);
@@ -122,7 +110,7 @@ public class CalendarRepository {
     /**
      * Generic GET request
      */
-    protected String fetchUrl(String urlStr, String accessToken) throws Exception {
+    protected static String fetchUrl(String urlStr, String accessToken) throws Exception {
 
         URL url = new URL(urlStr);
 

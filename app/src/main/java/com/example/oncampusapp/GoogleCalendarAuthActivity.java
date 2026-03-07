@@ -176,14 +176,15 @@ public class GoogleCalendarAuthActivity extends AppCompatActivity {
                         "oauth2:" + CALENDAR_SCOPE);
 
                 JSONArray allEventsArray = calendarRepository.fetchAllEvents(token);
-                JSONArray allCalendars = calendarRepository.fetchCalendars(token);
+                String allCalendars = calendarRepository.fetchCalendarList(token);
 
                 mainHandler.post(() -> {
                     showLoading(false);
                     Intent intent = new Intent(GoogleCalendarAuthActivity.this, AccountPage.class);
                     intent.putExtra("email", account.getEmail());
                     intent.putExtra("calendar_events_json", allEventsArray.toString());
-                    intent.putExtra("calendar_list_json", allCalendars.toString());
+                    intent.putExtra("calendar_list_json", allCalendars);
+                    intent.putExtra("calendar_token", token);
                     startActivity(intent);
                     finish();
                 });

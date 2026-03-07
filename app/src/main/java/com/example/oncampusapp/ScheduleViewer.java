@@ -1,5 +1,7 @@
 package com.example.oncampusapp;
 
+import android.content.Intent;
+import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.util.TypedValue;
@@ -8,6 +10,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
 import android.view.WindowManager;
+import android.widget.Button;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -23,17 +26,24 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class ScheduleViewer extends AppCompatActivity {
 
     private LinearLayout headerRow, timeColumn, daysContainer;
     private TextView weekTitle;
+
     private Map<String, FrameLayout> dayColumns = new HashMap<>();
     private final Calendar currentWeek = Calendar.getInstance();
 
     private final int START_HOUR = 7; // 7 AM
     private final int END_HOUR = 22;  // 10 PM
     private final int HOUR_HEIGHT_DP = 60; // 1 min = 1 dp height
+
+    private String calendarJson;
+
+    private final ExecutorService executor = Executors.newSingleThreadExecutor();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -53,7 +63,36 @@ public class ScheduleViewer extends AppCompatActivity {
         timeColumn = findViewById(R.id.time_column);
         daysContainer = findViewById(R.id.days_container);
         weekTitle = findViewById(R.id.week_title);
+        Button btnMainCalendar = findViewById(R.id.btn_select_main_calendar);
+        TextView calendarTitle = findViewById(R.id.calendar_header_title);
+        View calendarColorDot = findViewById(R.id.calendar_header_title_color);
 
+        String calendarName = getIntent().getStringExtra("calendar_name");
+        String calendarColor = getIntent().getStringExtra("calendar_color");
+        String calendarId = getIntent().getStringExtra("calendar_id");
+        assert calendarId != null;
+
+        SharedPreferences prefs = getSharedPreferences("OnCampusPrefs", MODE_PRIVATE);
+        String selectedCalendarId = prefs.getString("selected_calendar", "");
+
+        if (calendarId.equals(selectedCalendarId))
+            btnMainCalendar.setText("Selected");
+
+        btnMainCalendar.setOnClickListener(v -> {
+            if (calendarId.equals(selectedCalendarId))
+                return;
+
+            SharedPreferences.Editor editor = prefs.edit();
+            editor.putString("selected_calendar", calendarId);
+            editor.apply();
+
+            btnMainCalendar.setText("Selected");
+        });
+
+        calendarTitle.setText(calendarName);
+        calendarColorDot.setBackgroundColor(Color.parseColor(calendarColor));
+
+        getCalendarEvents();
         setupGrid();
 
         snapToMonday(currentWeek);
@@ -70,6 +109,24 @@ public class ScheduleViewer extends AppCompatActivity {
         });
 
         findViewById(R.id.btn_back).setOnClickListener(v -> finish());
+    }
+
+    public void getCalendarEvents() {
+        executor.execute(() -> {
+            try {
+                String calendarToken = getIntent().getStringExtra("calendar_token");
+                String id = getIntent().getStringExtra("calendar_id");
+
+                String calendarEvents = CalendarRepository.fetchCalendarEvents(calendarToken, id);
+                JSONObject eventsRoot = new JSONObject(calendarEvents);
+                JSONArray events = eventsRoot.optJSONArray("items");
+
+                calendarJson = events.toString();
+
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        });
     }
 
     private void setupGrid() {
@@ -169,9 +226,8 @@ public class ScheduleViewer extends AppCompatActivity {
         }
 
         try {
-            String json = getIntent().getStringExtra("calendar_events_json");
-            if(json == null) return;
-            JSONArray eventsArray = new JSONArray(json);
+            if(calendarJson == null) return;
+            JSONArray eventsArray = new JSONArray(calendarJson);
 
             Calendar weekStart = (Calendar) currentWeek.clone();
             Calendar weekEnd = (Calendar) currentWeek.clone();
@@ -222,29 +278,29 @@ public class ScheduleViewer extends AppCompatActivity {
         String fgColorHex;
         String bgColorHex;
 
-        switch (colorId) {
-            case "1": // Lavender
+        switch (Integer.parseInt(colorId) % 11) {
+            case 1: // Lavender
                 fgColorHex = "#7986CB"; bgColorHex = "#E8EAF6"; break;
-            case "2": // Sage
+            case 2: // Sage
                 fgColorHex = "#33B679"; bgColorHex = "#E8F5E9"; break;
-            case "3": // Grape
+            case 3: // Grape
                 fgColorHex = "#8E24AA"; bgColorHex = "#F3E5F5"; break;
-            case "4": // Flamingo
+            case 4: // Flamingo
                 fgColorHex = "#E67C73"; bgColorHex = "#FBE9E7"; break;
-            case "5": // Banana
+            case 5: // Banana
                 fgColorHex = "#F6BF26"; bgColorHex = "#FFFDE7"; break;
-            case "6": // Tangerine
+            case 6: // Tangerine
                 fgColorHex = "#F4511E"; bgColorHex = "#FBE9E7"; break;
-            case "7": // Peacock
+            case 7: // Peacock
                 fgColorHex = "#039BE5"; bgColorHex = "#E1F5FE"; break;
-            case "8": // Graphite
+            case 8: // Graphite
                 fgColorHex = "#616161"; bgColorHex = "#F5F5F5"; break;
-            case "9": // Blueberry
+            case 9: // Blueberry
                 fgColorHex = "#3F51B5"; bgColorHex = "#E8EAF6"; break;
-            case "10": // Basil
+            case 10: // Basil
                 fgColorHex = "#0B8043"; bgColorHex = "#E8F5E9"; break;
-            case "11": // Tomato
-                fgColorHex = "#D50000"; bgColorHex = "#FFEBEE"; break;
+//            case 11: // Tomato
+//                fgColorHex = "#D50000"; bgColorHex = "#FFEBEE"; break;
             default:  // Default fallback (Google Blue)
                 fgColorHex = "#4285F4"; bgColorHex = "#DCE6F8"; break;
         }

@@ -2,8 +2,10 @@ package com.example.oncampusapp;
 
 import android.app.Dialog;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
+import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
 import android.view.View;
 import android.view.ViewGroup;
@@ -23,23 +25,23 @@ import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 
 import org.json.JSONArray;
+import org.json.JSONObject;
 
 public class AccountPage extends AppCompatActivity {
 
     private ImageView backButton;
 
     private String eventsJson;
+    private String calendarListJson;
+    private String calendarToken;
 
     private BottomNavigationView bottomNav;
 
     private Button btnRefresh;
 
-    private Button btnOpenCalendar;
-
     private CalendarRepository repository;
 
     private String email;
-
 
     private LinearLayout calendarContainer;
 
@@ -48,11 +50,13 @@ public class AccountPage extends AppCompatActivity {
 
         Window window = getWindow();
         window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
-        window.setStatusBarColor(Color.parseColor("#8B1E2D"));
+        window.setStatusBarColor(Color.parseColor("#7A1C1C"));
 
         email = getIntent().getStringExtra("email");
 
         eventsJson = getIntent().getStringExtra("calendar_events_json");
+        calendarListJson = getIntent().getStringExtra("calendar_list_json");
+        calendarToken = getIntent().getStringExtra("calendar_token");
 
         repository = CalendarRepository.getInstance();
 
@@ -77,22 +81,24 @@ public class AccountPage extends AppCompatActivity {
             txtUserEmail.setText("Not signed in");
         }
 
-        btnOpenCalendar.setOnClickListener(v -> {
-            Intent intent = new Intent(this, ScheduleViewer.class);
-            intent.putExtra("calendar_events_json", eventsJson);
-            startActivity(intent);
-        });
-
         btnRefresh.setOnClickListener(v -> {
             showConnectDialog();
         });
+
+        // Populate the dynamic calendar list
+        populateCalendarList();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        populateCalendarList();
     }
 
     private void setViews() {
         bottomNav = findViewById(R.id.bottom_nav);
         calendarContainer = findViewById(R.id.calendarListContainer);
         bottomNav = findViewById(R.id.bottom_nav);
-        btnOpenCalendar = findViewById(R.id.btnOpenCalendar);
         btnRefresh = findViewById(R.id.refreshCalendar);
         backButton = findViewById(R.id.btn_back);
     }
@@ -210,5 +216,79 @@ public class AccountPage extends AppCompatActivity {
         });
 
         dialog.show();
+    }
+
+    /**
+     * Parses the calendar list JSON and dynamically adds views to the container.
+     */
+    private void populateCalendarList() {
+        if (calendarListJson == null || calendarListJson.isEmpty()) {
+            return;
+        }
+
+        // Get the selected calendar ID from SharedPreferences
+        SharedPreferences prefs = getSharedPreferences("OnCampusPrefs", MODE_PRIVATE);
+        String selectedCalendarId = prefs.getString("selected_calendar", "");
+
+        calendarContainer.removeAllViews(); // Clear any existing items just in case
+
+        try {
+            JSONObject root = new JSONObject(calendarListJson);
+            JSONArray items = root.getJSONArray("items");
+
+            for (int i = 0; i < items.length(); i++) {
+                JSONObject calendar = items.getJSONObject(i);
+
+                String id = calendar.getString("id");
+                String summary = calendar.getString("summary");
+                String bgColor = calendar.optString("backgroundColor", "#888888");
+
+                // Inflate the item layout
+                View itemView = getLayoutInflater().inflate(R.layout.item_calendar, calendarContainer, false);
+
+                View dot = itemView.findViewById(R.id.calendar_color_dot);
+                TextView name = itemView.findViewById(R.id.calendar_name);
+                TextView badge = itemView.findViewById(R.id.calendar_selected_badge);
+
+                name.setText(summary);
+
+                // Dynamically color the dot
+                GradientDrawable dotDrawable = (GradientDrawable) getResources().getDrawable(R.drawable.bg_circle, null).mutate();
+                try {
+                    dotDrawable.setColor(Color.parseColor(bgColor));
+                } catch (IllegalArgumentException e) {
+                    dotDrawable.setColor(Color.GRAY); // Fallback for invalid color strings
+                }
+                dot.setBackground(dotDrawable);
+
+                // Show the "Selected" badge if the IDs match
+                if (id.equals(selectedCalendarId)) {
+                    badge.setVisibility(View.VISIBLE);
+                } else {
+                    badge.setVisibility(View.GONE);
+                }
+
+                itemView.setOnClickListener(v -> {
+                    // Disable the clicked view so it can't be clicked again
+                    v.setEnabled(false);
+
+                    Intent intent = new Intent(this, ScheduleViewer.class);
+                    intent.putExtra("calendar_token", calendarToken);
+                    intent.putExtra("calendar_id", id);
+                    intent.putExtra("calendar_name", summary);
+                    intent.putExtra("calendar_color", bgColor);
+
+                    v.setEnabled(true);
+
+                    startActivity(intent);
+                });
+
+                // Add to the container
+                calendarContainer.addView(itemView);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            Toast.makeText(this, "Error loading calendars", Toast.LENGTH_SHORT).show();
+        }
     }
 }

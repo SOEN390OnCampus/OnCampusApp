@@ -86,16 +86,6 @@
                     app:iconSize="36dp"
                     app:iconTint="@android:color/white" />
 
-                <Button
-                    android:id="@+id/btnOpenCalendar"
-                    android:layout_width="166dp"
-                    android:layout_height="60dp"
-                    android:backgroundTint="#7A1C1C"
-                    android:text="Open Calendar"
-                    android:textAllCaps="false"
-                    android:textColor="#FFFFFF"
-                    android:textSize="16sp" />
-
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"

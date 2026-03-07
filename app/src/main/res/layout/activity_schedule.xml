@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
@@ -11,14 +12,13 @@
         android:background="#8B1E2D"
         android:paddingHorizontal="16dp">
 
-        <TextView
+        <ImageView
             android:id="@+id/btn_back"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="←"
-            android:textColor="#FFFFFF"
-            android:textSize="28sp"
-            android:layout_centerVertical="true"/>
+            android:layout_width="26dp"
+            android:layout_height="26dp"
+            android:src="@drawable/ic_back"
+            android:layout_centerVertical="true"
+            app:tint="@android:color/white" />
 
         <TextView
             android:layout_width="wrap_content"
@@ -31,6 +31,7 @@
             android:layout_centerVertical="true"/>
 
         <Button
+            android:id="@+id/btn_select_main_calendar"
             android:layout_width="wrap_content"
             android:layout_height="36dp"
             android:text="Select as Main"
@@ -49,11 +50,13 @@
         android:padding="12dp"
         android:gravity="center_vertical">
         <View
+            android:id="@+id/calendar_header_title_color"
             android:layout_width="10dp"
             android:layout_height="10dp"
             android:background="#0F9D58"
             android:layout_marginEnd="8dp"/>
         <TextView
+            android:id="@+id/calendar_header_title"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Fall 2025 — Weekly Schedule"
