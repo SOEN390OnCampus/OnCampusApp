@@ -70,7 +70,7 @@ public class AccountPageBannerE2ETest {
 
         // Verify the smart location parser updated the text to the full Hall building name
         Espresso.onView(withId(R.id.banner_event_details))
-                .check(matches(withText("Henry F. Hall Building (H) - Room 110")));
+                .check(matches(withText("Henry F. Hall Building - Room 110")));
 
         // Verify the countdown logic contains "mins"
         Espresso.onView(withId(R.id.banner_time_status))
