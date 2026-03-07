@@ -1060,6 +1060,37 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         return true;
     }
 
+
+
+
+     // Converts a Google Directions API duration string into total minutes.
+    //Definition: total = walkToStop + shuttleRide + walkFromStop (A-->ShuttleX-->ShuttleY-->B)
+    private int parseDurationToMinutes(String durationText) {
+        if (durationText == null || durationText.trim().isEmpty()) return 0;
+
+        durationText = durationText.toLowerCase().trim();
+        int totalMinutes = 0;
+
+        String[] parts = durationText.split(" ");
+
+        for (int i = 0; i < parts.length; i++) {
+            if (parts[i].startsWith("hour")) {
+                try {
+                    totalMinutes += Integer.parseInt(parts[i - 1]) * 60;
+                } catch (Exception ignored) {}
+            } else if (parts[i].startsWith("min")) {
+                try {
+                    totalMinutes += Integer.parseInt(parts[i - 1]);
+                } catch (Exception ignored) {}
+            }
+        }
+
+        return totalMinutes;
+    }
+
+
+
+    
     private void initiateRoutePreview() {
         String startName = startDestinationText.getText().toString().trim();
         String destName = endDestinationText.getText().toString().trim();
@@ -1082,9 +1113,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             // Shuttle mode: draw the fixed KML-based route, but fetch real duration from API
             if (selectedMode == NavigationHelper.Mode.SHUTTLE) {
 
-            if (mMap != null && (shuttleMarkers[0] == null || shuttleMarkers[1] == null)) {
-                shuttleMarkers = ShuttleHelper.showShuttleStops(this, mMap, shuttleMarkers);
-            }
+                if (mMap != null && (shuttleMarkers[0] == null || shuttleMarkers[1] == null)) {
+                    shuttleMarkers = ShuttleHelper.showShuttleStops(this, mMap, shuttleMarkers);
+                }
 
                 if (shuttleMarkers[0] == null || shuttleMarkers[1] == null) {
                     Toast.makeText(this, "Shuttle stops are still loading, please try again", Toast.LENGTH_SHORT).show();
@@ -1103,62 +1134,123 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 clearNormalRoute();
                 clearShuttleRoute();
 
-                    // Shuttle leg
-                    List<LatLng> shuttlePath =
-                    ShuttleHelper.getShuttleRoute(pickupStop, dropoffStop);
+                // Shuttle leg
+                List<LatLng> shuttlePath =
+                        ShuttleHelper.getShuttleRoute(pickupStop, dropoffStop);
 
-                    shuttlePolyline = drawSegmentPolyline(shuttlePath, false);
+                shuttlePolyline = drawSegmentPolyline(shuttlePath, false);
+
+                TextView txtDuration = findViewById(R.id.txt_duration);
+                if (txtDuration != null) {
+                    txtDuration.setText(
+                            ShuttleHelper.SHUTTLE_DURATION_FALLBACK.toUpperCase()
+                    );
+                }
+
+                final int[] walkToMinutes = {0};
+                final int[] shuttleMinutes = {0};
+                final int[] walkFromMinutes = {0};
+
+                final boolean[] walkToDone = {false};
+                final boolean[] shuttleDone = {false};
+                final boolean[] walkFromDone = {false};
+
+                Runnable updateTotalDuration = () -> {
+                    if (walkToDone[0] && shuttleDone[0] && walkFromDone[0]) {
+                        int totalMinutes = walkToMinutes[0] + shuttleMinutes[0] + walkFromMinutes[0];
+                        runOnUiThread(() -> {
+                            TextView durationView = findViewById(R.id.txt_duration);
+                            if (durationView != null) {
+                                durationView.setText((totalMinutes + " MIN").toUpperCase());
+                            }
+                        });
+                    }
+                };
 
                 // Walk A → pickup
                 NavigationHelper.fetchDirections(
-                    startCoords,
-                    pickupStop,
-                    NavigationHelper.Mode.WALKING,
-                    BuildConfig.MAPS_API_KEY,
+                        startCoords,
+                        pickupStop,
+                        NavigationHelper.Mode.WALKING,
+                        BuildConfig.MAPS_API_KEY,
                         new NavigationHelper.DirectionsCallback() {
 
-                @Override
-                public void onSuccess(List<LatLng> path, String durationText) {
-                    runOnUiThread(() ->
-                    walkToStopPolyline = drawSegmentPolyline(path, true));
-                    }
+                            @Override
+                            public void onSuccess(List<LatLng> path, String durationText) {
+                                walkToMinutes[0] = parseDurationToMinutes(durationText);
+                                walkToDone[0] = true;
+                                runOnUiThread(() -> {
+                                    walkToStopPolyline = drawSegmentPolyline(path, true);
+                                    View walkToLayout = findViewById(R.id.layout_walk_to_shuttle);
+                                    TextView walkToView = findViewById(R.id.txt_walk_to_shuttle);
+                                    if (walkToLayout != null && walkToView != null) {
+                                        if (walkToMinutes[0] > 0) {
+                                            walkToView.setText((walkToMinutes[0] + " MIN TO STOP").toUpperCase());
+                                            walkToLayout.setVisibility(View.VISIBLE);
+                                        } else {
+                                            walkToLayout.setVisibility(View.GONE);
+                                        }
+                                    }
+                                });
+                                updateTotalDuration.run();
+                            }
 
-                @Override
-                 public void onError(Exception e) {
-                    e.printStackTrace();
-                }
-            });
+                            @Override
+                            public void onError(Exception e) {
+                                e.printStackTrace();
+                                walkToDone[0] = true;
+                                updateTotalDuration.run();
+                            }
+                        });
 
-            // Walk dropoff → B
+                // Walk dropoff → B
                 NavigationHelper.fetchDirections(
-                  dropoffStop,
-                  destCoords,
-                    NavigationHelper.Mode.WALKING,
-                    BuildConfig.MAPS_API_KEY,
-                    new NavigationHelper.DirectionsCallback() {
+                        dropoffStop,
+                        destCoords,
+                        NavigationHelper.Mode.WALKING,
+                        BuildConfig.MAPS_API_KEY,
+                        new NavigationHelper.DirectionsCallback() {
 
-                @Override
-                public void onSuccess(List<LatLng> path, String durationText) {
-                    runOnUiThread(() ->
-                    walkFromStopPolyline = drawSegmentPolyline(path, true));
-                }
+                            @Override
+                            public void onSuccess(List<LatLng> path, String durationText) {
+                                walkFromMinutes[0] = parseDurationToMinutes(durationText);
+                                walkFromDone[0] = true;
+                                runOnUiThread(() ->
+                                        walkFromStopPolyline = drawSegmentPolyline(path, true));
+                                updateTotalDuration.run();
+                            }
 
-                    @Override
-                public void onError(Exception e) {
-                    e.printStackTrace();
+                            @Override
+                            public void onError(Exception e) {
+                                e.printStackTrace();
+                                walkFromDone[0] = true;
+                                updateTotalDuration.run();
+                            }
+                        });
+
+                ShuttleHelper.fetchDuration(
+                        startCoords,
+                        BuildConfig.MAPS_API_KEY,
+                        new NavigationHelper.DirectionsCallback() {
+                            @Override
+                            public void onSuccess(List<LatLng> path, String durationText) {
+                                shuttleMinutes[0] = parseDurationToMinutes(durationText);
+                                shuttleDone[0] = true;
+                                updateTotalDuration.run();
+                            }
+
+                            @Override
+                            public void onError(Exception e) {
+                                e.printStackTrace();
+                                shuttleMinutes[0] = parseDurationToMinutes(ShuttleHelper.SHUTTLE_DURATION_FALLBACK);
+                                shuttleDone[0] = true;
+                                updateTotalDuration.run();
+                            }
+                        });
+
+                return;
             }
-                });
 
-                TextView txtDuration = findViewById(R.id.txt_duration);
-                    if (txtDuration != null) {
-                txtDuration.setText(
-                ShuttleHelper.SHUTTLE_DURATION_FALLBACK.toUpperCase()
-                );
-                }
-
-            return;
-            }
-               
 
             // Use NavigationHelper Class for all other modes
             NavigationHelper.fetchDirections(startCoords, destCoords, selectedMode, BuildConfig.MAPS_API_KEY, new NavigationHelper.DirectionsCallback() {
@@ -1186,6 +1278,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             }
         }
     }
+
+    
+
 
     private void updateRouteProgress(LatLng userLocation) {
         if (currentRoutePoints == null || currentRoutePoints.isEmpty()) return;
@@ -1255,6 +1350,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         if (walkFromStopPolyline != null) walkFromStopPolyline.remove();
         walkFromStopPolyline = null;
+
+        View walkToLayout = findViewById(R.id.layout_walk_to_shuttle);
+        if (walkToLayout != null) walkToLayout.setVisibility(View.GONE);
     }
 
     private Polyline drawSegmentPolyline(List<LatLng> path, boolean isDotted) {
