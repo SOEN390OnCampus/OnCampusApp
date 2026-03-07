@@ -173,6 +173,22 @@ public class NavigationHelper {
             stepObj.setTravelMode(RouteTravelMode.fromString(travelMode));
             stepObj.setPoints(decodedPath);
 
+            JSONObject navigationInstruction = step.getJSONObject("navigationInstruction");
+            String maneuver = navigationInstruction.getString("maneuver");
+            String instructions = navigationInstruction.getString("instructions");
+            stepObj.setManeuver(maneuver);
+            stepObj.setInstructions(instructions);
+
+
+            JSONObject stepLocalizedValues = step.getJSONObject("localizedValues");
+            String stepDistance = stepLocalizedValues.getString("distance");
+            String stepStaticDuration = stepLocalizedValues.getString("staticDuration");
+            stepObj.setDistance(stepDistance);
+            stepObj.setDuration(stepStaticDuration);
+
+
+
+
             if (step.has("transitDetails")) {
                 TransitDetails transitDetailsObj = new TransitDetails();
                 JSONObject transitDetails = step.getJSONObject("transitDetails");
@@ -201,7 +217,7 @@ public class NavigationHelper {
                 double arrivalStopLng = arrivalStopLocationLatLng.getDouble("longitude");
                 String arrivalTime = stopDetails.getString("arrivalTime");
 
-                transitDetailsObj.setArrivalStop(arrivalStopName);
+                transitDetailsObj.setArrivalStopName(arrivalStopName);
                 transitDetailsObj.setArrivalStopLocation(new LatLng(arrivalStopLat, arrivalStopLng));
                 transitDetailsObj.setArrivalTime(arrivalTime);
 

@@ -9,7 +9,8 @@ import com.google.android.gms.maps.model.LatLng;
 public class TransitDetails {
     private String departureStopName;
     private LatLng departureStopLocation;
-    private String arrivalStop;
+    private String arrivalStopName;
+
     private LatLng arrivalStopLocation;
     private String departureTime;
     private String arrivalTime;
@@ -26,11 +27,11 @@ public class TransitDetails {
     public void setDepartureStopLocation(LatLng departureStopLocation) {
         this.departureStopLocation = departureStopLocation;
     }
-    public String getArrivalStop() {
-        return arrivalStop;
+    public String getArrivalStopName() {
+        return arrivalStopName;
     }
-    public void setArrivalStop(String arrivalStop) {
-        this.arrivalStop = arrivalStop;
+    public void setArrivalStopName(String arrivalStop) {
+        this.arrivalStopName = arrivalStop;
     }
     public LatLng getArrivalStopLocation() {
         return arrivalStopLocation;

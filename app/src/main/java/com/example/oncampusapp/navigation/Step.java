@@ -12,6 +12,11 @@ public class Step {
     private RouteTravelMode travelMode;
     private List<LatLng> points;
     private TransitDetails transitDetails;
+    private String maneuver;
+    private String instructions;
+    private String distance;
+    private String duration;
+
     public RouteTravelMode getTravelMode() {
         return travelMode;
     }
@@ -29,6 +34,38 @@ public class Step {
     }
     public void setTransitDetails(TransitDetails transitDetails) {
         this.transitDetails = transitDetails;
+    }
+
+    public String getManeuver() {
+        return maneuver;
+    }
+
+    public void setManeuver(String maneuver) {
+        this.maneuver = maneuver;
+    }
+
+    public String getInstructions() {
+        return instructions;
+    }
+
+    public void setInstructions(String instructions) {
+        this.instructions = instructions;
+    }
+
+    public String getDistance() {
+        return distance;
+    }
+
+    public void setDistance(String distance) {
+        this.distance = distance;
+    }
+
+    public String getDuration() {
+        return duration;
+    }
+
+    public void setDuration(String duration) {
+        this.duration = duration;
     }
 }
 
