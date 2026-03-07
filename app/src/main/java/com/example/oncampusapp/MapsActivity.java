@@ -7,7 +7,12 @@ import androidx.cardview.widget.CardView;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.core.view.WindowCompat;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
+import androidx.core.graphics.Insets;
+import android.view.ViewGroup;
 import androidx.fragment.app.FragmentActivity;
+import android.os.Handler;
 
 import android.Manifest;
 import android.content.Context;
@@ -17,6 +22,7 @@ import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.content.res.Resources;
 import android.graphics.Color;
+import android.graphics.Paint;
 import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
@@ -26,6 +32,7 @@ import android.view.animation.AnimationUtils;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
+import android.widget.FrameLayout;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -33,8 +40,10 @@ import android.widget.Toast;
 import android.app.Dialog;
 import android.widget.ImageView;
 
-import com.google.android.gms.location.FusedLocationProviderClient;
-import com.google.android.gms.location.LocationServices;
+import com.example.oncampusapp.location.FusedLocationProvider;
+import com.example.oncampusapp.location.FusedLocationSource;
+import com.example.oncampusapp.location.ILocationProvider;
+import com.google.android.gms.location.LocationCallback;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
@@ -58,7 +67,6 @@ import com.google.maps.android.data.geojson.GeoJsonLayer;
 import com.google.maps.android.data.geojson.GeoJsonLineStringStyle;
 import com.google.maps.android.data.geojson.GeoJsonPolygon;
 import com.google.maps.android.data.geojson.GeoJsonPolygonStyle;
-import com.google.maps.android.SphericalUtil;
 
 import org.json.JSONException;
 
@@ -72,7 +80,6 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 
 import com.bumptech.glide.Glide;
 
@@ -80,9 +87,22 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     private GoogleMap mMap;
 
+
     public static Map<String, Building> buildingsMap = new HashMap<>();
     private Map<String, BuildingDetails> geoIdToBuildingDetailsMap;
     private ActivityMapsBinding binding;
+    private boolean isRoutePickerOpen = false;
+
+    private final Handler bannerHandler = new Handler();
+    private final Runnable bannerRunnable = new Runnable() {
+        @Override
+        public void run() {
+            checkAndDisplayNextEventBanner();
+            // Re-run this check every 30 seconds
+            bannerHandler.postDelayed(this, 1000);
+        }
+    };
+
     private BuildingClassifier buildingClassifier;
     protected BuildingManager buildingManager;
     private GeoJsonLayer layer;
@@ -95,8 +115,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private ImageButton btnSwapAddress;
     public static final LatLng SGW_COORDS = new LatLng(45.496107243097704, -73.57725834380621);
     public static final LatLng LOY_COORDS = new LatLng(45.4582, -73.6405);
-    
-    public FusedLocationProviderClient fusedLocationClient;
+    public ILocationProvider fusedLocationClient;
+    private FusedLocationSource myLocationSource;
+
+    private static final int LOCATION_PERMISSION_REQUEST_CODE = 1;
+
     private ActivityResultLauncher<String[]> locationPermissionRequest;
     private TextView btnSgwLoy;
     private static final String sgw = "SGW";
@@ -105,7 +128,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     // Navigation Variables
     private com.google.android.gms.maps.model.Polyline bluePolyline;
     private List<LatLng> currentRoutePoints;
-    private com.google.android.gms.location.LocationCallback navigationLocationCallback;
+    private LocationCallback navigationLocationCallback;
     private com.google.android.gms.maps.model.Circle startDot;
     private com.google.android.gms.maps.model.Marker endMarker;
     
@@ -130,6 +153,19 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         return this.mMap;
     }
 
+    // for tests. to mock location
+    public void setLocationProvider(ILocationProvider provider) {
+        this.fusedLocationClient = provider;
+        this.myLocationSource = new FusedLocationSource(this, this.fusedLocationClient);
+        if (mMap != null) {
+            mMap.setLocationSource(this.myLocationSource);
+        }
+
+        // Set it globally so the Service can use the mock too!
+        if (getApplication() instanceof OnCampusApplication) {
+            ((OnCampusApplication) getApplication()).setLocationProvider(provider);
+        }
+    }
     private void checkLocationPermissions() {
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
             // Request the permission
@@ -140,6 +176,23 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
     }
 
+    // Register for multiple permissions
+    private final ActivityResultLauncher<String[]> requestMultiplePermissionsLauncher =
+        registerForActivityResult(new ActivityResultContracts.RequestMultiplePermissions(), isGranted -> {
+            Boolean fineLocationGranted = isGranted.getOrDefault(Manifest.permission.ACCESS_FINE_LOCATION, false);
+            Boolean postNotificationsGranted = isGranted.getOrDefault(Manifest.permission.POST_NOTIFICATIONS, false);
+
+            if (Boolean.TRUE.equals(fineLocationGranted))
+                Log.d("LocationPermission", "Precise location access granted.");
+            else if (Boolean.TRUE.equals(isGranted.getOrDefault(Manifest.permission.ACCESS_COARSE_LOCATION, false)))
+                Log.d("LocationPermission", "Only approximate location access granted.");
+
+            if (Boolean.TRUE.equals(postNotificationsGranted))
+                Log.d("NotificationPermission", "Notifications granted.");
+            else
+                Log.d("NotificationPermission", "Notifications denied.");
+        });
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -147,17 +200,64 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
         getWindow().setStatusBarColor(Color.TRANSPARENT);
 
+        launchPermissionRequest();
+
         // ViewBinding: inflate, then set content view ONCE
         binding = ActivityMapsBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
 
         // Pre-load shuttle route data from bundled JSON
         ShuttleHelper.init(this);
+        View bannerView = findViewById(R.id.included_banner);
+        if (bannerView != null) {
+            ViewCompat.setOnApplyWindowInsetsListener(bannerView, (v, windowInsets) -> {
+                Insets insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars());
+                ViewGroup.MarginLayoutParams mlp = (ViewGroup.MarginLayoutParams) v.getLayoutParams();
+                // Push the banner down by the height of the status bar + 16 pixels for a nice gap
+                mlp.topMargin = insets.top + 16;
+                v.setLayoutParams(mlp);
+                return windowInsets; // Return the original insets untouched
+            });
+        }
 
         setupRoutePickerUi();
 
+        binding.bottomNav.setOnItemSelectedListener(item -> {
+
+            int id = item.getItemId();
+
+            if (id == R.id.nav_home) {
+                Toast.makeText(this, "Home clicked", Toast.LENGTH_SHORT).show();
+                return true;
+            }
+
+            else if (id == R.id.nav_account) {
+                startActivity(new android.content.Intent(this, GoogleCalendarAuthActivity.class));
+                return true;
+            }
+
+            else if (id == R.id.nav_settings) {
+                Toast.makeText(this, "Settings clicked", Toast.LENGTH_SHORT).show();
+                return true;
+            }
+
+            return false;
+        });
+
         buildingClassifier = new BuildingClassifier();
-        fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
+
+        OnCampusApplication app = (OnCampusApplication) getApplication();
+
+        // If a mock hasn't been injected yet, set the default one
+        if (app.getLocationProvider() == null) {
+            app.setLocationProvider(new FusedLocationProvider(this));
+        }
+
+        // Use the provider from the application
+        fusedLocationClient = app.getLocationProvider();
+
+        // Initialize our custom Location Source
+        myLocationSource = new FusedLocationSource(this, fusedLocationClient);
 
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
@@ -207,7 +307,26 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         // Load building details
         loadBuildingDetails();
+
+        checkAndDisplayNextEventBanner();
+
     }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        bannerHandler.post(bannerRunnable);// Start the timer
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        bannerHandler.removeCallbacks(bannerRunnable); // Stop to save battery
+    }
+
+
+
+
 
     private void setupRoutePickerUi() {
         //Initialize Views
@@ -248,6 +367,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     routePicker.setVisibility(View.GONE);
                     searchBar.setVisibility(View.VISIBLE);
                     slideUp.setAnimationListener(null);
+
+                    isRoutePickerOpen = false;
+                    checkAndDisplayNextEventBanner();
                 }
                 @Override public void onAnimationRepeat(Animation animation) {}
             });
@@ -256,6 +378,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         //Search Bar Click Listener
         searchBar.setOnClickListener(v -> {
+
+            isRoutePickerOpen = true;
+
+            View bannerView = findViewById(R.id.included_banner);
+            if (bannerView != null) bannerView.setVisibility(View.GONE);
+
             searchBar.setVisibility(View.GONE);
             routePicker.setVisibility(View.VISIBLE);
             routePicker.startAnimation(slideDown);
@@ -495,6 +623,17 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     @Override
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
+
+        // Tell the map to use our custom FusedLocationSource
+        mMap.setLocationSource(myLocationSource);
+
+        if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+            mMap.setMyLocationEnabled(true);
+        }
+
+        // Enable the blue dot (Requires permission check)
+        enableMyLocation();
+
         // Move camera to SGW campus
         mMap.animateCamera(
                 CameraUpdateFactory.newLatLngZoom(SGW_COORDS, 17f)
@@ -519,6 +658,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         btnSgwLoy = findViewById(R.id.btn_campus_switch);
         ImageButton btnLocation = findViewById(R.id.btn_location);
+
+        FrameLayout closeSearchLayout = findViewById(R.id.close_search);
 
         try {
             // Load the GeoJSON file
@@ -583,6 +724,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                                 radius
                         );
 
+                        // Special case for the SP building
+                        if (id.equals("way/47331993")){
+                            BuildingDetails details = geoIdToBuildingDetailsMap.get(id);
+                            center = new LatLng(details.getLat(), details.getLng());
+                        }
+
                         if (geoIdToBuildingDetailsMap.containsKey(id)) {
                             // Create a feature to allow click
                             pointFeatures.add(createSquareFeature(center,id));
@@ -634,11 +781,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
 
         // String array for building suggestions
-        String[] buildingSuggestions = buildingsMap.values()
-                .stream()
-                .map(Building::getName)
-                .filter(Objects::nonNull)
-                .toArray(String[]::new);
+        String[] buildingSuggestions = geoIdToBuildingDetailsMap.values()
+            .stream()
+            .map(BuildingDetails::getName)
+            .toArray(String[]::new);
 
         // Create the adapter for building suggestions
         ArrayAdapter<String> adapter = new ArrayAdapter<>(this,
@@ -659,6 +805,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         btnSgwLoy.setOnClickListener(v -> switchCampus());
         btnLocation.setOnClickListener(v -> goToCurrentLocation());
+        closeSearchLayout.setOnClickListener(v -> handleCloseSearch());
     }
 
     private GeoJsonFeature createSquareFeature(LatLng center, String id){
@@ -755,7 +902,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             return;
         }
 
-        String buildingName = details.name;
+        String buildingName = details.getName();
 
         if (routePicker != null && routePicker.getVisibility() == View.VISIBLE) {
             if (startDestinationText != null && startDestinationText.hasFocus()) {
@@ -770,12 +917,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             }
         }
 
-        BuildingDetailsDto buildingDetailsDto = new BuildingDetailsDto();
-        buildingDetailsDto.setName(details.name);
-        buildingDetailsDto.setAddress(details.address);
-        buildingDetailsDto.setImgUri(details.image);
-        buildingDetailsDto.setAccessibility(details.accessibility);
-        showBuildingInfoDialog(buildingDetailsDto, geojsonId);
+        showBuildingInfoDialog(details);
     }
 
     /**
@@ -807,42 +949,27 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
      * population, and display of the building information dialog.
      *
      * @param buildingDetails the building details retrieved from the Places API
-     * @param featureId the building's feature ID used for campus determination
      */
-    private void showBuildingInfoDialog(BuildingDetailsDto buildingDetails, String featureId) {
+    private void showBuildingInfoDialog(BuildingDetails buildingDetails) {
         if (currentBuildingDialog != null && currentBuildingDialog.isShowing()) {
             currentBuildingDialog.dismiss();
         }
 
-        String campus = determineCampus(featureId);
         Dialog dialog = createAndConfigureDialog();
-        populateDialogViews(dialog, buildingDetails, campus);
+        populateDialogViews(dialog, buildingDetails);
         setupDialogListeners(dialog);
 
         dialog.show();
         currentBuildingDialog = dialog;
     }
 
-    private String determineCampus(String featureId) {
-        String campus = getString(R.string.concordia_university);
-        Building building = buildingsMap.get(featureId);
-
-        if (building != null && building.polygon != null && !building.polygon.isEmpty()) {
-            LatLng buildingLocation = building.polygon.get(0);
-            double distToSGW = SphericalUtil.computeDistanceBetween(buildingLocation, SGW_COORDS);
-            double distToLoyola = SphericalUtil.computeDistanceBetween(buildingLocation, LOY_COORDS);
-            campus = (distToSGW < distToLoyola) ? getString(R.string.sgw_campus_en) : getString(R.string.loyola_campus_en);
-        }
-        return campus;
-    }
-
     private Dialog createAndConfigureDialog() {
         Dialog dialog = new Dialog(this);
-        dialog.setContentView(R.layout.dialog_building_info);
+        dialog.setContentView(R.layout.dialog_building_details);
 
         if (dialog.getWindow() != null) {
             dialog.getWindow().setLayout(
-                    (int) (getResources().getDisplayMetrics().widthPixels * 0.9),
+                    (int) (getResources().getDisplayMetrics().widthPixels * 0.8),
                     android.view.ViewGroup.LayoutParams.WRAP_CONTENT
             );
             dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
@@ -850,50 +977,51 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         return dialog;
     }
 
-    private void populateDialogViews(Dialog dialog, BuildingDetailsDto buildingDetails, String campus) {
-        ImageView imgBuilding = dialog.findViewById(R.id.img_building);
+    private void populateDialogViews(Dialog dialog, BuildingDetails buildingDetails) {
+
+        TextView txtBuildingCode = dialog.findViewById(R.id.txt_building_code);
+
         TextView txtBuildingName = dialog.findViewById(R.id.txt_building_name);
         TextView txtBuildingAddress = dialog.findViewById(R.id.txt_building_address);
-        TextView txtBuildingDescription = dialog.findViewById(R.id.txt_building_description);
-        TextView txtBuildingDescriptionFr = dialog.findViewById(R.id.txt_building_description_fr);
-        ImageView imgAccessibility = dialog.findViewById(R.id.img_accessibility);
-        TextView txtAccessibility = dialog.findViewById(R.id.txt_accessibility);
 
+        LinearLayout llBuildingOpeningHours = dialog.findViewById(R.id.layout_building_opening_hours);
+        TextView txtBuildingOpeningHours = dialog.findViewById(R.id.txt_building_opening_hours);
 
-        if (buildingDetails.getName() != null && !buildingDetails.getName().isEmpty()) {
-            String fullName = buildingDetails.getName();
-            String buildingName = fullName.contains(",") ? fullName.substring(0, fullName.indexOf(",")).trim() : fullName;
-            txtBuildingName.setText(buildingName.toUpperCase());
+        LinearLayout llAccessibility = dialog.findViewById(R.id.item_accessibility);
+        LinearLayout llMetroConnect = dialog.findViewById(R.id.item_metro_connect);
 
-            String description = getString(R.string.building_description_en, buildingName, campus);
-            txtBuildingDescription.setText(description);
+        ImageView imgBuilding = dialog.findViewById(R.id.img_building);
 
-            String campusFr = campus.equals(getString(R.string.sgw_campus_en))
-                    ? getString(R.string.sgw_campus_fr)
-                    : getString(R.string.loyola_campus_fr);
-
-            String buildingNameFr = buildingName.replace(" Building", "").replace(" building", "");
-            String descriptionFr = getString(R.string.building_description_fr, buildingNameFr, campusFr);
-            txtBuildingDescriptionFr.setText(descriptionFr);
-        }
-
+        txtBuildingCode.setText(buildingDetails.getCode());
+        txtBuildingName.setText(buildingDetails.getName());
+        txtBuildingName.setPaintFlags(txtBuildingName.getPaintFlags() | Paint.UNDERLINE_TEXT_FLAG);
+        txtBuildingAddress.setText(buildingDetails.getAddress());
         if (buildingDetails.getAddress() != null && !buildingDetails.getAddress().isEmpty()) {
             txtBuildingAddress.setText(buildingDetails.getAddress());
         }
-        if (buildingDetails.getAccessibility()) {
-            imgAccessibility.setVisibility(View.VISIBLE);
-            txtAccessibility.setText(R.string.building_accessible);
+        if (buildingDetails.isAccessible()) {
+            llAccessibility.setVisibility(View.VISIBLE);
         } else {
-            imgAccessibility.setVisibility(View.GONE);
-            txtAccessibility.setText(R.string.building_not_accessible);
+            llAccessibility.setVisibility(View.GONE);
+        }
+        if (buildingDetails.hasDirectTunnelToMetro()) {
+            llMetroConnect.setVisibility(View.VISIBLE);
+        } else {
+            llMetroConnect.setVisibility(View.GONE);
+        }
+        if (buildingDetails.getSchedule() == null) {
+            llBuildingOpeningHours.setVisibility(View.GONE);
+        } else {
+            llBuildingOpeningHours.setVisibility(View.VISIBLE);
+            txtBuildingOpeningHours.setText(buildingDetails.getSchedule().toString());
         }
         loadBuildingImage(imgBuilding, buildingDetails);
     }
 
-    private void loadBuildingImage(ImageView imgBuilding, BuildingDetailsDto buildingDetails) {
-        if (buildingDetails.getImgUri() != null && !buildingDetails.getImgUri().isEmpty()) {
+    private void loadBuildingImage(ImageView imgBuilding, BuildingDetails buildingDetails) {
+        if (buildingDetails.getImage() != null && !buildingDetails.getImage().isEmpty()) {
             Glide.with(this)
-                    .load(buildingDetails.getImgUri())
+                    .load(buildingDetails.getImage())
                     .placeholder(android.R.color.darker_gray)
                     .error(android.R.color.darker_gray)
                     .into(imgBuilding);
@@ -1379,5 +1507,171 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     }
     public Dialog getCurrentBuildingDialog(){
         return currentBuildingDialog;
+    }
+    // ==========================================
+    // US-3.3 Methods
+    // ==========================================
+
+    /**
+     * Requirement 5: Identifies the next event and updates the persistent top banner.
+     */
+    private void checkAndDisplayNextEventBanner() {
+        if (isRoutePickerOpen) return;
+
+        String eventsJson = CalendarEventManager.globalEventsJson;
+        if (eventsJson == null || eventsJson.isEmpty()) return;
+
+        org.json.JSONObject nextClass = CalendarEventManager.findNextUpcomingEvent(eventsJson);
+        View bannerView = findViewById(R.id.included_banner);
+
+        if (nextClass != null && bannerView != null) {
+
+            TextView titleView = bannerView.findViewById(R.id.banner_event_title);
+            TextView detailsView = bannerView.findViewById(R.id.banner_event_details);
+
+            // Failsafe if views aren't found
+            if (titleView == null || detailsView == null) return;
+
+            String title = nextClass.optString("summary", "Class");
+
+            try {
+                long now = System.currentTimeMillis();
+                String startStr = nextClass.getJSONObject("start").getString("dateTime");
+                String endStr = nextClass.getJSONObject("end").getString("dateTime");
+                String rawLocation = nextClass.optString("location", "");
+                String description = nextClass.optString("description", "");
+
+                java.text.SimpleDateFormat exactTimeFormat = new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX", java.util.Locale.getDefault());
+                long startTime = exactTimeFormat.parse(startStr).getTime();
+                long endTime = exactTimeFormat.parse(endStr).getTime();
+
+                // 60-MINUTE FILTER
+                long sixtyMinutesInMillis = 60 * 60 * 1000;
+                if (now < startTime && (startTime - now) > sixtyMinutesInMillis) {
+                    bannerView.setVisibility(View.GONE);
+                    return;
+                }
+
+                bannerView.setVisibility(View.VISIBLE);
+
+                // Find the extra banner views
+                TextView timeStatusView = bannerView.findViewById(R.id.banner_time_status);
+                TextView onlineTagView = bannerView.findViewById(R.id.banner_online_tag);
+
+                // Set Main Title
+                titleView.setText(title);
+
+                // 2. Set Countdown Timer Status and Force Icons
+                if (timeStatusView != null && detailsView != null) {
+                    String timeStatus = NotificationTimeFormatter.getBannerTimeStatus(now, startTime, endTime);
+                    timeStatusView.setText(timeStatus);
+
+                    int redColor = Color.parseColor("#8B1E2D");
+                    int greyColor = Color.parseColor("#808080");
+
+                    // Apply red to the text
+                    timeStatusView.setTextColor(redColor);
+
+                    // BULLETPROOF ICON INJECTION
+                    try {
+                        // 1. Clock icon - using built-in Android system icon
+                        android.graphics.drawable.Drawable clockIcon = androidx.core.content.ContextCompat.getDrawable(
+                                this, android.R.drawable.ic_menu_recent_history);
+                        if (clockIcon != null) {
+                            clockIcon = androidx.core.graphics.drawable.DrawableCompat.wrap(clockIcon).mutate();
+                            androidx.core.graphics.drawable.DrawableCompat.setTint(clockIcon, redColor);
+                            // Resize to 16dp
+                            int size = (int) (16 * getResources().getDisplayMetrics().density);
+                            clockIcon.setBounds(0, 0, size, size);
+                            timeStatusView.setCompoundDrawables(clockIcon, null, null, null);
+                            timeStatusView.setCompoundDrawablePadding(16);
+                        }
+
+                        // 2. Location icon - using built-in Android system icon
+                        android.graphics.drawable.Drawable targetIcon = androidx.core.content.ContextCompat.getDrawable(
+                                this, android.R.drawable.ic_menu_mylocation);
+                        if (targetIcon != null) {
+                            targetIcon = androidx.core.graphics.drawable.DrawableCompat.wrap(targetIcon).mutate();
+                            androidx.core.graphics.drawable.DrawableCompat.setTint(targetIcon, greyColor);
+                            int size = (int) (16 * getResources().getDisplayMetrics().density);
+                            targetIcon.setBounds(0, 0, size, size);
+                            detailsView.setCompoundDrawables(targetIcon, null, null, null);
+                            detailsView.setCompoundDrawablePadding(16);
+                        }
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+
+                // Set Smart Location Data
+                String parsedLocation = LocationParser.parseSmartLocation(this, title, rawLocation, description);
+
+                if (parsedLocation.equals("Online")) {
+                    if (onlineTagView != null) onlineTagView.setVisibility(View.VISIBLE);
+
+                    String searchString = (rawLocation + " " + description).toLowerCase();
+                    if (searchString.contains("zoom")) {
+                        detailsView.setText("ZOOM MEETING");
+                    } else if (searchString.contains("teams")) {
+                        detailsView.setText("MICROSOFT TEAMS");
+                    } else if (searchString.contains("meet.google")) {
+                        detailsView.setText("GOOGLE MEET");
+                    } else {
+                        detailsView.setText(rawLocation.isEmpty() ? "ONLINE CLASS" : rawLocation.toUpperCase());
+                    }
+                } else {
+                    if (onlineTagView != null) onlineTagView.setVisibility(View.GONE);
+                    detailsView.setText(parsedLocation.equals("TBD") && !rawLocation.isEmpty() ? rawLocation : parsedLocation);
+                }
+
+            } catch (Exception e) {
+                e.printStackTrace();
+                titleView.setText("Next: " + title);
+                detailsView.setText("Check schedule for details");
+            }
+        } else if (bannerView != null) {
+            bannerView.setVisibility(View.GONE);
+        }
+    }
+
+    // ==========================================
+    // Main Branch Methods
+    // ==========================================
+
+    private void handleCloseSearch() {
+        getOnBackPressedDispatcher().onBackPressed();
+    }
+
+    private void enableMyLocation() {
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+            // This triggers the activate() method in our FusedLocationSource
+            mMap.setMyLocationEnabled(true);
+        } else {
+            // Request permissions if not already granted
+            ActivityCompat.requestPermissions(this,
+                    new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
+                    LOCATION_PERMISSION_REQUEST_CODE);
+        }
+    }
+
+    private void launchPermissionRequest() {
+        List<String> permissionsToRequest = new ArrayList<>();
+
+        // Check Location
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            permissionsToRequest.add(Manifest.permission.ACCESS_FINE_LOCATION);
+            permissionsToRequest.add(Manifest.permission.ACCESS_COARSE_LOCATION);
+        }
+
+        // Check Notifications (API 33+)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                permissionsToRequest.add(Manifest.permission.POST_NOTIFICATIONS);
+            }
+        }
+
+        if (!permissionsToRequest.isEmpty()) {
+            requestMultiplePermissionsLauncher.launch(permissionsToRequest.toArray(new String[0]));
+        }
     }
 }
