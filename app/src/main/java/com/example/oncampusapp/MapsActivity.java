@@ -97,7 +97,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         public void run() {
             checkAndDisplayNextEventBanner();
             // Re-run this check every 30 seconds
-            bannerHandler.postDelayed(this, 30000);
+            bannerHandler.postDelayed(this, 1000);
         }
     };
 
