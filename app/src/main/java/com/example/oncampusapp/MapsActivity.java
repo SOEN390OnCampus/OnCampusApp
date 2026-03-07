@@ -1188,7 +1188,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 }
 
                 // Set Smart Location Data
-                String parsedLocation = LocationParser.parseSmartLocation(title, rawLocation, description);
+                String parsedLocation = LocationParser.parseSmartLocation(this, title, rawLocation, description);
 
                 if (parsedLocation.equals("Online")) {
                     if (onlineTagView != null) onlineTagView.setVisibility(View.VISIBLE);

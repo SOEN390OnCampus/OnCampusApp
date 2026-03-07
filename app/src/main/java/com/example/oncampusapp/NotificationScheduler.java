@@ -21,7 +21,7 @@ public class NotificationScheduler {
             String description = nextEvent.optString("description", "");
 
             // 1. SMART LOCATION PARSING (Delegated to extracted class)
-            String displayLocation = LocationParser.parseSmartLocation(title, rawLocation, description);
+            String displayLocation = LocationParser.parseSmartLocation(context, title, rawLocation, description);
 
             // 2. ALARM TIMING
             String dateTimeStr = nextEvent.getJSONObject("start").getString("dateTime");

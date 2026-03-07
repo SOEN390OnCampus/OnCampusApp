@@ -1,7 +1,14 @@
 package com.example.oncampusapp;
 
+import android.content.Context;
+import org.json.JSONObject;
+
+import java.io.BufferedReader;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
@@ -9,83 +16,57 @@ import java.util.regex.Pattern;
 
 public class LocationParser {
 
-    private static final Map<String, String> ALL_BUILDINGS = new HashMap<String, String>() {{
-        // --- SGW CAMPUS ---
-        put("B", "Bishop Annex");
-        put("CI", "CI Annex");
-        put("CL", "CL Annex");
-        put("D", "D Annex");
-        put("EN", "EN Annex");
-        put("ER", "ER Building");
-        put("EV", "Engineering & Visual Arts (EV)");
-        put("FA", "FA Annex");
-        put("FB", "Faubourg Building (FB)");
-        put("FG", "Faubourg Ste-Catherine (FG)");
-        put("GA", "Grey Nuns Annex");
-        put("GM", "Guy-De Maisonneuve Building");
-        put("GN", "Grey Nuns Building");
-        put("GS", "GS Building");
-        put("H", "Henry F. Hall Building (H)");
-        put("K", "K Annex");
-        put("LB", "J.W. McConnell Building (LB)");
-        put("LD", "LD Building");
-        put("LS", "Learning Square Building");
-        put("M", "M Annex");
-        put("MB", "John Molson Building (MB)");
-        put("MI", "MI Annex");
-        put("MU", "MU Annex");
-        put("P", "P Annex");
-        put("PR", "PR Annex");
-        put("Q", "Q Annex");
-        put("R", "R Annex");
-        put("RR", "RR Annex");
-        put("S", "S Annex");
-        put("SB", "Samuel Bronfman Building");
-        put("T", "T Annex");
-        put("TD", "Toronto-Dominion Building");
-        put("V", "V Annex");
-        put("VA", "Visual Arts Building");
-        put("X", "X Annex");
-        put("Z", "Z Annex");
+    private static final Map<String, String> ALL_BUILDINGS = new HashMap<>();
+    private static final List<Map.Entry<String, String>> SORTED_BUILDINGS = new ArrayList<>();
+    private static boolean isLoaded = false;
 
-        // --- LOYOLA CAMPUS ---
-        put("AD", "Administration Building");
-        put("BB", "BB Annex");
-        put("BH", "BH Annex");
-        put("CC", "Central Building");
-        put("CJ", "Communication Studies and Journalism Building");
-        put("DO", "Stinger Dome");
-        put("FC", "F.C. Smith Building");
-        put("GE", "Centre for Structural and Functional Genomics");
-        put("HA", "Hingston Hall, wing HA");
-        put("HB", "Hingston Hall, wing HB");
-        put("HC", "Hingston Hall, wing HC");
-        put("HU", "Applied Science Hub");
-        put("JR", "Jesuit Residence");
-        put("PC", "PERFORM Centre");
-        put("PS", "Physical Services Building");
-        put("PT", "Oscar Peterson Concert Hall");
-        put("PY", "Psychology Building");
-        put("QA", "Quadrangle");
-        put("RA", "Recreation and Athletics Complex");
-        put("RF", "Loyola Jesuit Hall and Conference Centre");
-        put("SC", "Student Centre");
-        put("SH", "Future Buildings Laboratory");
-        put("SI", "St. Ignatius of Loyola Church");
-        put("SP", "Richard J. Renaud Science Complex");
-        put("TA", "Terrebonne Building");
-        put("VE", "Vanier Extension");
-        put("VL", "Vanier Library Building");
-    }};
+    // Lazy load the JSON only once
+    private static void loadBuildingsIfNeeded(Context context) {
+        if (isLoaded) return;
+        try {
+            // Point this to concordia_building_details.json file
+            InputStream is = context.getResources().openRawResource(R.raw.concordia_building_details);
+            BufferedReader reader = new BufferedReader(new InputStreamReader(is));
+            StringBuilder jsonBuilder = new StringBuilder();
+            String line;
+            while ((line = reader.readLine()) != null) {
+                jsonBuilder.append(line);
+            }
 
-    // We keep a sorted list so longer prefixes (like "SP") are always checked before shorter ones (like "S")
-    private static final List<Map.Entry<String, String>> SORTED_BUILDINGS = new ArrayList<>(ALL_BUILDINGS.entrySet());
+            JSONObject jsonObject = new JSONObject(jsonBuilder.toString());
+            Iterator<String> keys = jsonObject.keys();
 
-    static {
-        SORTED_BUILDINGS.sort((a, b) -> Integer.compare(b.getKey().length(), a.getKey().length()));
+            // Loop through the outer keys (like "B" or "way/103248055")
+            while (keys.hasNext()) {
+                String key = keys.next();
+                JSONObject buildingData = jsonObject.getJSONObject(key);
+
+                // Extract the actual code and name from inside the object
+                if (buildingData.has("code") && buildingData.has("name")) {
+                    String code = buildingData.getString("code");
+                    String name = buildingData.getString("name");
+
+                    // Put it in our map (e.g., "CL" -> "CL Annex")
+                    ALL_BUILDINGS.put(code, name);
+                }
+            }
+
+            // Populate and sort the list so longer prefixes are checked first
+            SORTED_BUILDINGS.addAll(ALL_BUILDINGS.entrySet());
+            SORTED_BUILDINGS.sort((a, b) -> Integer.compare(b.getKey().length(), a.getKey().length()));
+
+            isLoaded = true;
+
+        } catch (Exception e) {
+            android.util.Log.e("LocationParser", "Failed to load buildings JSON", e);
+        }
     }
 
-    public static String parseSmartLocation(String title, String rawLocation, String description) {
+    // Added Context parameter to the signature
+    public static String parseSmartLocation(Context context, String title, String rawLocation, String description) {
+        // Ensure data is loaded from JSON first
+        loadBuildingsIfNeeded(context);
+
         if (title == null) title = "";
         if (rawLocation == null) rawLocation = "";
         if (description == null) description = "";
@@ -104,14 +85,6 @@ public class LocationParser {
         for (Map.Entry<String, String> entry : SORTED_BUILDINGS) {
             String prefix = entry.getKey();
 
-            // Smart Regex:
-            // \b         : Word boundary
-            // prefix     : The building prefix (e.g., SP)
-            // [-\s]?     : Optional hyphen or space
-            // ( ... )    : Capturing group for the exact room number
-            // [A-Z]?     : Optional leading letter (e.g., the 'S' in S110)
-            // \d+        : One or more digits
-            // [A-Z0-9.]* : Optional trailing characters (handles 2.210 or 110A)
             Pattern pattern = Pattern.compile("\\b" + prefix + "[-\\s]?([A-Z]?\\d+[A-Z0-9.]*)\\b");
             Matcher matcher = pattern.matcher(searchText);
 
@@ -125,7 +98,6 @@ public class LocationParser {
                 found = true;
                 break;
             } else if (searchText.matches(".*\\b" + prefix + "\\b.*")) {
-                // Fallback: The building is mentioned, but without a specific room number
                 displayLocation = entry.getValue();
                 found = true;
                 break;

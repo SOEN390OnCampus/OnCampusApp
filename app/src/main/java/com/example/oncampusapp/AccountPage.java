@@ -150,7 +150,7 @@ public class AccountPage extends AppCompatActivity {
                 }
 
                 // --- 3. LOCATION LOGIC ---
-                String parsedLocation = LocationParser.parseSmartLocation(title, rawLocation, description);
+                String parsedLocation = LocationParser.parseSmartLocation(this, title, rawLocation, description);
 
                 // Inject Scaled Grey Pin Icon
                 android.graphics.drawable.Drawable targetIcon = androidx.core.content.ContextCompat.getDrawable(this, android.R.drawable.ic_menu_mylocation);
