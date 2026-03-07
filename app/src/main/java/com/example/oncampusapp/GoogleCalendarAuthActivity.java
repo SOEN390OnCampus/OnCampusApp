@@ -8,6 +8,7 @@ import android.util.Log;
 import android.view.View;
 import android.widget.ProgressBar;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.activity.result.ActivityResult;
 import androidx.activity.result.ActivityResultLauncher;
@@ -23,6 +24,7 @@ import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
 import com.google.android.gms.common.api.Scope;
 import com.google.android.gms.common.api.ApiException;
 import com.google.android.gms.tasks.Task;
+import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.snackbar.Snackbar;
 
@@ -67,6 +69,8 @@ public class GoogleCalendarAuthActivity extends AppCompatActivity {
     private GoogleSignInClient googleSignInClient;
     private MaterialButton connectButton;
     private ProgressBar progressBar;
+
+    private BottomNavigationView bottomNav;
     private TextView statusText;
 
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
@@ -91,6 +95,7 @@ public class GoogleCalendarAuthActivity extends AppCompatActivity {
         setContentView(R.layout.calendar_login_page);
 
         bindViews();
+        setUpBottomNav();
 
         GoogleSignInAccount account =
                 GoogleSignIn.getLastSignedInAccount(this);
@@ -116,9 +121,38 @@ public class GoogleCalendarAuthActivity extends AppCompatActivity {
     // -------------------------------------------------------------------------
 
     private void bindViews() {
+        bottomNav = findViewById(R.id.bottom_nav);
         connectButton = findViewById(R.id.btn_calendar_signin);
         progressBar = findViewById(R.id.progressBar);
         statusText = findViewById(R.id.statusText);
+    }
+
+    private void setUpBottomNav() {
+        bottomNav.setSelectedItemId(R.id.nav_account); // highlight account tab
+
+        bottomNav.setOnItemSelectedListener(item -> {
+
+            int id = item.getItemId();
+
+            if (id == R.id.nav_home) {
+                Intent intent = new Intent(GoogleCalendarAuthActivity.this, MapsActivity.class);
+                startActivity(intent);
+                finish();
+                return true;
+            }
+
+            else if (id == R.id.nav_account) {
+                // Already on account page
+                return true;
+            }
+
+            else if (id == R.id.nav_settings) {
+                Toast.makeText(this, "Settings clicked", Toast.LENGTH_SHORT).show();
+                return true;
+            }
+
+            return false;
+        });
     }
 
     private void setupGoogleSignIn() {
