@@ -60,6 +60,8 @@ public class AccountPageBannerE2ETest {
         intent.putExtra("email", "test@concordia.ca");
         ActivityScenario<AccountPage> scenario = ActivityScenario.launch(intent);
 
+        Thread.sleep(1500);
+
         // Verify the banner is visible
         Espresso.onView(withId(R.id.included_banner))
                 .check(matches(isDisplayed()));
