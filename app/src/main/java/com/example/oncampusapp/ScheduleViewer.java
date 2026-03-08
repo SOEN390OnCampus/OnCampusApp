@@ -43,6 +43,8 @@ public class ScheduleViewer extends AppCompatActivity {
 
     private String calendarJson;
 
+    private CalendarRepository calendarRepository;
+
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
 
     @Override
@@ -52,6 +54,8 @@ public class ScheduleViewer extends AppCompatActivity {
         Window window = getWindow();
         window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
         window.setStatusBarColor(Color.parseColor("#8B1E2D"));
+
+        calendarRepository = CalendarRepository.getInstance();
 
         setContentView(R.layout.activity_schedule);
 
@@ -117,7 +121,7 @@ public class ScheduleViewer extends AppCompatActivity {
                 String calendarToken = getIntent().getStringExtra("calendar_token");
                 String id = getIntent().getStringExtra("calendar_id");
 
-                String calendarEvents = CalendarRepository.fetchCalendarEvents(calendarToken, id);
+                String calendarEvents = calendarRepository.fetchCalendarEvents(calendarToken, id);
                 JSONObject eventsRoot = new JSONObject(calendarEvents);
                 JSONArray events = eventsRoot.optJSONArray("items");
 
