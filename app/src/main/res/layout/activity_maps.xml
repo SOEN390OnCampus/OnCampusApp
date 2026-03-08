@@ -363,45 +363,44 @@
         android:layout_marginEnd="16dp"
         android:background="#FFFFFF"
         android:backgroundTint="#FFFFFF"
-        android:visibility="visible"
+        android:visibility="gone"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="parent">
 
         <ImageButton
             android:id="@+id/prevDirBtn"
-            android:layout_width="65dp"
+            android:layout_width="60dp"
             android:layout_height="60dp"
             android:layout_marginStart="5dp"
             android:layout_marginTop="11dp"
             android:layout_marginEnd="24dp"
             android:layout_marginBottom="17dp"
-            android:backgroundTint="#000000"
-            android:rotation="-90"
+            android:background="@drawable/bg_btn_navigation"
+            android:src="@drawable/ic_arrow_back"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toStartOf="@+id/textDir"
-            app:layout_constraintHorizontal_bias="0.172"
+            app:layout_constraintHorizontal_bias="0.0"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintVertical_bias="0.0"
-            app:srcCompat="@drawable/baseline_arrow_drop_up" />
+            app:layout_constraintVertical_bias="0.625" />
 
         <ImageButton
             android:id="@+id/nextDirBtn"
-            android:layout_width="65dp"
+            android:layout_width="60dp"
             android:layout_height="60dp"
             android:layout_marginStart="329dp"
             android:layout_marginTop="32dp"
             android:layout_marginEnd="32dp"
             android:layout_marginBottom="32dp"
-            android:backgroundTint="#000000"
-            android:rotation="90"
+            android:background="@drawable/bg_btn_navigation"
+            android:contentDescription="Next direction"
+            android:padding="12dp"
+            android:src="@drawable/ic_arrow_next"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintHorizontal_bias="0.6"
+            app:layout_constraintHorizontal_bias="0.314"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintVertical_bias="0.75"
-            app:srcCompat="@drawable/baseline_arrow_drop_up" />
+            app:layout_constraintTop_toTopOf="parent" />
 
         <TextView
             android:id="@+id/textDir"
