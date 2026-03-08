@@ -49,4 +49,5 @@
     <string name="this_building_has_direct_access_to_metro_via_tunnel">This building has direct access to metro via tunnel</string>
     <string name="accessible">Accessible</string>
     <string name="metro_connected">Metro Connected</string>
+    <string name="sample_direction">SAMPLE DIRECTION</string>
 </resources>

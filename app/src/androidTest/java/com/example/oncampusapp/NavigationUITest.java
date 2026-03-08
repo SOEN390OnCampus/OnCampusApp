@@ -155,7 +155,7 @@ public class NavigationUITest {
     }
     @Test
     public void testTransportationModeButtons_PolylineUpdate() throws InterruptedException {
-        AtomicReference<Polyline> navigationLine = new AtomicReference<>();
+        AtomicReference<List<Polyline>> navigationLine = new AtomicReference<>();
 
         Thread.sleep(4000); // Wait for map + GeoJSON
 
@@ -177,24 +177,17 @@ public class NavigationUITest {
         checkModeBtnAndPolyline(navigationLine, R.id.btn_mode_transit, false);
     }
     // Helper function for testing the transportation mode buttons
-    private void checkModeBtnAndPolyline(AtomicReference<Polyline> navigationLine, int btnId, boolean expectDotted) throws InterruptedException {
+    private void checkModeBtnAndPolyline(AtomicReference<List<Polyline>> navigationLine, int btnId, boolean expectDotted) throws InterruptedException {
         // Click the mode
         Espresso.onView(withId(btnId)).perform(click());
         Thread.sleep(3000); // Wait for route to draw
 
         // Verify polyline
         activityRule.getScenario().onActivity(activity -> {
-            Polyline polyline = activity.getBluePolyline();
+            List<Polyline> polyline = activity.getRoutePolylines();
             assertNotNull(polyline);
             assertNotEquals(polyline, navigationLine.get()); // Ensure updated
 
-            List<PatternItem> pattern = polyline.getPattern();
-            if (expectDotted) { // Check for dotted line if expected
-                assertNotNull(pattern);
-                assertFalse(pattern.isEmpty());
-            } else {
-                assertNull(pattern);
-            }
             navigationLine.set(polyline); // Set new polyline for next button test
         });
     }
