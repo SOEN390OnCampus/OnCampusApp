@@ -56,7 +56,6 @@
                 android:text="@string/search"
                 android:textColor="@android:color/darker_gray"
                 android:textSize="18sp" />
-
         </LinearLayout>
     </androidx.cardview.widget.CardView>
 
@@ -68,8 +67,8 @@
         android:elevation="10dp"
         android:orientation="vertical"
         android:paddingHorizontal="16dp"
-        android:paddingTop="16dp"
         android:paddingBottom="0dp"
+        android:paddingTop="16dp"
         android:visibility="gone"
         app:layout_constraintTop_toBottomOf="@id/included_banner">
 
@@ -77,10 +76,9 @@
             android:id="@+id/layout_inputs"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp"
-            android:gravity="center_vertical"
             android:orientation="horizontal"
-            android:visibility="gone">
+            android:gravity="center_vertical"
+            android:layout_marginBottom="16dp">
 
             <ImageButton
                 android:id="@+id/btn_swap_address"
@@ -101,20 +99,18 @@
                 <FrameLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content">
-
                     <AutoCompleteTextView
                         android:id="@+id/et_start"
                         android:layout_width="match_parent"
                         android:layout_height="45dp"
                         android:background="@drawable/rounded_edittext"
                         android:hint="@string/select_or_input_starting_point"
-                        android:inputType="textNoSuggestions"
-                        android:maxLines="1"
-                        android:paddingHorizontal="12dp"
                         android:textColor="#212121"
                         android:textColorHint="#757575"
-                        android:textSize="14sp" />
-
+                        android:inputType="textNoSuggestions"
+                        android:paddingHorizontal="12dp"
+                        android:textSize="14sp"
+                        android:maxLines="1" />
                     <ImageView
                         android:id="@+id/currentLocationIcon"
                         android:layout_width="20dp"
@@ -122,7 +118,7 @@
                         android:layout_gravity="end|center_vertical"
                         android:layout_marginEnd="12dp"
                         android:src="@android:drawable/ic_menu_mylocation"
-                        android:visibility="gone" />
+                        android:visibility="gone"/>
                 </FrameLayout>
 
                 <AutoCompleteTextView
@@ -132,12 +128,12 @@
                     android:layout_marginTop="8dp"
                     android:background="@drawable/rounded_edittext"
                     android:hint="@string/select_or_input_destination_point"
-                    android:inputType="textNoSuggestions"
-                    android:maxLines="1"
-                    android:paddingHorizontal="12dp"
                     android:textColor="#212121"
                     android:textColorHint="#757575"
-                    android:textSize="14sp" />
+                    android:inputType="textNoSuggestions"
+                    android:paddingHorizontal="12dp"
+                    android:textSize="14sp"
+                    android:maxLines="1" />
             </LinearLayout>
 
         </LinearLayout>
@@ -146,81 +142,101 @@
             android:id="@+id/layout_tabs"
             android:layout_width="match_parent"
             android:layout_height="55dp"
-            android:layout_marginBottom="16dp"
-            android:background="@drawable/bg_white_rounded"
             android:orientation="horizontal"
+            android:background="@drawable/bg_white_rounded"
             android:padding="4dp"
-            android:visibility="gone">
-
+            android:layout_marginBottom="16dp">
             <ImageButton
                 android:id="@+id/btn_mode_walking"
                 android:layout_width="0dp"
                 android:layout_height="match_parent"
                 android:layout_weight="1"
+                android:src="@drawable/ic_walk"
                 android:background="#D3D3D3"
-                android:padding="10dp"
                 android:scaleType="fitCenter"
-                android:src="@drawable/ic_walk" />
-
+                android:padding="10dp"/>
             <ImageButton
                 android:id="@+id/btn_mode_driving"
                 android:layout_width="0dp"
                 android:layout_height="match_parent"
                 android:layout_weight="1"
-                android:alpha="0.5"
+                android:src="@drawable/ic_car"
                 android:background="?attr/selectableItemBackground"
-                android:padding="10dp"
                 android:scaleType="fitCenter"
-                android:src="@drawable/ic_car" />
-
+                android:padding="10dp"
+                android:alpha="0.5"/>
             <ImageButton
                 android:id="@+id/btn_mode_transit"
                 android:layout_width="0dp"
                 android:layout_height="match_parent"
                 android:layout_weight="1"
-                android:alpha="0.5"
+                android:src="@drawable/ic_transit"
                 android:background="?attr/selectableItemBackground"
-                android:padding="10dp"
                 android:scaleType="fitCenter"
-                android:src="@drawable/ic_transit" />
-
+                android:padding="10dp"
+                android:alpha="0.5"/>
             <LinearLayout
                 android:id="@+id/btn_mode_shuttle"
                 android:layout_width="0dp"
                 android:layout_height="match_parent"
                 android:layout_weight="1"
-                android:alpha="0.5"
+                android:orientation="vertical"
+                android:gravity="center"
                 android:background="?attr/selectableItemBackground"
                 android:clickable="true"
                 android:focusable="true"
-                android:gravity="center"
-                android:orientation="vertical">
-
+                android:alpha="0.5">
                 <ImageView
                     android:layout_width="20dp"
                     android:layout_height="20dp"
                     android:src="@drawable/ic_transit"
                     app:tint="#000000" />
-
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="SHUTTLE"
-                    android:textColor="#000000"
                     android:textSize="8sp"
-                    android:textStyle="bold" />
+                    android:textStyle="bold"
+                    android:textColor="#000000"/>
             </LinearLayout>
-
-            <TextView
-                android:id="@+id/txt_duration"
+            <LinearLayout
                 android:layout_width="0dp"
                 android:layout_height="match_parent"
                 android:layout_weight="1.8"
-                android:gravity="center"
-                android:text="-- MIN"
-                android:textColor="#4CAF50"
-                android:textSize="16sp"
-                android:textStyle="bold" />
+                android:orientation="vertical"
+                android:gravity="center">
+                <TextView
+                    android:id="@+id/txt_duration"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="-- MIN"
+                    android:textStyle="bold"
+                    android:textColor="#4CAF50"
+                    android:textSize="16sp"/>
+                <LinearLayout
+                    android:id="@+id/layout_walk_to_shuttle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginTop="2dp"
+                    android:visibility="gone">
+                    <ImageView
+                        android:layout_width="11dp"
+                        android:layout_height="11dp"
+                        android:src="@drawable/ic_walk"
+                        app:tint="#FF7043"/>
+                    <TextView
+                        android:id="@+id/txt_walk_to_shuttle"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="3dp"
+                        android:textColor="#FF7043"
+                        android:textSize="11sp"
+                        android:textStyle="bold"
+                        android:letterSpacing="0.03"/>
+                </LinearLayout>
+            </LinearLayout>
         </LinearLayout>
 
         <Button
@@ -232,8 +248,43 @@
             android:textColor="@android:color/white"
             android:textSize="18sp"
             android:textStyle="bold"
-            android:visibility="gone"
             app:cornerRadius="25dp" />
+
+
+        <LinearLayout
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:gravity="center_vertical">
+
+    <Button
+        android:id="@+id/btn_go"
+        android:layout_width="0dp"
+        android:layout_height="55dp"
+        android:layout_weight="1"
+        android:backgroundTint="@android:color/black"
+        android:text="@string/go"
+        android:textColor="@android:color/white"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        app:cornerRadius="25dp" />
+
+    <Button
+        android:id="@+id/btn_shuttle_timetable"
+        android:layout_width="wrap_content"
+        android:layout_height="55dp"
+        android:layout_marginStart="8dp"
+        android:backgroundTint="#912338"
+        android:text="🚌 Schedule"
+        android:textColor="@android:color/white"
+        android:textSize="14sp"
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp"
+        android:visibility="gone"
+        app:cornerRadius="25dp" />
+
+</LinearLayout>
+
 
         <FrameLayout
             android:id="@+id/close_search"
@@ -259,22 +310,21 @@
             android:id="@+id/layout_navigation_active"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:background="@drawable/bg_white_rounded"
-            android:gravity="center_vertical"
             android:orientation="horizontal"
+            android:visibility="gone"
+            android:gravity="center_vertical"
+            android:background="@drawable/bg_white_rounded"
             android:padding="12dp">
-
             <TextView
                 android:id="@+id/txt_nav_instruction"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:gravity="center_vertical"
                 android:text="-- MINS"
                 android:textColor="#4CAF50"
                 android:textSize="20sp"
-                android:textStyle="bold" />
-
+                android:textStyle="bold"
+                android:gravity="center_vertical"/>
             <Button
                 android:id="@+id/btn_end_trip"
                 android:layout_width="wrap_content"
@@ -283,7 +333,7 @@
                 android:text="EXIT"
                 android:textColor="@android:color/white"
                 android:textSize="12sp"
-                app:cornerRadius="20dp" />
+                app:cornerRadius="20dp"/>
         </LinearLayout>
 
     </LinearLayout>

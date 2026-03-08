@@ -121,5 +121,32 @@ public class NavigationHelperTest {
     @Test
     public void testEnumCount() {
         assertEquals(3, RouteTravelMode.values().length);
+        assertEquals(4, NavigationHelper.Mode.values().length);
+    }
+
+    @Test
+    public void testShuttleModeValue() {
+        assertEquals("shuttle", NavigationHelper.Mode.SHUTTLE.getValue());
+    }
+    @Test
+    public void testFetchDirections_ValidResponse_onSuccessCalled() throws Exception {
+        try (MockedStatic<NavigationHelper> mock = Mockito.mockStatic(NavigationHelper.class)) {
+            mock.when(() -> NavigationHelper.fetchUrl(anyString())).thenReturn(VALID_RESPONSE);
+
+            mock.when(() -> NavigationHelper.fetchDirections(any(), any(), any(), any(), any()))
+                    .thenCallRealMethod();
+
+            NavigationHelper.fetchDirections(startPoint, destinationPoint, NavigationHelper.Mode.DRIVING, "key", new NavigationHelper.DirectionsCallback() {
+                @Override
+                public void onSuccess(List path, String duration) {
+                    assertEquals("1 hour", duration);
+                }
+                @Override
+                public void onError(Exception e) {
+                    fail(e.getMessage());
+                }
+            });
+
+        }
     }
 }
