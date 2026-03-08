@@ -334,10 +334,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         bannerHandler.removeCallbacks(bannerRunnable); // Stop to save battery
     }
 
-
-
-
-
     private void setupRoutePickerUi() {
         //Initialize Views
         CardView searchBar = findViewById(R.id.search_bar_container);
@@ -365,10 +361,30 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         View btnShuttle = findViewById(R.id.btn_mode_shuttle);
         List<View> transportTabs = Arrays.asList(btnWalk, btnCar, btnTransit, btnShuttle);
 
-
         //Animations
         Animation slideDown = AnimationUtils.loadAnimation(this, R.anim.slide_down);
         Animation slideUp = AnimationUtils.loadAnimation(this, R.anim.slide_up);
+
+        // Set the search bar margin top based on the device's notification bar height
+        ViewCompat.setOnApplyWindowInsetsListener(searchBar, (v, windowInsets) -> {
+            Insets insets = windowInsets.getInsets(WindowInsetsCompat.Type.statusBars());
+
+            ViewGroup.MarginLayoutParams mlp = (ViewGroup.MarginLayoutParams) v.getLayoutParams();
+            mlp.topMargin = insets.top + 10;
+            v.setLayoutParams(mlp);
+
+            return WindowInsetsCompat.CONSUMED;
+        });
+
+        ViewCompat.setOnApplyWindowInsetsListener(layoutInputs, (v, windowInsets) -> {
+            Insets insets = windowInsets.getInsets(WindowInsetsCompat.Type.statusBars());
+
+            ViewGroup.MarginLayoutParams mlp = (ViewGroup.MarginLayoutParams) v.getLayoutParams();
+            mlp.topMargin = insets.top + 10;
+            v.setLayoutParams(mlp);
+
+            return WindowInsetsCompat.CONSUMED;
+        });
 
         Runnable closeRoutePicker = () -> {
             slideUp.setAnimationListener(new Animation.AnimationListener() {

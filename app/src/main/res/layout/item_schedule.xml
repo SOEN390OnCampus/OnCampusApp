@@ -30,17 +30,16 @@
             android:textSize="9sp"
             android:textStyle="bold"
             android:textColor="#D19100"
-            android:maxLines="1"
+            android:maxLines="2"
             android:ellipsize="end"/>
 
         <TextView
             android:id="@+id/event_location"
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="LB-361"
             android:textSize="8sp"
             android:textColor="#888888"
-            android:maxLines="1"
             android:ellipsize="end"/>
     </LinearLayout>
 </LinearLayout>

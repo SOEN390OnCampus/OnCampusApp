@@ -269,9 +269,11 @@ public class ScheduleViewer extends AppCompatActivity {
         View strip = layout.findViewById(R.id.event_strip);
         View bg = layout.findViewById(R.id.event_bg);
 
-        String shortTitle = title.split(" ")[0];
-        titleView.setText(shortTitle);
-        locView.setText(location);
+        String[] locationSplitted = location.split(" - ");
+        String shortLocation = locationSplitted[locationSplitted.length - 1];
+
+        titleView.setText(title);
+        locView.setText(shortLocation);
 
         // --- Color Mapping Logic ---
         String fgColorHex;
