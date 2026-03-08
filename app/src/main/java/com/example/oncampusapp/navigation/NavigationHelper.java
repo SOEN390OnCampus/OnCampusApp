@@ -174,15 +174,13 @@ public class NavigationHelper {
             stepObj.setPoints(decodedPath);
 
             JSONObject navigationInstruction = step.getJSONObject("navigationInstruction");
-            String maneuver = navigationInstruction.getString("maneuver");
             String instructions = navigationInstruction.getString("instructions");
-            stepObj.setManeuver(maneuver);
             stepObj.setInstructions(instructions);
 
 
             JSONObject stepLocalizedValues = step.getJSONObject("localizedValues");
-            String stepDistance = stepLocalizedValues.getString("distance");
-            String stepStaticDuration = stepLocalizedValues.getString("staticDuration");
+            String stepDistance = stepLocalizedValues.getJSONObject("distance").getString("text");
+            String stepStaticDuration = stepLocalizedValues.getJSONObject("staticDuration").getString("text");
             stepObj.setDistance(stepDistance);
             stepObj.setDuration(stepStaticDuration);
 
@@ -223,11 +221,18 @@ public class NavigationHelper {
 
                 // Vehicle type
                 JSONObject transitLine = transitDetails.getJSONObject("transitLine");
+                TransitLine line = new TransitLine();
+                line.setName(transitLine.optString("name"));
+                line.setColor(transitLine.optString("color"));
+                line.setNameShort(transitLine.optString("nameShort"));
+
+
                 JSONObject vehicle = transitLine.getJSONObject("vehicle");
                 String vehicleType = vehicle.getString("type");
 
                 transitDetailsObj.setVehicleType(TransitVehicleType.fromString(vehicleType));
 
+                transitDetailsObj.setTransitLine(line);
                 stepObj.setTransitDetails(transitDetailsObj);
 
             }

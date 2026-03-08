@@ -4,14 +4,26 @@ import androidx.activity.OnBackPressedCallback;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.cardview.widget.CardView;
+import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+import androidx.core.graphics.drawable.DrawableCompat;
 import androidx.core.view.WindowCompat;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.core.graphics.Insets;
+
+import android.annotation.SuppressLint;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.content.Intent;
+import android.graphics.drawable.Drawable;
+import android.location.Location;
+import android.os.Looper;
 import android.view.ViewGroup;
+
 import androidx.fragment.app.FragmentActivity;
+
 import android.os.Handler;
 
 import android.Manifest;
@@ -30,6 +42,7 @@ import android.view.animation.AnimationUtils;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
+import android.widget.Button;
 import android.widget.FrameLayout;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
@@ -41,23 +54,33 @@ import android.widget.ImageView;
 import com.example.oncampusapp.navigation.NavigationHelper;
 import com.example.oncampusapp.navigation.Route;
 import com.example.oncampusapp.navigation.RouteTravelMode;
+import com.example.oncampusapp.navigation.Step;
+import com.example.oncampusapp.navigation.StepDirection;
 import com.google.android.gms.location.FusedLocationProviderClient;
+import com.google.android.gms.location.LocationRequest;
+import com.google.android.gms.location.LocationResult;
 import com.google.android.gms.location.LocationServices;
 import com.example.oncampusapp.location.FusedLocationProvider;
 import com.example.oncampusapp.location.FusedLocationSource;
 import com.example.oncampusapp.location.ILocationProvider;
 import com.google.android.gms.location.LocationCallback;
+import com.google.android.gms.location.Priority;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.CameraPosition;
+import com.google.android.gms.maps.model.Circle;
+import com.google.android.gms.maps.model.CircleOptions;
 import com.google.android.gms.maps.model.Dot;
 import com.google.android.gms.maps.model.Gap;
 import com.google.android.gms.maps.model.GroundOverlayOptions;
 import com.google.android.gms.maps.model.LatLng;
 import com.example.oncampusapp.databinding.ActivityMapsBinding;
+import com.google.android.gms.maps.model.LatLngBounds;
+import com.google.android.gms.maps.model.Marker;
+import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.PatternItem;
 import com.google.android.gms.maps.model.Polyline;
 import com.google.android.gms.maps.model.PolylineOptions;
@@ -72,16 +95,19 @@ import com.google.maps.android.data.geojson.GeoJsonPolygon;
 import com.google.maps.android.data.geojson.GeoJsonPolygonStyle;
 
 import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.lang.reflect.Type;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 import com.bumptech.glide.Glide;
@@ -92,9 +118,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
 
     public static Map<String, Building> buildingsMap = new HashMap<>();
+    private List<StepDirection> directionsList = new ArrayList<>();
+    private int currentDirectionIndex = 0;
     private Map<String, BuildingDetails> geoIdToBuildingDetailsMap;
     private ActivityMapsBinding binding;
     private boolean isRoutePickerOpen = false;
+    private boolean isPreviewActive = false;
 
     private final Handler bannerHandler = new Handler();
     private final Runnable bannerRunnable = new Runnable() {
@@ -121,6 +150,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     public ILocationProvider fusedLocationClient;
     private FusedLocationSource myLocationSource;
 
+    private List<Polyline> routePolylines = new ArrayList<>();
+
     private static final int LOCATION_PERMISSION_REQUEST_CODE = 1;
 
     private ActivityResultLauncher<String[]> locationPermissionRequest;
@@ -129,11 +160,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private static final String loy = "LOY";
 
     // Navigation Variables
-    private com.google.android.gms.maps.model.Polyline bluePolyline;
+    private Polyline bluePolyline;
     private List<LatLng> currentRoutePoints;
     private LocationCallback navigationLocationCallback;
-    private com.google.android.gms.maps.model.Circle startDot;
-    private com.google.android.gms.maps.model.Marker endMarker;
+    private Circle startDot;
+    private Marker endMarker;
 
     public GoogleMap getMap() {
         return this.mMap;
@@ -152,10 +183,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             ((OnCampusApplication) getApplication()).setLocationProvider(provider);
         }
     }
+
     private void checkLocationPermissions() {
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
             // Request the permission
-            locationPermissionRequest.launch(new String[] {
+            locationPermissionRequest.launch(new String[]{
                     Manifest.permission.ACCESS_FINE_LOCATION,
                     Manifest.permission.ACCESS_COARSE_LOCATION
             });
@@ -164,20 +196,20 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     // Register for multiple permissions
     private final ActivityResultLauncher<String[]> requestMultiplePermissionsLauncher =
-        registerForActivityResult(new ActivityResultContracts.RequestMultiplePermissions(), isGranted -> {
-            Boolean fineLocationGranted = isGranted.getOrDefault(Manifest.permission.ACCESS_FINE_LOCATION, false);
-            Boolean postNotificationsGranted = isGranted.getOrDefault(Manifest.permission.POST_NOTIFICATIONS, false);
+            registerForActivityResult(new ActivityResultContracts.RequestMultiplePermissions(), isGranted -> {
+                Boolean fineLocationGranted = isGranted.getOrDefault(Manifest.permission.ACCESS_FINE_LOCATION, false);
+                Boolean postNotificationsGranted = isGranted.getOrDefault(Manifest.permission.POST_NOTIFICATIONS, false);
 
-            if (Boolean.TRUE.equals(fineLocationGranted))
-                Log.d("LocationPermission", "Precise location access granted.");
-            else if (Boolean.TRUE.equals(isGranted.getOrDefault(Manifest.permission.ACCESS_COARSE_LOCATION, false)))
-                Log.d("LocationPermission", "Only approximate location access granted.");
+                if (Boolean.TRUE.equals(fineLocationGranted))
+                    Log.d("LocationPermission", "Precise location access granted.");
+                else if (Boolean.TRUE.equals(isGranted.getOrDefault(Manifest.permission.ACCESS_COARSE_LOCATION, false)))
+                    Log.d("LocationPermission", "Only approximate location access granted.");
 
-            if (Boolean.TRUE.equals(postNotificationsGranted))
-                Log.d("NotificationPermission", "Notifications granted.");
-            else
-                Log.d("NotificationPermission", "Notifications denied.");
-        });
+                if (Boolean.TRUE.equals(postNotificationsGranted))
+                    Log.d("NotificationPermission", "Notifications granted.");
+                else
+                    Log.d("NotificationPermission", "Notifications denied.");
+            });
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -213,14 +245,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             if (id == R.id.nav_home) {
                 Toast.makeText(this, "Home clicked", Toast.LENGTH_SHORT).show();
                 return true;
-            }
-
-            else if (id == R.id.nav_account) {
-                startActivity(new android.content.Intent(this, GoogleCalendarAuthActivity.class));
+            } else if (id == R.id.nav_account) {
+                startActivity(new Intent(this, GoogleCalendarAuthActivity.class));
                 return true;
-            }
-
-            else if (id == R.id.nav_settings) {
+            } else if (id == R.id.nav_settings) {
                 Toast.makeText(this, "Settings clicked", Toast.LENGTH_SHORT).show();
                 return true;
             }
@@ -266,7 +294,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             }
         }
 
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (ActivityCompat.checkSelfPermission(
                     this,
                     Manifest.permission.POST_NOTIFICATIONS
@@ -309,9 +337,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     }
 
 
-
-
-
     private void setupRoutePickerUi() {
         //Initialize Views
         CardView searchBar = findViewById(R.id.search_bar_container);
@@ -326,9 +351,15 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         LinearLayout layoutTabs = findViewById(R.id.layout_tabs);
         LinearLayout layoutNavActive = findViewById(R.id.layout_navigation_active);
 
+        // Directions layout
+        ConstraintLayout dirLayout = findViewById(R.id.dirLayout);
+        ImageButton prevDirBtn = findViewById(R.id.prevDirBtn);
+        ImageButton nextDirBtn = findViewById(R.id.nextDirBtn);
+        TextView textDir = findViewById(R.id.textDir);
+
         // Buttons & Text
-        android.widget.Button btnGo = findViewById(R.id.btn_go);
-        android.widget.Button btnEndTrip = findViewById(R.id.btn_end_trip);
+        Button btnGo = findViewById(R.id.btn_go);
+        Button btnEndTrip = findViewById(R.id.btn_end_trip);
         TextView txtNavInstruction = findViewById(R.id.txt_nav_instruction);
         TextView txtDuration = findViewById(R.id.txt_duration);
 
@@ -346,8 +377,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         Runnable closeRoutePicker = () -> {
             slideUp.setAnimationListener(new Animation.AnimationListener() {
-                @Override public void onAnimationStart(Animation animation) {}
-                @Override public void onAnimationEnd(Animation animation) {
+                @Override
+                public void onAnimationStart(Animation animation) {
+                }
+
+                @Override
+                public void onAnimationEnd(Animation animation) {
                     routePicker.setVisibility(View.GONE);
                     searchBar.setVisibility(View.VISIBLE);
                     slideUp.setAnimationListener(null);
@@ -355,7 +390,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     isRoutePickerOpen = false;
                     checkAndDisplayNextEventBanner();
                 }
-                @Override public void onAnimationRepeat(Animation animation) {}
+
+                @Override
+                public void onAnimationRepeat(Animation animation) {
+                }
             });
             routePicker.startAnimation(slideUp);
         };
@@ -372,6 +410,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             routePicker.setVisibility(View.VISIBLE);
             routePicker.startAnimation(slideDown);
 
+
             // Reset Visibility of sub-layouts in case we came back from navigation
             layoutInputs.setVisibility(View.VISIBLE);
             layoutTabs.setVisibility(View.VISIBLE);
@@ -384,7 +423,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
             startDestinationText.post(() -> {
                 InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
-                if (imm != null) imm.showSoftInput(startDestinationText, InputMethodManager.SHOW_IMPLICIT);
+                if (imm != null)
+                    imm.showSoftInput(startDestinationText, InputMethodManager.SHOW_IMPLICIT);
             });
         });
 
@@ -428,7 +468,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         btnShuttle.setOnClickListener(v -> Toast.makeText(this, "Concordia Shuttle is currently unavailable", Toast.LENGTH_SHORT).show());
 
         //Helper Buttons
-        btnSwapAddress.setOnClickListener(v -> { swapAddresses(); initiateRoutePreview(); });
+        btnSwapAddress.setOnClickListener(v -> {
+            swapAddresses();
+            initiateRoutePreview();
+        });
         currentLocationIcon.setOnClickListener(v -> setCurrentBuilding());
 
         //GO BUTTON (Start Navigation Mode)
@@ -443,7 +486,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             }
 
             // SAFETY CHECK
-            if (bluePolyline == null) {
+            if (!isPreviewActive) {
                 Toast.makeText(this, "Calculating route, please wait...", Toast.LENGTH_SHORT).show();
                 initiateRoutePreview();
                 return;
@@ -462,11 +505,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             toggleNavigationUI(true);
 
             //Update Nav Bar Text safely
-            if(txtDuration != null && txtDuration.getText().length() > 0 && !txtDuration.getText().equals("-- MIN")) {
-                String instructionText = txtDuration.getText() + " ("+selectedMode.getValue()+")";
+            if (txtDuration != null && txtDuration.getText().length() > 0 && !txtDuration.getText().equals("-- MIN")) {
+                String instructionText = txtDuration.getText() + " (" + selectedMode.getValue() + ")";
                 txtNavInstruction.setText(instructionText);
             } else {
-                String instructionText = "Follow the route ("+selectedMode.getValue()+")";
+                String instructionText = "Follow the route (" + selectedMode.getValue() + ")";
                 txtNavInstruction.setText(instructionText);
             }
 
@@ -478,6 +521,24 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                         .tilt(0)
                         .build();
                 mMap.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPosition));
+            }
+        });
+
+        nextDirBtn.setOnClickListener(v -> {
+            if (currentDirectionIndex < directionsList.size() - 1) {
+                currentDirectionIndex++;
+                showCurrentDirection();
+            } else {
+                Toast.makeText(this, "You are at the last step", Toast.LENGTH_SHORT).show();
+            }
+        });
+
+        prevDirBtn.setOnClickListener(v -> {
+            if (currentDirectionIndex > 0) {
+                currentDirectionIndex--;
+                showCurrentDirection();
+            } else {
+                Toast.makeText(this, "You are at the first step", Toast.LENGTH_SHORT).show();
             }
         });
 
@@ -517,6 +578,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
                     // Clean up map
                     if (bluePolyline != null) bluePolyline.remove();
+                    if (isPreviewActive) isPreviewActive = false;
+                    currentDirectionIndex = 0;
                     if (navigationLocationCallback != null) {
                         fusedLocationClient.removeLocationUpdates(navigationLocationCallback);
                     }
@@ -533,21 +596,38 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private void toggleNavigationUI(boolean isNavigating) {
         LinearLayout layoutInputs = findViewById(R.id.layout_inputs);
         LinearLayout layoutTabs = findViewById(R.id.layout_tabs);
-        android.widget.Button btnGo = findViewById(R.id.btn_go);
+        Button btnGo = findViewById(R.id.btn_go);
         LinearLayout layoutNavActive = findViewById(R.id.layout_navigation_active);
+        ConstraintLayout dirLayout = findViewById(R.id.dirLayout);
+        ImageButton prevDirBtn = findViewById(R.id.prevDirBtn);
+        ImageButton nextDirBtn = findViewById(R.id.nextDirBtn);
+        TextView textDir = findViewById(R.id.textDir);
+        FrameLayout closeSearchLayout = findViewById(R.id.close_search);
 
         if (isNavigating) {
             layoutInputs.setVisibility(View.GONE);
             layoutTabs.setVisibility(View.GONE);
             btnGo.setVisibility(View.GONE);
             layoutNavActive.setVisibility(View.VISIBLE);
+            dirLayout.setVisibility(View.VISIBLE);
+            prevDirBtn.setVisibility(View.VISIBLE);
+            nextDirBtn.setVisibility(View.VISIBLE);
+            textDir.setVisibility(View.VISIBLE);
+            closeSearchLayout.setVisibility(View.GONE);
+
         } else {
             layoutInputs.setVisibility(View.VISIBLE);
             layoutTabs.setVisibility(View.VISIBLE);
             btnGo.setVisibility(View.VISIBLE);
             layoutNavActive.setVisibility(View.GONE);
+            dirLayout.setVisibility(View.GONE);
+            prevDirBtn.setVisibility(View.GONE);
+            nextDirBtn.setVisibility(View.GONE);
+            textDir.setVisibility(View.GONE);
+            closeSearchLayout.setVisibility(View.VISIBLE);
         }
     }
+
 
     @Override
     public void onMapReady(GoogleMap googleMap) {
@@ -556,7 +636,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         // Tell the map to use our custom FusedLocationSource
         mMap.setLocationSource(myLocationSource);
 
-        if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
             mMap.setMyLocationEnabled(true);
         }
 
@@ -613,10 +693,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     feature.setPolygonStyle(polyStyle);
                 }
 
-                if(isConcordiaBuilding && feature.hasGeometry()) {
+                if (isConcordiaBuilding && feature.hasGeometry()) {
                     Geometry geometry = feature.getGeometry();
 
-                    if(geometry instanceof GeoJsonPolygon) {
+                    if (geometry instanceof GeoJsonPolygon) {
                         GeoJsonPolygon polygon = (GeoJsonPolygon) feature.getGeometry();
                         List<LatLng> coordinates = polygon.getCoordinates().get(0);
 
@@ -644,14 +724,14 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                         );
 
                         // Special case for the SP building
-                        if (id.equals("way/47331993")){
+                        if (id.equals("way/47331993")) {
                             BuildingDetails details = geoIdToBuildingDetailsMap.get(id);
                             center = new LatLng(details.getLat(), details.getLng());
                         }
 
                         if (geoIdToBuildingDetailsMap.containsKey(id)) {
                             // Create a feature to allow click
-                            pointFeatures.add(createSquareFeature(center,id));
+                            pointFeatures.add(createSquareFeature(center, id));
 
                             // Ground overlay to visually show the button
                             mMap.addGroundOverlay(new GroundOverlayOptions()
@@ -675,7 +755,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                         handleBuildingClick(feature);
                         return;
                     }
-                    if (clickedLayer.equals("detailButton")){ // Clicked on the button
+                    if (clickedLayer.equals("detailButton")) { // Clicked on the button
                         String clickedId = feature.getProperty("id");
                         handleBuildingDetailsButtonClick(clickedId);
                     }
@@ -701,9 +781,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         // String array for building suggestions
         String[] buildingSuggestions = geoIdToBuildingDetailsMap.values()
-            .stream()
-            .map(BuildingDetails::getName)
-            .toArray(String[]::new);
+                .stream()
+                .map(BuildingDetails::getName)
+                .toArray(String[]::new);
 
         // Create the adapter for building suggestions
         ArrayAdapter<String> adapter = new ArrayAdapter<>(this,
@@ -727,7 +807,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         closeSearchLayout.setOnClickListener(v -> handleCloseSearch());
     }
 
-    private GeoJsonFeature createSquareFeature(LatLng center, String id){
+    private GeoJsonFeature createSquareFeature(LatLng center, String id) {
         List<LatLng> squareCorners = createSquareCorners(center, 10);
         List<List<LatLng>> coords = new ArrayList<>();
         coords.add(squareCorners);
@@ -782,8 +862,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     }
 
     private void goToCurrentLocation() {
-        if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(this, new String[]{android.Manifest.permission.ACCESS_FINE_LOCATION}, 1);
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, 1);
         } else {
             mMap.setMyLocationEnabled(true);
             fusedLocationClient.getLastLocation()
@@ -799,16 +879,16 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     }
 
     private void createNotificationChannel() {
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-            android.app.NotificationChannel channel =
-                    new android.app.NotificationChannel(
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            NotificationChannel channel =
+                    new NotificationChannel(
                             "GEOFENCE_CHANNEL",
                             "Geofence Notifications",
-                            android.app.NotificationManager.IMPORTANCE_HIGH
+                            NotificationManager.IMPORTANCE_HIGH
                     );
 
-            android.app.NotificationManager manager =
-                    getSystemService(android.app.NotificationManager.class);
+            NotificationManager manager =
+                    getSystemService(NotificationManager.class);
 
             manager.createNotificationChannel(channel);
         }
@@ -816,7 +896,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     protected void handleBuildingDetailsButtonClick(String geojsonId) {
         BuildingDetails details = geoIdToBuildingDetailsMap.get(geojsonId);
-        if (details == null){
+        if (details == null) {
             Toast.makeText(this, "No details found for this building", Toast.LENGTH_SHORT).show();
             return;
         }
@@ -842,6 +922,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     /**
      * Handle on click for the building polygon on the map
      * Set the name of the building into start destination search box
+     *
      * @param feature feature representing the building
      */
     private void handleBuildingClick(Feature feature) {
@@ -889,7 +970,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         if (dialog.getWindow() != null) {
             dialog.getWindow().setLayout(
                     (int) (getResources().getDisplayMetrics().widthPixels * 0.8),
-                    android.view.ViewGroup.LayoutParams.WRAP_CONTENT
+                    ViewGroup.LayoutParams.WRAP_CONTENT
             );
             dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
         }
@@ -959,7 +1040,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         dialog.setOnDismissListener(d -> currentBuildingDialog = null);
     }
 
-    private void loadBuildingDetails(){
+    private void loadBuildingDetails() {
         try {
             InputStream is = this.getResources().openRawResource(R.raw.concordia_building_details);
             BufferedReader reader = new BufferedReader(new InputStreamReader(is));
@@ -971,7 +1052,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             String json = jsonBuilder.toString();
 
             Gson gson = new Gson();
-            Type type = new TypeToken<Map<String, BuildingDetails>>(){}.getType();
+            Type type = new TypeToken<Map<String, BuildingDetails>>() {
+            }.getType();
             geoIdToBuildingDetailsMap = gson.fromJson(json, type);
         } catch (Resources.NotFoundException | IOException e) {
             throw new RuntimeException("File not found:" + e.getMessage());
@@ -996,8 +1078,20 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
     }
 
+    private void drawPolyline(List<LatLng> points, int color) {
+
+        PolylineOptions options = new PolylineOptions()
+                .addAll(points)
+                .color(color)
+                .width(20)
+                .geodesic(true);
+
+        Polyline polyline = mMap.addPolyline(options);
+        routePolylines.add(polyline);
+    }
+
     // Update signature to accept duration
-    private void drawRouteOnMap(List<LatLng> decodedPath, String duration, boolean isDotted) {
+    private void drawRouteOnMap(List<LatLng> decodedPath, String duration, List<Step> steps, boolean isDotted) {
         if (mMap == null || decodedPath == null) return;
 
         // Update the Time Text
@@ -1006,9 +1100,16 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             txtDuration.setText(duration.toUpperCase());
         }
 
+        for (Polyline polyline : routePolylines) {
+            polyline.remove();
+        }
+        directionsList.clear();
+        routePolylines.clear();
+
         // Draw the Line
         this.currentRoutePoints = new ArrayList<>(decodedPath);
-        if (bluePolyline != null) bluePolyline.remove();
+        if (isPreviewActive) isPreviewActive = false;
+        currentDirectionIndex = 0;
 
         // Clear old markers and draw new ones so the Swap button is visually obvious
         // Remove old markers/dots if they exist
@@ -1017,7 +1118,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         if (!decodedPath.isEmpty()) {
             // Draw a Grey Dot for the Start Location
-            startDot = mMap.addCircle(new com.google.android.gms.maps.model.CircleOptions()
+            startDot = mMap.addCircle(new CircleOptions()
                     .center(decodedPath.get(0))
                     .radius(4) // 4 meters wide
                     .fillColor(Color.GRAY)
@@ -1026,34 +1127,116 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     .zIndex(3));
 
             // Draw a standard Red Pin for the Destination
-            endMarker = mMap.addMarker(new com.google.android.gms.maps.model.MarkerOptions()
+            endMarker = mMap.addMarker(new MarkerOptions()
                     .position(decodedPath.get(decodedPath.size() - 1))
                     .title("Destination"));
         }
 
-        PolylineOptions blueOptions = new PolylineOptions()
-                .addAll(decodedPath)
-                .color(Color.parseColor("#4285F4"))
-                .width(20)
-                .zIndex(2)
-                .geodesic(true);
-        if (isDotted){
-            List<PatternItem> pattern = Arrays.asList(new Dot(), new Gap(20));
-            blueOptions.pattern(pattern);
+        for (Step step : steps) {
+
+            int color;
+
+            if (step.getTravelMode() == RouteTravelMode.TRANSIT) {
+                if (step.getTransitDetails() != null && step.getTransitDetails().getTransitLine() != null) {
+                    System.out.println(step.getTransitDetails().getTransitLine().getColor());
+                    color = Color.parseColor(step.getTransitDetails()
+                            .getTransitLine()
+                            .getColor());
+
+                    PolylineOptions options = new PolylineOptions()
+                            .addAll(step.getPoints())
+                            .color(color)
+                            .width(20)
+                            .zIndex(2)
+                            .geodesic(true);
+
+                    Polyline polyline = mMap.addPolyline(options);
+                    routePolylines.add(polyline);
+                    isPreviewActive = true;
+
+
+                } else {
+                    color = Color.parseColor("#4285F4");
+                }
+
+            } else {
+                PolylineOptions options = new PolylineOptions()
+                        .addAll(step.getPoints())
+                        .color(Color.parseColor("#4285F4"))
+                        .width(20)
+                        .zIndex(2)
+                        .geodesic(true);
+                if (isDotted) {
+                    List<PatternItem> pattern = Arrays.asList(new Dot(), new Gap(20));
+                    options.pattern(pattern);
+                }
+
+                Polyline polyline = mMap.addPolyline(options);
+                routePolylines.add(polyline);
+                isPreviewActive = true;
+               // bluePolyline = mMap.addPolyline(options);
+            }
+
+            StepDirection dir = new StepDirection(
+                    step.getInstructions(),
+                    step.getDistance(),
+                    step.getDuration(),
+                    step.getTravelMode(),
+                    step.getPoints()
+            );
+
+
+            if (step.getTravelMode() == RouteTravelMode.TRANSIT && step.getTransitDetails() != null) {
+                LatLng depStop = step.getTransitDetails().getDepartureStopLocation();
+                LatLng arrStop = step.getTransitDetails().getArrivalStopLocation();
+                Log.d("TRANSIT_STOPS", "Dep: " + depStop + " | Arr: " + arrStop);
+                dir.setTransitStops(depStop, arrStop);
+
+
+            }
+
+            directionsList.add(dir);
+
+
         }
 
-        bluePolyline = mMap.addPolyline(blueOptions);
-
-        // Zoom Camera
-        com.google.android.gms.maps.model.LatLngBounds.Builder builder =
-                new com.google.android.gms.maps.model.LatLngBounds.Builder();
+        LatLngBounds.Builder builder =
+                new LatLngBounds.Builder();
         for (LatLng latLng : decodedPath) {
             builder.include(latLng);
         }
         mMap.animateCamera(CameraUpdateFactory.newLatLngBounds(builder.build(), 150));
     }
 
-    @android.annotation.SuppressLint("MissingPermission")
+    private void showCurrentDirection() {
+        TextView textDir = findViewById(R.id.textDir);
+
+        if (directionsList.isEmpty()) return;
+
+        StepDirection stepDir = directionsList.get(currentDirectionIndex);
+
+        String direction = stepDir.getInstructions() + "\nin " + stepDir.getDistance().toString();
+
+        textDir.setText(direction);
+
+        if (stepDir.getTravelMode() == RouteTravelMode.TRANSIT
+                && stepDir.getTransitDepartureStop() != null
+                && stepDir.getTransitArrivalStop() != null) {
+
+            LatLngBounds bounds = new LatLngBounds.Builder()
+                    .include(stepDir.getTransitDepartureStop())
+                    .include(stepDir.getTransitArrivalStop())
+                    .build();
+            mMap.animateCamera(CameraUpdateFactory.newLatLngBounds(bounds, 150));
+        } else if (stepDir.getPoints() != null && !stepDir.getPoints().isEmpty()) {
+            LatLngBounds.Builder builder = new LatLngBounds.Builder();
+            for (LatLng point : stepDir.getPoints()) builder.include(point);
+            mMap.animateCamera(CameraUpdateFactory.newLatLngBounds(builder.build(), 150));
+        }
+    }
+
+
+    @SuppressLint("MissingPermission")
     private void startNavigationUpdates() {
         // Stop any existing listener to be safe
         if (navigationLocationCallback != null) {
@@ -1061,25 +1244,29 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
 
         // Create the request (High accuracy, update every 2 seconds)
-        com.google.android.gms.location.LocationRequest request =
-                new com.google.android.gms.location.LocationRequest.Builder(
-                        com.google.android.gms.location.Priority.PRIORITY_HIGH_ACCURACY, 2000
+        LocationRequest request =
+                new LocationRequest.Builder(
+                        Priority.PRIORITY_HIGH_ACCURACY, 2000
                 ).build();
 
         // Define what happens when location changes
-        navigationLocationCallback = new com.google.android.gms.location.LocationCallback() {
+        navigationLocationCallback = new LocationCallback() {
             @Override
-            public void onLocationResult(com.google.android.gms.location.LocationResult locationResult) {
+            public void onLocationResult(LocationResult locationResult) {
                 if (locationResult == null) return;
-                for (android.location.Location location : locationResult.getLocations()) {
+                showCurrentDirection();
+                for (Location location : locationResult.getLocations()) {
+                    showCurrentDirection();
                     // Pass the new location to your existing update logic
                     updateRouteProgress(new LatLng(location.getLatitude(), location.getLongitude()));
                 }
+
+
             }
         };
 
         // 4. Start listening
-        fusedLocationClient.requestLocationUpdates(request, navigationLocationCallback, android.os.Looper.getMainLooper());
+        fusedLocationClient.requestLocationUpdates(request, navigationLocationCallback, Looper.getMainLooper());
     }
 
     private void initiateRoutePreview() {
@@ -1101,12 +1288,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             NavigationHelper.fetchRoute(startCoords, destCoords, selectedMode, BuildConfig.MAPS_API_KEY, new NavigationHelper.RoutesCallback() {
                 @Override
                 public void onSuccess(Route route) {
-                    if (selectedMode== RouteTravelMode.WALK){
+                    if (selectedMode == RouteTravelMode.WALK) {
                         Log.i("RouteClient", "Walking route found");
-                        runOnUiThread(() -> drawRouteOnMap(route.getPoints(), route.getDuration(), true)); // Dotted line for walking
+                        runOnUiThread(() -> drawRouteOnMap(route.getPoints(), route.getDuration(), route.getSteps(), true)); // Dotted line for walking
                     } else {
                         Log.i("RouteClient", "Transit route found");
-                        runOnUiThread(() -> drawRouteOnMap(route.getPoints(), route.getDuration(), false)); // Straight line for everything else
+                        runOnUiThread(() -> drawRouteOnMap(route.getPoints(), route.getDuration(), route.getSteps(), false)); // Straight line for everything else
                     }
                 }
 
@@ -1122,32 +1309,43 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     }
 
     private void updateRouteProgress(LatLng userLocation) {
-        if (currentRoutePoints == null || currentRoutePoints.isEmpty()) return;
 
-        // Use Helper To Get The Sliced Path
+        if (currentRoutePoints == null || currentRoutePoints.isEmpty()) return;
+        if (routePolylines == null || routePolylines.isEmpty()) return;
+
+
+        // helper method to get the sliced path (removing already traveled points)
         List<LatLng> updatedPath = NavigationHelper.getUpdatedPath(userLocation, currentRoutePoints, 50.0);
 
-        // Update the UI immediately if the path changed
-        if (updatedPath.size() != currentRoutePoints.size() && bluePolyline != null) {
-            bluePolyline.setPoints(updatedPath);
-            currentRoutePoints = updatedPath; // Save the new state
+        // Only update if path has changed
+        if (updatedPath.size() != currentRoutePoints.size() && isPreviewActive) {
+            for (Polyline polyline : routePolylines) {
+                if (polyline != null) {
+                    polyline.setPoints(updatedPath);
+                }
+            }
+
+            currentRoutePoints = updatedPath;
         }
 
-        // Use Helper To Check Arrival
+        // Check if user has arrived at destination
         if (NavigationHelper.hasArrived(userLocation, currentRoutePoints, 10.0)) {
             Toast.makeText(this, "You have arrived!", Toast.LENGTH_LONG).show();
 
-            android.widget.Button btnEndTrip = findViewById(R.id.btn_end_trip);
-            if (btnEndTrip != null) btnEndTrip.performClick(); // Reset the UI
+            Button btnEndTrip = findViewById(R.id.btn_end_trip);
+            if (btnEndTrip != null) btnEndTrip.performClick();
         }
     }
-    public Polyline getBluePolyline(){
+
+    public Polyline getBluePolyline() {
         return bluePolyline;
     }
-    public GeoJsonLayer getLayer(){
+
+    public GeoJsonLayer getLayer() {
         return layer;
     }
-    public Dialog getCurrentBuildingDialog(){
+
+    public Dialog getCurrentBuildingDialog() {
         return currentBuildingDialog;
     }
     // ==========================================
@@ -1163,7 +1361,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         String eventsJson = CalendarEventManager.globalEventsJson;
         if (eventsJson == null || eventsJson.isEmpty()) return;
 
-        org.json.JSONObject nextClass = CalendarEventManager.findNextUpcomingEvent(eventsJson);
+        JSONObject nextClass = CalendarEventManager.findNextUpcomingEvent(eventsJson);
         View bannerView = findViewById(R.id.included_banner);
 
         if (nextClass != null && bannerView != null) {
@@ -1183,7 +1381,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 String rawLocation = nextClass.optString("location", "");
                 String description = nextClass.optString("description", "");
 
-                java.text.SimpleDateFormat exactTimeFormat = new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX", java.util.Locale.getDefault());
+                SimpleDateFormat exactTimeFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX", Locale.getDefault());
                 long startTime = exactTimeFormat.parse(startStr).getTime();
                 long endTime = exactTimeFormat.parse(endStr).getTime();
 
@@ -1217,11 +1415,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     // BULLETPROOF ICON INJECTION
                     try {
                         // 1. Clock icon - using built-in Android system icon
-                        android.graphics.drawable.Drawable clockIcon = androidx.core.content.ContextCompat.getDrawable(
+                        Drawable clockIcon = ContextCompat.getDrawable(
                                 this, android.R.drawable.ic_menu_recent_history);
                         if (clockIcon != null) {
-                            clockIcon = androidx.core.graphics.drawable.DrawableCompat.wrap(clockIcon).mutate();
-                            androidx.core.graphics.drawable.DrawableCompat.setTint(clockIcon, redColor);
+                            clockIcon = DrawableCompat.wrap(clockIcon).mutate();
+                            DrawableCompat.setTint(clockIcon, redColor);
                             // Resize to 16dp
                             int size = (int) (16 * getResources().getDisplayMetrics().density);
                             clockIcon.setBounds(0, 0, size, size);
@@ -1230,11 +1428,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                         }
 
                         // 2. Location icon - using built-in Android system icon
-                        android.graphics.drawable.Drawable targetIcon = androidx.core.content.ContextCompat.getDrawable(
+                        Drawable targetIcon = ContextCompat.getDrawable(
                                 this, android.R.drawable.ic_menu_mylocation);
                         if (targetIcon != null) {
-                            targetIcon = androidx.core.graphics.drawable.DrawableCompat.wrap(targetIcon).mutate();
-                            androidx.core.graphics.drawable.DrawableCompat.setTint(targetIcon, greyColor);
+                            targetIcon = DrawableCompat.wrap(targetIcon).mutate();
+                            DrawableCompat.setTint(targetIcon, greyColor);
                             int size = (int) (16 * getResources().getDisplayMetrics().density);
                             targetIcon.setBounds(0, 0, size, size);
                             detailsView.setCompoundDrawables(targetIcon, null, null, null);

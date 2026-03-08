@@ -81,7 +81,7 @@ public class NavigationHelperTest {
 
         TransitDetails details = transitStep.getTransitDetails();
         assertEquals("Sherbrooke / Redpath", details.getDepartureStopName());
-        assertEquals("Sherbrooke / West Broadway", details.getArrivalStop());
+        assertEquals("Sherbrooke / West Broadway", details.getArrivalStopName());
         assertEquals("2026-03-01T08:13:25Z", details.getDepartureTime());
         assertEquals("2026-03-01T08:42:39Z", details.getArrivalTime());
         assertEquals(TransitVehicleType.BUS, details.getVehicleType());

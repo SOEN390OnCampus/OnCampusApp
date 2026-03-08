@@ -12,7 +12,6 @@ public class Step {
     private RouteTravelMode travelMode;
     private List<LatLng> points;
     private TransitDetails transitDetails;
-    private String maneuver;
     private String instructions;
     private String distance;
     private String duration;
@@ -36,13 +35,6 @@ public class Step {
         this.transitDetails = transitDetails;
     }
 
-    public String getManeuver() {
-        return maneuver;
-    }
-
-    public void setManeuver(String maneuver) {
-        this.maneuver = maneuver;
-    }
 
     public String getInstructions() {
         return instructions;

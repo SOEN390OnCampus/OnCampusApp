@@ -11,6 +11,8 @@ public class TransitDetails {
     private LatLng departureStopLocation;
     private String arrivalStopName;
 
+    private TransitLine transitLine;
+
     private LatLng arrivalStopLocation;
     private String departureTime;
     private String arrivalTime;
@@ -32,6 +34,14 @@ public class TransitDetails {
     }
     public void setArrivalStopName(String arrivalStop) {
         this.arrivalStopName = arrivalStop;
+    }
+
+    public TransitLine getTransitLine() {
+        return transitLine;
+    }
+
+    public void setTransitLine(TransitLine transitLine) {
+        this.transitLine = transitLine;
     }
     public LatLng getArrivalStopLocation() {
         return arrivalStopLocation;

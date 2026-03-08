@@ -56,6 +56,7 @@
                 android:text="@string/search"
                 android:textColor="@android:color/darker_gray"
                 android:textSize="18sp" />
+
         </LinearLayout>
     </androidx.cardview.widget.CardView>
 
@@ -67,8 +68,8 @@
         android:elevation="10dp"
         android:orientation="vertical"
         android:paddingHorizontal="16dp"
-        android:paddingBottom="0dp"
         android:paddingTop="16dp"
+        android:paddingBottom="0dp"
         android:visibility="gone"
         app:layout_constraintTop_toBottomOf="@id/included_banner">
 
@@ -76,9 +77,10 @@
             android:id="@+id/layout_inputs"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
+            android:layout_marginBottom="16dp"
             android:gravity="center_vertical"
-            android:layout_marginBottom="16dp">
+            android:orientation="horizontal"
+            android:visibility="gone">
 
             <ImageButton
                 android:id="@+id/btn_swap_address"
@@ -99,18 +101,20 @@
                 <FrameLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content">
+
                     <AutoCompleteTextView
                         android:id="@+id/et_start"
                         android:layout_width="match_parent"
                         android:layout_height="45dp"
                         android:background="@drawable/rounded_edittext"
                         android:hint="@string/select_or_input_starting_point"
+                        android:inputType="textNoSuggestions"
+                        android:maxLines="1"
+                        android:paddingHorizontal="12dp"
                         android:textColor="#212121"
                         android:textColorHint="#757575"
-                        android:inputType="textNoSuggestions"
-                        android:paddingHorizontal="12dp"
-                        android:textSize="14sp"
-                        android:maxLines="1" />
+                        android:textSize="14sp" />
+
                     <ImageView
                         android:id="@+id/currentLocationIcon"
                         android:layout_width="20dp"
@@ -118,7 +122,7 @@
                         android:layout_gravity="end|center_vertical"
                         android:layout_marginEnd="12dp"
                         android:src="@android:drawable/ic_menu_mylocation"
-                        android:visibility="gone"/>
+                        android:visibility="gone" />
                 </FrameLayout>
 
                 <AutoCompleteTextView
@@ -128,12 +132,12 @@
                     android:layout_marginTop="8dp"
                     android:background="@drawable/rounded_edittext"
                     android:hint="@string/select_or_input_destination_point"
+                    android:inputType="textNoSuggestions"
+                    android:maxLines="1"
+                    android:paddingHorizontal="12dp"
                     android:textColor="#212121"
                     android:textColorHint="#757575"
-                    android:inputType="textNoSuggestions"
-                    android:paddingHorizontal="12dp"
-                    android:textSize="14sp"
-                    android:maxLines="1" />
+                    android:textSize="14sp" />
             </LinearLayout>
 
         </LinearLayout>
@@ -142,63 +146,71 @@
             android:id="@+id/layout_tabs"
             android:layout_width="match_parent"
             android:layout_height="55dp"
-            android:orientation="horizontal"
+            android:layout_marginBottom="16dp"
             android:background="@drawable/bg_white_rounded"
+            android:orientation="horizontal"
             android:padding="4dp"
-            android:layout_marginBottom="16dp">
+            android:visibility="gone">
+
             <ImageButton
                 android:id="@+id/btn_mode_walking"
                 android:layout_width="0dp"
                 android:layout_height="match_parent"
                 android:layout_weight="1"
-                android:src="@drawable/ic_walk"
                 android:background="#D3D3D3"
+                android:padding="10dp"
                 android:scaleType="fitCenter"
-                android:padding="10dp"/>
+                android:src="@drawable/ic_walk" />
+
             <ImageButton
                 android:id="@+id/btn_mode_driving"
                 android:layout_width="0dp"
                 android:layout_height="match_parent"
                 android:layout_weight="1"
-                android:src="@drawable/ic_car"
+                android:alpha="0.5"
                 android:background="?attr/selectableItemBackground"
-                android:scaleType="fitCenter"
                 android:padding="10dp"
-                android:alpha="0.5"/>
+                android:scaleType="fitCenter"
+                android:src="@drawable/ic_car" />
+
             <ImageButton
                 android:id="@+id/btn_mode_transit"
                 android:layout_width="0dp"
                 android:layout_height="match_parent"
                 android:layout_weight="1"
-                android:src="@drawable/ic_transit"
+                android:alpha="0.5"
                 android:background="?attr/selectableItemBackground"
-                android:scaleType="fitCenter"
                 android:padding="10dp"
-                android:alpha="0.5"/>
+                android:scaleType="fitCenter"
+                android:src="@drawable/ic_transit" />
+
             <LinearLayout
                 android:id="@+id/btn_mode_shuttle"
                 android:layout_width="0dp"
                 android:layout_height="match_parent"
                 android:layout_weight="1"
-                android:orientation="vertical"
-                android:gravity="center"
+                android:alpha="0.5"
                 android:background="?attr/selectableItemBackground"
                 android:clickable="true"
                 android:focusable="true"
-                android:alpha="0.5">
+                android:gravity="center"
+                android:orientation="vertical">
+
                 <ImageView
                     android:layout_width="20dp"
                     android:layout_height="20dp"
                     android:src="@drawable/ic_transit"
                     app:tint="#000000" />
+
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="SHUTTLE"
+                    android:textColor="#000000"
                     android:textSize="8sp"
-                    android:textStyle="bold"
-                    android:textColor="#000000"/>
+                    android:textStyle="bold" />
             </LinearLayout>
+
             <TextView
                 android:id="@+id/txt_duration"
                 android:layout_width="0dp"
@@ -206,10 +218,11 @@
                 android:layout_weight="1.8"
                 android:gravity="center"
                 android:text="-- MIN"
-                android:textStyle="bold"
                 android:textColor="#4CAF50"
-                android:textSize="16sp"/>
+                android:textSize="16sp"
+                android:textStyle="bold" />
         </LinearLayout>
+
         <Button
             android:id="@+id/btn_go"
             android:layout_width="match_parent"
@@ -219,7 +232,9 @@
             android:textColor="@android:color/white"
             android:textSize="18sp"
             android:textStyle="bold"
+            android:visibility="gone"
             app:cornerRadius="25dp" />
+
         <FrameLayout
             android:id="@+id/close_search"
             android:layout_width="match_parent"
@@ -227,34 +242,39 @@
             android:layout_marginTop="10dp"
             android:background="?attr/selectableItemBackground"
             android:clickable="true"
-            android:focusable="true">
+            android:focusable="true"
+            android:visibility="visible">
+
             <ImageView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="bottom|center_horizontal"
                 android:contentDescription="@string/hide_the_search_section"
-                android:src="@drawable/baseline_arrow_drop_up" />
+                android:src="@drawable/baseline_arrow_drop_up"
+                android:visibility="visible" />
 
         </FrameLayout>
+
         <LinearLayout
             android:id="@+id/layout_navigation_active"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:visibility="gone"
-            android:gravity="center_vertical"
             android:background="@drawable/bg_white_rounded"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
             android:padding="12dp">
+
             <TextView
                 android:id="@+id/txt_nav_instruction"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
+                android:gravity="center_vertical"
                 android:text="-- MINS"
                 android:textColor="#4CAF50"
                 android:textSize="20sp"
-                android:textStyle="bold"
-                android:gravity="center_vertical"/>
+                android:textStyle="bold" />
+
             <Button
                 android:id="@+id/btn_end_trip"
                 android:layout_width="wrap_content"
@@ -263,7 +283,7 @@
                 android:text="EXIT"
                 android:textColor="@android:color/white"
                 android:textSize="12sp"
-                app:cornerRadius="20dp"/>
+                app:cornerRadius="20dp" />
         </LinearLayout>
 
     </LinearLayout>
@@ -334,5 +354,67 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:menu="@menu/bottom_nav_menu" />
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/dirLayout"
+        android:layout_width="386dp"
+        android:layout_height="96dp"
+        android:layout_marginTop="83dp"
+        android:layout_marginEnd="16dp"
+        android:background="#FFFFFF"
+        android:backgroundTint="#FFFFFF"
+        android:visibility="visible"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <ImageButton
+            android:id="@+id/prevDirBtn"
+            android:layout_width="65dp"
+            android:layout_height="60dp"
+            android:layout_marginStart="5dp"
+            android:layout_marginTop="11dp"
+            android:layout_marginEnd="24dp"
+            android:layout_marginBottom="17dp"
+            android:backgroundTint="#000000"
+            android:rotation="-90"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toStartOf="@+id/textDir"
+            app:layout_constraintHorizontal_bias="0.172"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintVertical_bias="0.0"
+            app:srcCompat="@drawable/baseline_arrow_drop_up" />
+
+        <ImageButton
+            android:id="@+id/nextDirBtn"
+            android:layout_width="65dp"
+            android:layout_height="60dp"
+            android:layout_marginStart="329dp"
+            android:layout_marginTop="32dp"
+            android:layout_marginEnd="32dp"
+            android:layout_marginBottom="32dp"
+            android:backgroundTint="#000000"
+            android:rotation="90"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHorizontal_bias="0.6"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintVertical_bias="0.75"
+            app:srcCompat="@drawable/baseline_arrow_drop_up" />
+
+        <TextView
+            android:id="@+id/textDir"
+            android:layout_width="249dp"
+            android:layout_height="71dp"
+            android:layout_marginStart="69dp"
+            android:layout_marginTop="13dp"
+            android:layout_marginEnd="67dp"
+            android:layout_marginBottom="20dp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+    </androidx.constraintlayout.widget.ConstraintLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>
