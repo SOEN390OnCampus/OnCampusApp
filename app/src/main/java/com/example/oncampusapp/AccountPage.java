@@ -45,6 +45,10 @@ public class AccountPage extends AppCompatActivity {
 
     private LinearLayout calendarContainer;
 
+    // --- Timer Variables for the Live Banner ---
+    private android.os.Handler timerHandler = new android.os.Handler();
+    private Runnable timerRunnable;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
 
@@ -61,7 +65,7 @@ public class AccountPage extends AppCompatActivity {
 
         super.onCreate(savedInstanceState);
 
-        // US-3.3 FIX: Pull from global variable instead of Intent to avoid crashes
+        // Pull from global variable instead of Intent to avoid crashes
         eventsJson = CalendarEventManager.globalEventsJson;
 
         // US-3.3 REQUIREMENT: Schedule the notification for the next class
@@ -102,6 +106,16 @@ public class AccountPage extends AppCompatActivity {
 
         // Populate the dynamic calendar list
         populateCalendarList();
+
+        // --- Start the Live Ticker Loop ---
+        timerRunnable = new Runnable() {
+            @Override
+            public void run() {
+                refreshBannerUI();
+                timerHandler.postDelayed(this, 1000);
+            }
+        };
+        timerHandler.post(timerRunnable);
     }
 
     @Override
@@ -110,10 +124,18 @@ public class AccountPage extends AppCompatActivity {
         populateCalendarList();
     }
 
+    // --- Stop the timer when leaving to prevent crashes ---
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (timerHandler != null && timerRunnable != null) {
+            timerHandler.removeCallbacks(timerRunnable);
+        }
+    }
+
     private void setViews() {
         bottomNav = findViewById(R.id.bottom_nav);
         calendarContainer = findViewById(R.id.calendarListContainer);
-        bottomNav = findViewById(R.id.bottom_nav);
         btnRefresh = findViewById(R.id.refreshCalendar);
         backButton = findViewById(R.id.btn_back);
     }
@@ -168,6 +190,9 @@ public class AccountPage extends AppCompatActivity {
                             repository.fetchAllEvents(accessToken);
 
                     eventsJson = events.toString();
+
+                    // Update global events JSON so the banner hydrates dynamically
+                    CalendarEventManager.globalEventsJson = eventsJson;
 
                     runOnUiThread(() -> {
                         btnRefresh.setEnabled(true);
@@ -233,9 +258,6 @@ public class AccountPage extends AppCompatActivity {
         dialog.show();
     }
 
-    /**
-     * Parses the calendar list JSON and dynamically adds views to the container.
-     */
     private void populateCalendarList() {
         if (calendarListJson == null || calendarListJson.isEmpty()) {
             return;
@@ -307,6 +329,99 @@ public class AccountPage extends AppCompatActivity {
         } catch (Exception e) {
             e.printStackTrace();
             Toast.makeText(this, "Error loading calendars", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    // --- The Banner UI Math & Injection Logic ---
+    private void refreshBannerUI() {
+        String eventsJson = CalendarEventManager.globalEventsJson;
+        if (eventsJson == null || eventsJson.isEmpty()) return;
+
+        JSONObject nextClass = CalendarEventManager.findNextUpcomingEvent(eventsJson);
+        View bannerView = findViewById(R.id.included_banner);
+
+        if (nextClass != null && bannerView != null) {
+            TextView titleView = bannerView.findViewById(R.id.banner_event_title);
+            TextView detailsView = bannerView.findViewById(R.id.banner_event_details);
+
+            if (titleView == null || detailsView == null) {
+                android.util.Log.e("BannerCrash", "Missing TextViews in XML!");
+                return;
+            }
+
+            String title = nextClass.optString("summary", "Class");
+
+            try {
+                long now = System.currentTimeMillis();
+                String startStr = nextClass.getJSONObject("start").getString("dateTime");
+                String endStr = nextClass.getJSONObject("end").getString("dateTime");
+                String rawLocation = nextClass.optString("location", "");
+                String description = nextClass.optString("description", "");
+
+                java.text.SimpleDateFormat exactTimeFormat = new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX", java.util.Locale.getDefault());
+                long startTime = exactTimeFormat.parse(startStr).getTime();
+                long endTime = exactTimeFormat.parse(endStr).getTime();
+
+                long sixtyMinutesInMillis = 60 * 60 * 1000;
+                if (now < startTime && (startTime - now) > sixtyMinutesInMillis) {
+                    bannerView.setVisibility(View.GONE);
+                    return;
+                }
+                bannerView.setVisibility(View.VISIBLE);
+
+                TextView timeStatusView = bannerView.findViewById(R.id.banner_time_status);
+                TextView onlineTagView = bannerView.findViewById(R.id.banner_online_tag);
+
+                titleView.setText(title);
+
+                int redColor = Color.parseColor("#8B1E2D");
+                int greyColor = Color.parseColor("#808080");
+                int iconSizePx = (int) (16 * getResources().getDisplayMetrics().density);
+
+                String timeStatus = NotificationTimeFormatter.getBannerTimeStatus(now, startTime, endTime);
+                timeStatusView.setText(timeStatus);
+                timeStatusView.setTextColor(redColor);
+
+                android.graphics.drawable.Drawable clockIcon = androidx.core.content.ContextCompat.getDrawable(this, android.R.drawable.ic_menu_recent_history);
+                if (clockIcon != null) {
+                    clockIcon = androidx.core.graphics.drawable.DrawableCompat.wrap(clockIcon).mutate();
+                    androidx.core.graphics.drawable.DrawableCompat.setTint(clockIcon, redColor);
+                    clockIcon.setBounds(0, 0, iconSizePx, iconSizePx);
+                    timeStatusView.setCompoundDrawables(clockIcon, null, null, null);
+                    timeStatusView.setCompoundDrawablePadding(16);
+                }
+
+                // Pass context to LocationParser
+                String parsedLocation = LocationParser.parseSmartLocation(this, title, rawLocation, description);
+
+                android.graphics.drawable.Drawable targetIcon = androidx.core.content.ContextCompat.getDrawable(this, android.R.drawable.ic_menu_mylocation);
+                if (targetIcon != null) {
+                    targetIcon = androidx.core.graphics.drawable.DrawableCompat.wrap(targetIcon).mutate();
+                    androidx.core.graphics.drawable.DrawableCompat.setTint(targetIcon, greyColor);
+                    targetIcon.setBounds(0, 0, iconSizePx, iconSizePx);
+                    detailsView.setCompoundDrawables(targetIcon, null, null, null);
+                    detailsView.setCompoundDrawablePadding(16);
+                }
+
+                if (parsedLocation.equals("Online")) {
+                    onlineTagView.setVisibility(View.VISIBLE);
+                    String searchString = (rawLocation + " " + description).toLowerCase();
+                    if (searchString.contains("zoom")) detailsView.setText("ZOOM MEETING");
+                    else if (searchString.contains("teams")) detailsView.setText("MICROSOFT TEAMS");
+                    else if (searchString.contains("meet.google")) detailsView.setText("GOOGLE MEET");
+                    else detailsView.setText(rawLocation.isEmpty() ? "ONLINE CLASS" : rawLocation.toUpperCase());
+                } else {
+                    onlineTagView.setVisibility(View.GONE);
+                    detailsView.setText(parsedLocation.equals("TBD") && !rawLocation.isEmpty() ? rawLocation : parsedLocation);
+                }
+
+            } catch (Exception e) {
+                e.printStackTrace();
+                titleView.setText(title);
+                detailsView.setText("Check schedule for details");
+            }
+        } else if (bannerView != null) {
+            bannerView.setVisibility(View.GONE);
         }
     }
 }
