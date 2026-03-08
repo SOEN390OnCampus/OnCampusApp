@@ -137,11 +137,17 @@ public class NavigationHelperTest {
         assertEquals(NavigationHelper.Mode.WALKING, NavigationHelper.Mode.valueOf("WALKING"));
         assertEquals(NavigationHelper.Mode.DRIVING, NavigationHelper.Mode.valueOf("DRIVING"));
         assertEquals(NavigationHelper.Mode.TRANSIT, NavigationHelper.Mode.valueOf("TRANSIT"));
+        assertEquals(NavigationHelper.Mode.SHUTTLE, NavigationHelper.Mode.valueOf("SHUTTLE"));
     }
 
     @Test
     public void testEnumCount() {
-        assertEquals(3, NavigationHelper.Mode.values().length);
+        assertEquals(4, NavigationHelper.Mode.values().length);
+    }
+    
+    @Test
+    public void testShuttleModeValue() {
+        assertEquals("shuttle", NavigationHelper.Mode.SHUTTLE.getValue());
     }
     @Test
     public void testFetchDirections_ValidResponse_onSuccessCalled() throws Exception {

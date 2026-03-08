@@ -492,6 +492,7 @@ public class MapsActivityEspressoTest {
     // ----------------------------------------
     // For US-2.2: Clicking on current location
     // ----------------------------------------
+// have to manually set location
 
     @Test
     public void clickingOnCurrentLocation() {

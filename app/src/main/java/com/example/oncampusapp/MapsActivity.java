@@ -7,13 +7,20 @@ import androidx.cardview.widget.CardView;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.core.view.WindowCompat;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
+import androidx.core.graphics.Insets;
+import android.view.ViewGroup;
 import androidx.fragment.app.FragmentActivity;
 import androidx.test.espresso.idling.CountingIdlingResource;
+import android.os.Handler;
 
 import android.Manifest;
 import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.net.Uri;
 import android.content.res.Resources;
 import android.graphics.Color;
 import android.graphics.Paint;
@@ -34,6 +41,7 @@ import android.widget.Toast;
 import android.app.Dialog;
 import android.widget.ImageView;
 
+import com.google.maps.android.SphericalUtil;
 import com.example.oncampusapp.location.FusedLocationProvider;
 import com.example.oncampusapp.location.FusedLocationSource;
 import com.example.oncampusapp.location.ILocationProvider;
@@ -83,9 +91,22 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     private GoogleMap mMap;
 
+
     public static Map<String, Building> buildingsMap = new HashMap<>();
     private Map<String, BuildingDetails> geoIdToBuildingDetailsMap;
     private ActivityMapsBinding binding;
+    private boolean isRoutePickerOpen = false;
+
+    private final Handler bannerHandler = new Handler();
+    private final Runnable bannerRunnable = new Runnable() {
+        @Override
+        public void run() {
+            checkAndDisplayNextEventBanner();
+            // Re-run this check every 30 seconds
+            bannerHandler.postDelayed(this, 1000);
+        }
+    };
+
     private BuildingClassifier buildingClassifier;
     protected BuildingManager buildingManager;
     private GeoJsonLayer layer;
@@ -117,6 +138,23 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     // A counter that tells Espresso tests to wait for the map to load
     public CountingIdlingResource mapIdlingResource = new CountingIdlingResource("MapReadyResource");
+
+    // Shuttle Stop Markers - managed by ShuttleHelper
+    private com.google.android.gms.maps.model.Marker[] shuttleMarkers = new com.google.android.gms.maps.model.Marker[2];
+
+    // Transport UI buttons (class-level for access across methods)
+    private ImageButton btnWalk;
+    private android.widget.Button btnShuttleTimetable;
+    private android.widget.Button btnGo;
+
+
+    //Shuttle 3 leg routes polylines
+    private Polyline walkToStopPolyline;
+    private Polyline shuttlePolyline;
+    private Polyline walkFromStopPolyline;
+
+
+
 
     public GoogleMap getMap() {
         return this.mMap;
@@ -174,6 +212,21 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         // ViewBinding: inflate, then set content view ONCE
         binding = ActivityMapsBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
+
+        // Pre-load shuttle route data from bundled JSON
+        ShuttleHelper.init(this);
+        View bannerView = findViewById(R.id.included_banner);
+        if (bannerView != null) {
+            ViewCompat.setOnApplyWindowInsetsListener(bannerView, (v, windowInsets) -> {
+                Insets insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars());
+                ViewGroup.MarginLayoutParams mlp = (ViewGroup.MarginLayoutParams) v.getLayoutParams();
+                // Push the banner down by the height of the status bar + 16 pixels for a nice gap
+                mlp.topMargin = insets.top + 16;
+                v.setLayoutParams(mlp);
+                return windowInsets; // Return the original insets untouched
+            });
+        }
+
         setupRoutePickerUi();
 
         binding.bottomNav.setOnItemSelectedListener(item -> {
@@ -264,7 +317,26 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         // Load building details
         loadBuildingDetails();
+
+        checkAndDisplayNextEventBanner();
+
     }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        bannerHandler.post(bannerRunnable);// Start the timer
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        bannerHandler.removeCallbacks(bannerRunnable); // Stop to save battery
+    }
+
+
+
+
 
     private void setupRoutePickerUi() {
         //Initialize Views
@@ -281,13 +353,13 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         LinearLayout layoutNavActive = findViewById(R.id.layout_navigation_active);
 
         // Buttons & Text
-        android.widget.Button btnGo = findViewById(R.id.btn_go);
+        btnGo = findViewById(R.id.btn_go);
         android.widget.Button btnEndTrip = findViewById(R.id.btn_end_trip);
         TextView txtNavInstruction = findViewById(R.id.txt_nav_instruction);
         TextView txtDuration = findViewById(R.id.txt_duration);
 
         // Transport Tabs
-        ImageButton btnWalk = findViewById(R.id.btn_mode_walking);
+        btnWalk = findViewById(R.id.btn_mode_walking);
         ImageButton btnCar = findViewById(R.id.btn_mode_driving);
         ImageButton btnTransit = findViewById(R.id.btn_mode_transit);
         View btnShuttle = findViewById(R.id.btn_mode_shuttle);
@@ -305,6 +377,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     routePicker.setVisibility(View.GONE);
                     searchBar.setVisibility(View.VISIBLE);
                     slideUp.setAnimationListener(null);
+
+                    isRoutePickerOpen = false;
+                    checkAndDisplayNextEventBanner();
                 }
                 @Override public void onAnimationRepeat(Animation animation) {}
             });
@@ -313,6 +388,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         //Search Bar Click Listener
         searchBar.setOnClickListener(v -> {
+
+            isRoutePickerOpen = true;
+
+            View bannerView = findViewById(R.id.included_banner);
+            if (bannerView != null) bannerView.setVisibility(View.GONE);
+
             searchBar.setVisibility(View.GONE);
             routePicker.setVisibility(View.VISIBLE);
             routePicker.startAnimation(slideDown);
@@ -334,9 +415,20 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         });
 
         // AUTO-PREVIEW LOGIC
-        // Trigger preview immediately when user selects from the dropdown list
-        startDestinationText.setOnItemClickListener((parent, view, position, id) -> initiateRoutePreview());
-        endDestinationText.setOnItemClickListener((parent, view, position, id) -> initiateRoutePreview());
+        // Read the selected name directly from the adapter to avoid AutoCompleteTextView
+        // timing quirks where getText() may still hold the partial typed string.
+        startDestinationText.setOnItemClickListener((parent, view, position, id) -> {
+            String selected = (String) parent.getItemAtPosition(position);
+            startDestinationText.setText(selected);
+            startDestinationText.setSelection(selected.length());
+            initiateRoutePreview();
+        });
+        endDestinationText.setOnItemClickListener((parent, view, position, id) -> {
+            String selected = (String) parent.getItemAtPosition(position);
+            endDestinationText.setText(selected);
+            endDestinationText.setSelection(selected.length());
+            initiateRoutePreview();
+        });
 
         //Transport Tab Logic
         View.OnClickListener btnModeListener = v -> {
@@ -350,10 +442,18 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             }
         };
 
+        //Shuttle Timetable Button
+        btnShuttleTimetable = findViewById(R.id.btn_shuttle_timetable);
+        btnShuttleTimetable.setOnClickListener(v -> ShuttleHelper.openTimetable(this));
+
         btnWalk.setOnClickListener(v -> {
             // Visuals
             btnModeListener.onClick(v);
             this.selectedMode = NavigationHelper.Mode.WALKING;
+            btnShuttleTimetable.setVisibility(View.GONE);
+            adjustGoButtonWidth(btnGo, false);
+            ShuttleHelper.hideShuttleStops(shuttleMarkers);
+            clearShuttleRoute();
             initiateRoutePreview();
         });
         btnCar.setOnClickListener(v -> {
@@ -361,6 +461,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             btnModeListener.onClick(v);
             // Logic
             this.selectedMode = NavigationHelper.Mode.DRIVING;
+            btnShuttleTimetable.setVisibility(View.GONE);
+            adjustGoButtonWidth(btnGo, false);
+            ShuttleHelper.hideShuttleStops(shuttleMarkers);
+            clearShuttleRoute();
             initiateRoutePreview();
         });
         btnTransit.setOnClickListener(v -> {
@@ -368,9 +472,23 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             btnModeListener.onClick(v);
             // Logic
             this.selectedMode = NavigationHelper.Mode.TRANSIT;
+            btnShuttleTimetable.setVisibility(View.GONE);
+            adjustGoButtonWidth(btnGo, false);
+            ShuttleHelper.hideShuttleStops(shuttleMarkers);
+            clearShuttleRoute();
             initiateRoutePreview();
         });
-        btnShuttle.setOnClickListener(v -> Toast.makeText(this, "Concordia Shuttle is currently unavailable", Toast.LENGTH_SHORT).show());
+        btnShuttle.setOnClickListener(v -> {
+            // Visuals
+            btnModeListener.onClick(v);
+            // Logic
+            this.selectedMode = NavigationHelper.Mode.SHUTTLE;
+            btnShuttleTimetable.setVisibility(View.VISIBLE);
+            adjustGoButtonWidth(btnGo, true);
+            clearNormalRoute();
+            shuttleMarkers = ShuttleHelper.showShuttleStops(this, mMap, shuttleMarkers);
+            initiateRoutePreview();
+        });
 
         //Helper Buttons
         btnSwapAddress.setOnClickListener(v -> { swapAddresses(); initiateRoutePreview(); });
@@ -387,8 +505,18 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 return;
             }
 
+            // Always re-check same-campus rule before starting navigation
+            LatLng startCoords = BuildingLookup.getLatLngFromBuildingName(startText, buildingsMap);
+            LatLng destCoords = BuildingLookup.getLatLngFromBuildingName(destText, buildingsMap);
+            if (startCoords != null && destCoords != null
+                    && applySameCampusCheck(startCoords, destCoords)) {
+                // Mode was switched — recalculate route and let user press GO again
+                initiateRoutePreview();
+                return;
+            }
+
             // SAFETY CHECK
-            if (bluePolyline == null) {
+            if (selectedMode != NavigationHelper.Mode.SHUTTLE && bluePolyline == null) {
                 Toast.makeText(this, "Calculating route, please wait...", Toast.LENGTH_SHORT).show();
                 initiateRoutePreview();
                 return;
@@ -416,8 +544,20 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             }
 
             //Zoom Camera for Navigation
-            if (currentRoutePoints != null && !currentRoutePoints.isEmpty()) {
-                moveMapToLocation(currentRoutePoints.get(0), 19f);
+            LatLng cameraTarget = null;
+            if (selectedMode == NavigationHelper.Mode.SHUTTLE) {
+                // For shuttle mode, focus on the start building directly
+                cameraTarget = BuildingLookup.getLatLngFromBuildingName(startText, buildingsMap);
+            } else if (currentRoutePoints != null && !currentRoutePoints.isEmpty()) {
+                cameraTarget = currentRoutePoints.get(0);
+            }
+            if (cameraTarget != null) {
+                CameraPosition cameraPosition = new CameraPosition.Builder()
+                        .target(cameraTarget)
+                        .zoom(19f)
+                        .tilt(0)
+                        .build();
+                mMap.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPosition));
             }
         });
 
@@ -457,6 +597,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
                     // Clean up map
                     if (bluePolyline != null) bluePolyline.remove();
+                    clearShuttleRoute();
                     if (navigationLocationCallback != null) {
                         fusedLocationClient.removeLocationUpdates(navigationLocationCallback);
                     }
@@ -524,6 +665,16 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         mMap.setBuildingsEnabled(false);
         mMap.getUiSettings().setTiltGesturesEnabled(false);
+
+        // Set up marker click listener for shuttle stops
+        mMap.setOnMarkerClickListener(marker -> {
+            if (ShuttleHelper.isShuttleStopMarker(this, marker)) {
+                marker.showInfoWindow();
+                ShuttleHelper.openTimetable(this);
+                return true;
+            }
+            return false; // Let default behavior handle other markers
+        });
 
         GeofenceManager geofenceManager = new GeofenceManager(this);
         FeatureStyler featureStyler = new FeatureStyler();
@@ -1020,6 +1171,62 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         fusedLocationClient.requestLocationUpdates(request, navigationLocationCallback, android.os.Looper.getMainLooper());
     }
 
+    /**
+     * Checks if shuttle mode should auto-switch to walking because both locations are on the same campus.
+     * @return true if the mode was switched (caller should re-preview and abort current action)
+     */
+    private boolean applySameCampusCheck(LatLng startCoords, LatLng destCoords) {
+        if (selectedMode != NavigationHelper.Mode.SHUTTLE) return false;
+        if (!ShuttleHelper.isSameCampus(startCoords, destCoords, SGW_COORDS, LOY_COORDS)) return false;
+
+        selectedMode = NavigationHelper.Mode.WALKING;
+        if (btnWalk != null) {
+            btnWalk.setBackgroundColor(Color.parseColor("#D3D3D3"));
+            btnWalk.setAlpha(1.0f);
+            int[] otherTabIds = {R.id.btn_mode_driving, R.id.btn_mode_transit, R.id.btn_mode_shuttle};
+            for (int id : otherTabIds) {
+                View tab = findViewById(id);
+                if (tab != null) { tab.setBackgroundResource(0); tab.setAlpha(0.5f); }
+            }
+        }
+        if (btnShuttleTimetable != null) btnShuttleTimetable.setVisibility(View.GONE);
+        if (btnGo != null) adjustGoButtonWidth(btnGo, false);
+        ShuttleHelper.hideShuttleStops(shuttleMarkers);
+        Toast.makeText(this, "Both locations are on the same campus — switched to walking", Toast.LENGTH_SHORT).show();
+        return true;
+    }
+
+
+
+
+     // Converts a Google Directions API duration string into total minutes.
+    //Definition: total = walkToStop + shuttleRide + walkFromStop (A-->ShuttleX-->ShuttleY-->B)
+    private int parseDurationToMinutes(String durationText) {
+        if (durationText == null || durationText.trim().isEmpty()) return 0;
+
+        durationText = durationText.toLowerCase().trim();
+        int totalMinutes = 0;
+
+        String[] parts = durationText.split(" ");
+
+        for (int i = 0; i < parts.length; i++) {
+            if (parts[i].startsWith("hour")) {
+                try {
+                    totalMinutes += Integer.parseInt(parts[i - 1]) * 60;
+                } catch (Exception ignored) {}
+            } else if (parts[i].startsWith("min")) {
+                try {
+                    totalMinutes += Integer.parseInt(parts[i - 1]);
+                } catch (Exception ignored) {}
+            }
+        }
+
+        return totalMinutes;
+    }
+
+
+
+
     private void initiateRoutePreview() {
         String startName = startDestinationText.getText().toString().trim();
         String destName = endDestinationText.getText().toString().trim();
@@ -1036,11 +1243,156 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 imm.hideSoftInputFromWindow(getCurrentFocus().getWindowToken(), 0);
             }
 
-            // Use NavigationHelper Class
+            // If shuttle mode but both locations are on the same campus, auto-switch to walking
+            applySameCampusCheck(startCoords, destCoords);
+
+            // Shuttle mode: draw the fixed KML-based route, but fetch real duration from API
+            if (selectedMode == NavigationHelper.Mode.SHUTTLE) {
+
+                if (mMap != null && (shuttleMarkers[0] == null || shuttleMarkers[1] == null)) {
+                    shuttleMarkers = ShuttleHelper.showShuttleStops(this, mMap, shuttleMarkers);
+                }
+
+                if (shuttleMarkers[0] == null || shuttleMarkers[1] == null) {
+                    Toast.makeText(this, "Shuttle stops are still loading, please try again", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+
+                LatLng stopA = shuttleMarkers[0].getPosition();
+                LatLng stopB = shuttleMarkers[1].getPosition();
+
+                double distToA = SphericalUtil.computeDistanceBetween(startCoords, stopA);
+                double distToB = SphericalUtil.computeDistanceBetween(startCoords, stopB);
+
+                LatLng pickupStop = (distToA <= distToB) ? stopA : stopB;
+                LatLng dropoffStop = (pickupStop == stopA) ? stopB : stopA;
+
+                clearNormalRoute();
+                clearShuttleRoute();
+
+                // Shuttle leg
+                List<LatLng> shuttlePath =
+                        ShuttleHelper.getShuttleRoute(pickupStop, dropoffStop);
+
+                shuttlePolyline = drawSegmentPolyline(shuttlePath, false);
+
+                TextView txtDuration = findViewById(R.id.txt_duration);
+                if (txtDuration != null) {
+                    txtDuration.setText(
+                            ShuttleHelper.SHUTTLE_DURATION_FALLBACK.toUpperCase()
+                    );
+                }
+
+                final int[] walkToMinutes = {0};
+                final int[] shuttleMinutes = {0};
+                final int[] walkFromMinutes = {0};
+
+                final boolean[] walkToDone = {false};
+                final boolean[] shuttleDone = {false};
+                final boolean[] walkFromDone = {false};
+
+                Runnable updateTotalDuration = () -> {
+                    if (walkToDone[0] && shuttleDone[0] && walkFromDone[0]) {
+                        int totalMinutes = walkToMinutes[0] + shuttleMinutes[0] + walkFromMinutes[0];
+                        runOnUiThread(() -> {
+                            TextView durationView = findViewById(R.id.txt_duration);
+                            if (durationView != null) {
+                                durationView.setText((totalMinutes + " MIN").toUpperCase());
+                            }
+                        });
+                    }
+                };
+
+                // Walk A → pickup
+                NavigationHelper.fetchDirections(
+                        startCoords,
+                        pickupStop,
+                        NavigationHelper.Mode.WALKING,
+                        BuildConfig.MAPS_API_KEY,
+                        new NavigationHelper.DirectionsCallback() {
+
+                            @Override
+                            public void onSuccess(List<LatLng> path, String durationText) {
+                                walkToMinutes[0] = parseDurationToMinutes(durationText);
+                                walkToDone[0] = true;
+                                runOnUiThread(() -> {
+                                    walkToStopPolyline = drawSegmentPolyline(path, true);
+                                    View walkToLayout = findViewById(R.id.layout_walk_to_shuttle);
+                                    TextView walkToView = findViewById(R.id.txt_walk_to_shuttle);
+                                    if (walkToLayout != null && walkToView != null) {
+                                        if (walkToMinutes[0] > 0) {
+                                            walkToView.setText((walkToMinutes[0] + " MIN TO STOP").toUpperCase());
+                                            walkToLayout.setVisibility(View.VISIBLE);
+                                        } else {
+                                            walkToLayout.setVisibility(View.GONE);
+                                        }
+                                    }
+                                });
+                                updateTotalDuration.run();
+                            }
+
+                            @Override
+                            public void onError(Exception e) {
+                                e.printStackTrace();
+                                walkToDone[0] = true;
+                                updateTotalDuration.run();
+                            }
+                        });
+
+                // Walk dropoff → B
+                NavigationHelper.fetchDirections(
+                        dropoffStop,
+                        destCoords,
+                        NavigationHelper.Mode.WALKING,
+                        BuildConfig.MAPS_API_KEY,
+                        new NavigationHelper.DirectionsCallback() {
+
+                            @Override
+                            public void onSuccess(List<LatLng> path, String durationText) {
+                                walkFromMinutes[0] = parseDurationToMinutes(durationText);
+                                walkFromDone[0] = true;
+                                runOnUiThread(() ->
+                                        walkFromStopPolyline = drawSegmentPolyline(path, true));
+                                updateTotalDuration.run();
+                            }
+
+                            @Override
+                            public void onError(Exception e) {
+                                e.printStackTrace();
+                                walkFromDone[0] = true;
+                                updateTotalDuration.run();
+                            }
+                        });
+
+                ShuttleHelper.fetchDuration(
+                        startCoords,
+                        BuildConfig.MAPS_API_KEY,
+                        new NavigationHelper.DirectionsCallback() {
+                            @Override
+                            public void onSuccess(List<LatLng> path, String durationText) {
+                                shuttleMinutes[0] = parseDurationToMinutes(durationText);
+                                shuttleDone[0] = true;
+                                updateTotalDuration.run();
+                            }
+
+                            @Override
+                            public void onError(Exception e) {
+                                e.printStackTrace();
+                                shuttleMinutes[0] = parseDurationToMinutes(ShuttleHelper.SHUTTLE_DURATION_FALLBACK);
+                                shuttleDone[0] = true;
+                                updateTotalDuration.run();
+                            }
+                        });
+
+                return;
+            }
+
+
+            // Use NavigationHelper Class for all other modes
             NavigationHelper.fetchDirections(startCoords, destCoords, selectedMode, BuildConfig.MAPS_API_KEY, new NavigationHelper.DirectionsCallback() {
                 @Override
                 public void onSuccess(List<LatLng> path, String durationText) {
-                    if (selectedMode== NavigationHelper.Mode.WALKING){
+                    if (selectedMode == NavigationHelper.Mode.WALKING){
                         runOnUiThread(() -> drawRouteOnMap(path, durationText, true)); // Dotted line for walking
                     } else {
                         runOnUiThread(() -> drawRouteOnMap(path, durationText, false)); // Straight line for everything else
@@ -1054,9 +1406,17 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 }
             });
         } else {
-            Toast.makeText(this, "Could not find one of the locations", Toast.LENGTH_SHORT).show();
+            if (buildingsMap.isEmpty()) {
+                Toast.makeText(this, "Map is still loading, please wait", Toast.LENGTH_SHORT).show();
+            } else {
+                String missing = (startCoords == null) ? startName : destName;
+                Toast.makeText(this, "Could not find: \"" + missing + "\"", Toast.LENGTH_LONG).show();
+            }
         }
     }
+
+
+
 
     private void updateRouteProgress(LatLng userLocation) {
         if (currentRoutePoints == null || currentRoutePoints.isEmpty()) return;
@@ -1081,12 +1441,211 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     public Polyline getBluePolyline(){
         return bluePolyline;
     }
+
+    /**
+     * Adjusts the GO button width based on whether timetable button is visible
+     */
+    private void adjustGoButtonWidth(android.widget.Button btnGo, boolean timetableVisible) {
+        LinearLayout.LayoutParams params = (LinearLayout.LayoutParams) btnGo.getLayoutParams();
+        if (timetableVisible) {
+            // Shared width - GO button takes less space
+            params.width = 0;
+            params.weight = 1.3f;
+            int margin = (int) (4 * getResources().getDisplayMetrics().density);
+            params.setMarginEnd(margin);
+        } else {
+            // Full width - GO button takes all space
+            params.width = 0;
+            params.weight = 1.0f;
+            params.setMarginEnd(0);
+        }
+        btnGo.setLayoutParams(params);
+    }
+
+
+    //Helper methods for shuttle 3 leg addition
+     private void clearNormalRoute() {
+        if (bluePolyline != null) bluePolyline.remove();
+        bluePolyline = null;
+
+        if (startDot != null) startDot.remove();
+        startDot = null;
+
+        if (endMarker != null) endMarker.remove();
+        endMarker = null;
+
+        if (currentRoutePoints != null) currentRoutePoints.clear();
+    }
+
+    private void clearShuttleRoute() {
+        if (walkToStopPolyline != null) walkToStopPolyline.remove();
+        walkToStopPolyline = null;
+
+        if (shuttlePolyline != null) shuttlePolyline.remove();
+        shuttlePolyline = null;
+
+        if (walkFromStopPolyline != null) walkFromStopPolyline.remove();
+        walkFromStopPolyline = null;
+
+        View walkToLayout = findViewById(R.id.layout_walk_to_shuttle);
+        if (walkToLayout != null) walkToLayout.setVisibility(View.GONE);
+    }
+
+    private Polyline drawSegmentPolyline(List<LatLng> path, boolean isDotted) {
+        if (mMap == null || path == null || path.isEmpty()) return null;
+
+        PolylineOptions options = new PolylineOptions()
+                .addAll(path)
+                .color(Color.parseColor("#4285F4"))
+                .width(20)
+                .zIndex(2)
+                .geodesic(true);
+
+        if (isDotted){
+            List<PatternItem> pattern = Arrays.asList(new Dot(), new Gap(20));
+            options.pattern(pattern);
+        }
+
+        return mMap.addPolyline(options);
+    }
+
+
     public GeoJsonLayer getLayer(){
         return layer;
     }
     public Dialog getCurrentBuildingDialog(){
         return currentBuildingDialog;
     }
+    // ==========================================
+    // US-3.3 Methods
+    // ==========================================
+
+    /**
+     * Requirement 5: Identifies the next event and updates the persistent top banner.
+     */
+    private void checkAndDisplayNextEventBanner() {
+        if (isRoutePickerOpen) return;
+
+        String eventsJson = CalendarEventManager.globalEventsJson;
+        if (eventsJson == null || eventsJson.isEmpty()) return;
+
+        org.json.JSONObject nextClass = CalendarEventManager.findNextUpcomingEvent(eventsJson);
+        View bannerView = findViewById(R.id.included_banner);
+
+        if (nextClass != null && bannerView != null) {
+
+            TextView titleView = bannerView.findViewById(R.id.banner_event_title);
+            TextView detailsView = bannerView.findViewById(R.id.banner_event_details);
+
+            // Failsafe if views aren't found
+            if (titleView == null || detailsView == null) return;
+
+            String title = nextClass.optString("summary", "Class");
+
+            try {
+                long now = System.currentTimeMillis();
+                String startStr = nextClass.getJSONObject("start").getString("dateTime");
+                String endStr = nextClass.getJSONObject("end").getString("dateTime");
+                String rawLocation = nextClass.optString("location", "");
+                String description = nextClass.optString("description", "");
+
+                java.text.SimpleDateFormat exactTimeFormat = new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX", java.util.Locale.getDefault());
+                long startTime = exactTimeFormat.parse(startStr).getTime();
+                long endTime = exactTimeFormat.parse(endStr).getTime();
+
+                // 60-MINUTE FILTER
+                long sixtyMinutesInMillis = 60 * 60 * 1000;
+                if (now < startTime && (startTime - now) > sixtyMinutesInMillis) {
+                    bannerView.setVisibility(View.GONE);
+                    return;
+                }
+
+                bannerView.setVisibility(View.VISIBLE);
+
+                // Find the extra banner views
+                TextView timeStatusView = bannerView.findViewById(R.id.banner_time_status);
+                TextView onlineTagView = bannerView.findViewById(R.id.banner_online_tag);
+
+                // Set Main Title
+                titleView.setText(title);
+
+                // 2. Set Countdown Timer Status and Force Icons
+                if (timeStatusView != null && detailsView != null) {
+                    String timeStatus = NotificationTimeFormatter.getBannerTimeStatus(now, startTime, endTime);
+                    timeStatusView.setText(timeStatus);
+
+                    int redColor = Color.parseColor("#8B1E2D");
+                    int greyColor = Color.parseColor("#808080");
+
+                    // Apply red to the text
+                    timeStatusView.setTextColor(redColor);
+
+                    // BULLETPROOF ICON INJECTION
+                    try {
+                        // 1. Clock icon - using built-in Android system icon
+                        android.graphics.drawable.Drawable clockIcon = androidx.core.content.ContextCompat.getDrawable(
+                                this, android.R.drawable.ic_menu_recent_history);
+                        if (clockIcon != null) {
+                            clockIcon = androidx.core.graphics.drawable.DrawableCompat.wrap(clockIcon).mutate();
+                            androidx.core.graphics.drawable.DrawableCompat.setTint(clockIcon, redColor);
+                            // Resize to 16dp
+                            int size = (int) (16 * getResources().getDisplayMetrics().density);
+                            clockIcon.setBounds(0, 0, size, size);
+                            timeStatusView.setCompoundDrawables(clockIcon, null, null, null);
+                            timeStatusView.setCompoundDrawablePadding(16);
+                        }
+
+                        // 2. Location icon - using built-in Android system icon
+                        android.graphics.drawable.Drawable targetIcon = androidx.core.content.ContextCompat.getDrawable(
+                                this, android.R.drawable.ic_menu_mylocation);
+                        if (targetIcon != null) {
+                            targetIcon = androidx.core.graphics.drawable.DrawableCompat.wrap(targetIcon).mutate();
+                            androidx.core.graphics.drawable.DrawableCompat.setTint(targetIcon, greyColor);
+                            int size = (int) (16 * getResources().getDisplayMetrics().density);
+                            targetIcon.setBounds(0, 0, size, size);
+                            detailsView.setCompoundDrawables(targetIcon, null, null, null);
+                            detailsView.setCompoundDrawablePadding(16);
+                        }
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+
+                // Set Smart Location Data
+                String parsedLocation = LocationParser.parseSmartLocation(this, title, rawLocation, description);
+
+                if (parsedLocation.equals("Online")) {
+                    if (onlineTagView != null) onlineTagView.setVisibility(View.VISIBLE);
+
+                    String searchString = (rawLocation + " " + description).toLowerCase();
+                    if (searchString.contains("zoom")) {
+                        detailsView.setText("ZOOM MEETING");
+                    } else if (searchString.contains("teams")) {
+                        detailsView.setText("MICROSOFT TEAMS");
+                    } else if (searchString.contains("meet.google")) {
+                        detailsView.setText("GOOGLE MEET");
+                    } else {
+                        detailsView.setText(rawLocation.isEmpty() ? "ONLINE CLASS" : rawLocation.toUpperCase());
+                    }
+                } else {
+                    if (onlineTagView != null) onlineTagView.setVisibility(View.GONE);
+                    detailsView.setText(parsedLocation.equals("TBD") && !rawLocation.isEmpty() ? rawLocation : parsedLocation);
+                }
+
+            } catch (Exception e) {
+                e.printStackTrace();
+                titleView.setText("Next: " + title);
+                detailsView.setText("Check schedule for details");
+            }
+        } else if (bannerView != null) {
+            bannerView.setVisibility(View.GONE);
+        }
+    }
+
+    // ==========================================
+    // Main Branch Methods
+    // ==========================================
+
     private void handleCloseSearch() {
         getOnBackPressedDispatcher().onBackPressed();
     }

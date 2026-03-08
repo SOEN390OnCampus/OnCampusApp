@@ -54,13 +54,30 @@ public class AccountPage extends AppCompatActivity {
 
         email = getIntent().getStringExtra("email");
 
-        eventsJson = getIntent().getStringExtra("calendar_events_json");
         calendarListJson = getIntent().getStringExtra("calendar_list_json");
         calendarToken = getIntent().getStringExtra("calendar_token");
 
         repository = CalendarRepository.getInstance();
 
         super.onCreate(savedInstanceState);
+
+        // US-3.3 FIX: Pull from global variable instead of Intent to avoid crashes
+        eventsJson = CalendarEventManager.globalEventsJson;
+
+        // US-3.3 REQUIREMENT: Schedule the notification for the next class
+        if (eventsJson != null && !eventsJson.isEmpty()) {
+            try {
+                JSONObject nextClass = CalendarEventManager.findNextUpcomingEvent(eventsJson);
+                if (nextClass != null) {
+                    NotificationScheduler.scheduleClassNotification(this, nextClass);
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+
+        repository = CalendarRepository.getInstance();
+
         setContentView(R.layout.account_page);
         setViews();
         setUpBottomNav();
@@ -71,9 +88,7 @@ public class AccountPage extends AppCompatActivity {
         });
 
         TextView txtUserEmail = findViewById(R.id.txtUserEmail);
-
-        GoogleSignInAccount account =
-                GoogleSignIn.getLastSignedInAccount(this);
+        GoogleSignInAccount account = GoogleSignIn.getLastSignedInAccount(this);
 
         if (account != null) {
             txtUserEmail.setText("Logged in as:\n" + account.getEmail());
