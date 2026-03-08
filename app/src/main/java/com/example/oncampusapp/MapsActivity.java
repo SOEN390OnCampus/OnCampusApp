@@ -369,7 +369,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         ConstraintLayout dirLayout = findViewById(R.id.dirLayout);
         ImageButton prevDirBtn = findViewById(R.id.prevDirBtn);
         ImageButton nextDirBtn = findViewById(R.id.nextDirBtn);
-        TextView textDir = findViewById(R.id.textDir);
 
         // Buttons & Text
         btnGo = findViewById(R.id.btn_go);
@@ -554,7 +553,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             // Start GPS Tracking
             startNavigationUpdates();
             Toast.makeText(this, "Navigation Started", Toast.LENGTH_SHORT).show();
-
             toggleNavigationUI(true);
 
             //Update Nav Bar Text safely
@@ -669,10 +667,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             layoutTabs.setVisibility(View.GONE);
             btnGo.setVisibility(View.GONE);
             layoutNavActive.setVisibility(View.VISIBLE);
-            dirLayout.setVisibility(View.VISIBLE);
-            prevDirBtn.setVisibility(View.VISIBLE);
-            nextDirBtn.setVisibility(View.VISIBLE);
-            textDir.setVisibility(View.VISIBLE);
+            if (selectedMode!=RouteTravelMode.SHUTTLE) {
+                dirLayout.setVisibility(View.VISIBLE);
+                prevDirBtn.setVisibility(View.VISIBLE);
+                nextDirBtn.setVisibility(View.VISIBLE);
+                textDir.setVisibility(View.VISIBLE);
+            }
             closeSearchLayout.setVisibility(View.GONE);
 
         } else {
