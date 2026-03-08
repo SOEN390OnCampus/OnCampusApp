@@ -1,5 +1,7 @@
 package com.example.oncampusapp.navigation;
 
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
@@ -69,7 +71,9 @@ public class NavigationHelper {
                 }
 
                Route route = convertResponseJsonToRoute(response.toString());
-                callback.onSuccess(route);
+                new Handler(Looper.getMainLooper()).post(() -> {
+                    callback.onSuccess(route);
+                });
             } catch (JSONException e) {
                 Log.e("NavigationHelper", "Failed to parse route response", e);
                 callback.onError(e);
@@ -143,99 +147,125 @@ public class NavigationHelper {
 
         JSONObject jsonResponse = new JSONObject(response);
         JSONArray routes = jsonResponse.optJSONArray("routes");
-        JSONObject route = routes.getJSONObject(0);
+        if (routes == null || routes.length() == 0) return new Route(); // No response found, return empty route
+
+        JSONObject route = routes.optJSONObject(0);
         JSONArray steps = route
-                .getJSONArray("legs").getJSONObject(0)
+                .getJSONArray("legs").optJSONObject(0)
                 .getJSONArray("steps");
         Route routeObj = new Route();
         List<Step> stepList = new ArrayList<>();
 
-        JSONObject localizedValues = route.getJSONObject("localizedValues");
-        JSONObject distance = localizedValues.getJSONObject("distance");
-        String distanceText = distance.getString("text");
-        JSONObject duration = localizedValues.getJSONObject("duration");
-        String durationText = duration.getString("text");
 
-        routeObj.setDistance(distanceText);
-        routeObj.setDuration(durationText);
+        // Overall distance and duration
+        JSONObject localizedValues = route.optJSONObject("localizedValues");
+        if (localizedValues!=null){
+            JSONObject distance = localizedValues.optJSONObject("distance");
+            if (distance !=null) {
+                String distanceText = distance.optString("text");
+                routeObj.setDistance(distanceText);
+            }
+            JSONObject duration = localizedValues.optJSONObject("duration");
+            if (duration != null){
+                String durationText = duration.optString("text");
+                routeObj.setDuration(durationText);
+            }
+        }
 
-        routeObj.setPoints(PolyUtil.decode(route.getJSONObject("polyline").getString("encodedPolyline")));
+
+        // Overall Polyline
+        JSONObject polylineObj = route.optJSONObject("polyline");
+        if (polylineObj != null) {
+            String encodedPolyline = polylineObj.optString("encodedPolyline");
+            routeObj.setPoints(PolyUtil.decode(encodedPolyline));
+        }
 
         routeObj.setSteps(stepList);
         for (int i = 0; i < steps.length(); i++) {
-            JSONObject step = steps.getJSONObject(i);
-
-            String travelMode = step.getString("travelMode");
-
-            JSONObject polyline = step.getJSONObject("polyline");
-            String encodedPolyline = polyline.getString("encodedPolyline");
-            List<LatLng> decodedPath = PolyUtil.decode(encodedPolyline);
-
             Step stepObj = new Step();
-            stepObj.setTravelMode(RouteTravelMode.fromString(travelMode));
-            stepObj.setPoints(decodedPath);
+            JSONObject step = steps.optJSONObject(i);
 
-            JSONObject navigationInstruction = step.getJSONObject("navigationInstruction");
-            String instructions = navigationInstruction.getString("instructions");
-            stepObj.setInstructions(instructions);
+            stepObj.setTravelMode(RouteTravelMode.fromString(step.optString("travelMode")));
 
-
-            JSONObject stepLocalizedValues = step.getJSONObject("localizedValues");
-            String stepDistance = stepLocalizedValues.getJSONObject("distance").getString("text");
-            String stepStaticDuration = stepLocalizedValues.getJSONObject("staticDuration").getString("text");
-            stepObj.setDistance(stepDistance);
-            stepObj.setDuration(stepStaticDuration);
+            JSONObject polyline = step.optJSONObject("polyline");
+            if (polyline!=null){
+                List<LatLng> decodedPath = PolyUtil.decode(polyline.optString("encodedPolyline"));
+                stepObj.setPoints(decodedPath);
+            }
 
 
+            JSONObject navigationInstruction = step.optJSONObject("navigationInstruction");
+            if (navigationInstruction != null){
+                stepObj.setInstructions(navigationInstruction.optString("instructions"));
+            }
 
+            JSONObject stepLocalizedValues = step.optJSONObject("localizedValues");
+            if (stepLocalizedValues != null) {
+                JSONObject distanceObj = stepLocalizedValues.optJSONObject("distance");
+                if (distanceObj != null) {
+                    stepObj.setDistance(distanceObj.optString("text"));
+                }
+                JSONObject durationObj = stepLocalizedValues.optJSONObject("staticDuration");
+                if (durationObj != null) {
+                    stepObj.setDuration(durationObj.optString("text"));
+                }
+            }
 
             if (step.has("transitDetails")) {
                 TransitDetails transitDetailsObj = new TransitDetails();
-                JSONObject transitDetails = step.getJSONObject("transitDetails");
-                JSONObject stopDetails = transitDetails.getJSONObject("stopDetails");
+                stepObj.setTransitDetails(transitDetailsObj);
+                JSONObject transitDetails = step.optJSONObject("transitDetails");
+                if (transitDetails==null) continue;
+
+
+                JSONObject stopDetails = transitDetails.optJSONObject("stopDetails");
 
                 // Departure stop details
-                JSONObject departureStop = stopDetails.getJSONObject("departureStop");
-                String departureStopName = departureStop.getString("name");
-                JSONObject departureStopLocation = departureStop.getJSONObject("location");
-                JSONObject departureStopLocationLatLng = departureStopLocation.getJSONObject("latLng");
-                double departureStopLat = departureStopLocationLatLng.getDouble("latitude");
-                double departureStopLng = departureStopLocationLatLng.getDouble("longitude");
-                String departureTime = stopDetails.getString("departureTime");
+                if (stopDetails == null) continue;
+                JSONObject departureStop = stopDetails.optJSONObject("departureStop");
+                if (departureStop != null){
 
+                    transitDetailsObj.setDepartureStopName(departureStop.optString("name"));
+                    transitDetailsObj.setDepartureTime(stopDetails.optString("departureTime"));
 
-                transitDetailsObj.setDepartureStopName(departureStopName);
-                transitDetailsObj.setDepartureStopLocation(new LatLng(departureStopLat, departureStopLng));
-                transitDetailsObj.setDepartureTime(departureTime);
+                    // Latitude and longitude of departure stop
+                    JSONObject departureStopLocation = departureStop.optJSONObject("location");
+                    if (departureStopLocation == null) continue;
+                    JSONObject departureStopLocationLatLng = departureStopLocation.optJSONObject("latLng");
+                    if (departureStopLocationLatLng == null) continue;
+                    transitDetailsObj.setDepartureStopLocation(new LatLng(departureStopLocationLatLng.optDouble("latitude"),
+                            departureStopLocationLatLng.optDouble("longitude")));
+
+                }
 
                 // Arrival stop details
-                JSONObject arrivalStop = stopDetails.getJSONObject("arrivalStop");
-                String arrivalStopName = arrivalStop.getString("name");
-                JSONObject arrivalStopLocation = arrivalStop.getJSONObject("location");
-                JSONObject arrivalStopLocationLatLng = arrivalStopLocation.getJSONObject("latLng");
-                double arrivalStopLat = arrivalStopLocationLatLng.getDouble("latitude");
-                double arrivalStopLng = arrivalStopLocationLatLng.getDouble("longitude");
-                String arrivalTime = stopDetails.getString("arrivalTime");
+                JSONObject arrivalStop = stopDetails.optJSONObject("arrivalStop");
+                if (arrivalStop != null) {
+                    transitDetailsObj.setArrivalStopName(arrivalStop.optString("name"));
+                    transitDetailsObj.setArrivalTime(stopDetails.optString("arrivalTime"));
 
-                transitDetailsObj.setArrivalStopName(arrivalStopName);
-                transitDetailsObj.setArrivalStopLocation(new LatLng(arrivalStopLat, arrivalStopLng));
-                transitDetailsObj.setArrivalTime(arrivalTime);
+                    JSONObject arrivalStopLocation = arrivalStop.optJSONObject("location");
+                    if (arrivalStopLocation == null) continue;
+                    JSONObject arrivalStopLocationLatLng = arrivalStopLocation.optJSONObject("latLng");
+                    if (arrivalStopLocationLatLng == null) continue;
+                    transitDetailsObj.setArrivalStopLocation(new LatLng(arrivalStopLocationLatLng.optDouble("latitude"),
+                            arrivalStopLocationLatLng.optDouble("longitude")));
+                }
 
                 // Vehicle type
-                JSONObject transitLine = transitDetails.getJSONObject("transitLine");
+                JSONObject transitLine = transitDetails.optJSONObject("transitLine");
+                if (transitLine ==  null) continue;
                 TransitLine line = new TransitLine();
                 line.setName(transitLine.optString("name"));
                 line.setColor(transitLine.optString("color"));
                 line.setNameShort(transitLine.optString("nameShort"));
 
-
-                JSONObject vehicle = transitLine.getJSONObject("vehicle");
-                String vehicleType = vehicle.getString("type");
-
-                transitDetailsObj.setVehicleType(TransitVehicleType.fromString(vehicleType));
+                JSONObject vehicle = transitLine.optJSONObject("vehicle");
+                if (vehicle !=null){
+                    transitDetailsObj.setVehicleType(TransitVehicleType.fromString(vehicle.optString("type")));
+                }
 
                 transitDetailsObj.setTransitLine(line);
-                stepObj.setTransitDetails(transitDetailsObj);
 
             }
             stepList.add(stepObj);
