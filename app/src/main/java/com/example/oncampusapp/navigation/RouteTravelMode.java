@@ -3,7 +3,8 @@ package com.example.oncampusapp.navigation;
 public enum RouteTravelMode {
     WALK("WALK"),
     DRIVE("DRIVE"),
-    TRANSIT("TRANSIT");
+    TRANSIT("TRANSIT"),
+    SHUTTLE("SHUTTLE");
     private final String value;
     RouteTravelMode(String value) {
         this.value = value;

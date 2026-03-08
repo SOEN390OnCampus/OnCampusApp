@@ -6,6 +6,9 @@ import android.net.Uri;
 import android.util.Log;
 import android.widget.Toast;
 
+import com.example.oncampusapp.navigation.NavigationHelper;
+import com.example.oncampusapp.navigation.Route;
+import com.example.oncampusapp.navigation.RouteTravelMode;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
@@ -97,7 +100,7 @@ public class ShuttleHelper {
     /**
      * Fetches the real driving duration between the two shuttle stops from the
      * Google Directions API (DRIVING mode, stop-to-stop), then delivers it via
-     * {@link NavigationHelper.DirectionsCallback#onSuccess}. Falls back to
+     * {@link ShuttleCallback#onSuccess}. Falls back to
      * {@link #SHUTTLE_DURATION_FALLBACK} on error — the path argument in onSuccess
      * is always null; callers should use the pre-computed KML route instead.
      *
@@ -105,7 +108,7 @@ public class ShuttleHelper {
      * @param apiKey Google Maps API key
      * @param cb     callback that receives (null, durationText) on success
      */
-    public static void fetchDuration(LatLng start, String apiKey, NavigationHelper.DirectionsCallback cb) {
+    public static void fetchDuration(LatLng start, String apiKey, ShuttleCallback cb) {
         LatLng from, to;
         if (start == null || distanceBetween(start, SHUTTLE_STOP_SGW) <= distanceBetween(start, SHUTTLE_STOP_LOY)) {
             from = SHUTTLE_STOP_SGW;
@@ -114,18 +117,18 @@ public class ShuttleHelper {
             from = SHUTTLE_STOP_LOY;
             to   = SHUTTLE_STOP_SGW;
         }
-        NavigationHelper.fetchDirections(from, to, NavigationHelper.Mode.DRIVING, apiKey,
-                new NavigationHelper.DirectionsCallback() {
-                    @Override
-                    public void onSuccess(List<LatLng> path, String durationText) {
-                        cb.onSuccess(null, durationText);
-                    }
-                    @Override
-                    public void onError(Exception e) {
-                        Log.w("ShuttleHelper", "Duration fetch failed, using fallback", e);
-                        cb.onError(e);
-                    }
-                });
+        NavigationHelper.fetchRoute(from, to, RouteTravelMode.DRIVE, apiKey, new NavigationHelper.RoutesCallback() {
+            @Override
+            public void onSuccess(Route route) {
+                cb.onSuccess(null, route.getDuration());
+            }
+
+            @Override
+            public void onError(Exception e) {
+                Log.w("ShuttleHelper", "Duration fetch failed, using fallback", e);
+                cb.onError(e);
+            }
+        });
     }
 
     // Concordia Shuttle Timetable URL (Winter schedule)
@@ -227,4 +230,8 @@ public class ShuttleHelper {
         return Math.sqrt(dLat * dLat + dLng * dLng);
     }
 
+    public interface ShuttleCallback {
+        void onSuccess(List<LatLng> path, String durationText);
+        void onError(Exception e);
+    }
 }

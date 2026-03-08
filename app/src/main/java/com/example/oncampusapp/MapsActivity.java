@@ -28,10 +28,8 @@ import android.os.Handler;
 
 import android.Manifest;
 import android.content.Context;
-import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
-import android.net.Uri;
 import android.content.res.Resources;
 import android.graphics.Color;
 import android.graphics.Paint;
@@ -58,10 +56,8 @@ import com.example.oncampusapp.navigation.Route;
 import com.example.oncampusapp.navigation.RouteTravelMode;
 import com.example.oncampusapp.navigation.Step;
 import com.example.oncampusapp.navigation.StepDirection;
-import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationResult;
-import com.google.android.gms.location.LocationServices;
 import com.google.maps.android.SphericalUtil;
 import com.example.oncampusapp.location.FusedLocationProvider;
 import com.example.oncampusapp.location.FusedLocationSource;
@@ -118,10 +114,8 @@ import com.bumptech.glide.Glide;
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback {
 
     private GoogleMap mMap;
-
-
     public static Map<String, Building> buildingsMap = new HashMap<>();
-    private List<StepDirection> directionsList = new ArrayList<>();
+    private final List<StepDirection> directionsList = new ArrayList<>();
     private int currentDirectionIndex = 0;
     private Map<String, BuildingDetails> geoIdToBuildingDetailsMap;
     private ActivityMapsBinding binding;
@@ -153,7 +147,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     public ILocationProvider fusedLocationClient;
     private FusedLocationSource myLocationSource;
 
-    private List<Polyline> routePolylines = new ArrayList<>();
+    private final List<Polyline> routePolylines = new ArrayList<>();
 
     private static final int LOCATION_PERMISSION_REQUEST_CODE = 1;
 
@@ -163,7 +157,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private static final String loy = "LOY";
 
     // Navigation Variables
-    private Polyline bluePolyline;
     private List<LatLng> currentRoutePoints;
     private LocationCallback navigationLocationCallback;
     private Circle startDot;
@@ -243,7 +236,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         binding = ActivityMapsBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
 
-        // Pre-load shuttle route data from bundled JSON
+        // Preload shuttle route data from bundled JSON
         ShuttleHelper.init(this);
         View bannerView = findViewById(R.id.included_banner);
         if (bannerView != null) {
@@ -379,13 +372,13 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         TextView textDir = findViewById(R.id.textDir);
 
         // Buttons & Text
-        Button btnGo = findViewById(R.id.btn_go);
+        btnGo = findViewById(R.id.btn_go);
         Button btnEndTrip = findViewById(R.id.btn_end_trip);
         TextView txtNavInstruction = findViewById(R.id.txt_nav_instruction);
         TextView txtDuration = findViewById(R.id.txt_duration);
 
         // Transport Tabs
-        ImageButton btnWalk = findViewById(R.id.btn_mode_walking);
+        btnWalk = findViewById(R.id.btn_mode_walking);
         ImageButton btnCar = findViewById(R.id.btn_mode_driving);
         ImageButton btnTransit = findViewById(R.id.btn_mode_transit);
         View btnShuttle = findViewById(R.id.btn_mode_shuttle);
@@ -499,7 +492,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             btnModeListener.onClick(v);
             // Logic
             this.selectedMode = RouteTravelMode.TRANSIT;
-            this.selectedMode = NavigationHelper.Mode.TRANSIT;
             btnShuttleTimetable.setVisibility(View.GONE);
             adjustGoButtonWidth(btnGo, false);
             ShuttleHelper.hideShuttleStops(shuttleMarkers);
@@ -510,7 +502,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             // Visuals
             btnModeListener.onClick(v);
             // Logic
-            this.selectedMode = NavigationHelper.Mode.SHUTTLE;
+            this.selectedMode = RouteTravelMode.SHUTTLE;
             btnShuttleTimetable.setVisibility(View.VISIBLE);
             adjustGoButtonWidth(btnGo, true);
             clearNormalRoute();
@@ -547,7 +539,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             }
 
             // SAFETY CHECK
-            if (selectedMode != NavigationHelper.Mode.SHUTTLE && !isPreviewActive) {
+            if (selectedMode != RouteTravelMode.SHUTTLE && !isPreviewActive) {
                 Toast.makeText(this, "Calculating route, please wait...", Toast.LENGTH_SHORT).show();
                 initiateRoutePreview();
                 return;
@@ -576,7 +568,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
             //Zoom Camera for Navigation
             LatLng cameraTarget = null;
-            if (selectedMode == NavigationHelper.Mode.SHUTTLE) {
+            if (selectedMode == RouteTravelMode.SHUTTLE) {
                 // For shuttle mode, focus on the start building directly
                 cameraTarget = BuildingLookup.getLatLngFromBuildingName(startText, buildingsMap);
             } else if (currentRoutePoints != null && !currentRoutePoints.isEmpty()) {
@@ -645,7 +637,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     if (txtDuration != null) txtDuration.setText("");
 
                     // Clean up map
-                    if (bluePolyline != null) bluePolyline.remove();
                     if (isPreviewActive) isPreviewActive = false;
                     currentDirectionIndex = 0;
                     clearShuttleRoute();
@@ -1154,17 +1145,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
     }
 
-    private void drawPolyline(List<LatLng> points, int color) {
-
-        PolylineOptions options = new PolylineOptions()
-                .addAll(points)
-                .color(color)
-                .width(20)
-                .geodesic(true);
-
-        Polyline polyline = mMap.addPolyline(options);
-        routePolylines.add(polyline);
-    }
 
     // Update signature to accept duration
     private void drawRouteOnMap(List<LatLng> decodedPath, String duration, List<Step> steps, boolean isDotted) {
@@ -1175,12 +1155,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         if (txtDuration != null && duration != null) {
             txtDuration.setText(duration.toUpperCase());
         }
-
-        for (Polyline polyline : routePolylines) {
-            polyline.remove();
-        }
-        directionsList.clear();
-        routePolylines.clear();
+        // Remove old route
+        clearNormalRoute();
 
         // Draw the Line
         this.currentRoutePoints = new ArrayList<>(decodedPath);
@@ -1250,7 +1226,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 Polyline polyline = mMap.addPolyline(options);
                 routePolylines.add(polyline);
                 isPreviewActive = true;
-               // bluePolyline = mMap.addPolyline(options);
             }
 
             StepDirection dir = new StepDirection(
@@ -1291,7 +1266,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         StepDirection stepDir = directionsList.get(currentDirectionIndex);
 
-        String direction = stepDir.getInstructions() + "\nin " + stepDir.getDistance().toString();
+        String direction = stepDir.getInstructions() + "\nin " + stepDir.getDistance();
 
         textDir.setText(direction);
 
@@ -1348,10 +1323,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
      * @return true if the mode was switched (caller should re-preview and abort current action)
      */
     private boolean applySameCampusCheck(LatLng startCoords, LatLng destCoords) {
-        if (selectedMode != NavigationHelper.Mode.SHUTTLE) return false;
+        if (selectedMode != RouteTravelMode.SHUTTLE) return false;
         if (!ShuttleHelper.isSameCampus(startCoords, destCoords, SGW_COORDS, LOY_COORDS)) return false;
 
-        selectedMode = NavigationHelper.Mode.WALKING;
+        selectedMode = RouteTravelMode.WALK;
         if (btnWalk != null) {
             btnWalk.setBackgroundColor(Color.parseColor("#D3D3D3"));
             btnWalk.setAlpha(1.0f);
@@ -1419,7 +1394,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             applySameCampusCheck(startCoords, destCoords);
 
             // Shuttle mode: draw the fixed KML-based route, but fetch real duration from API
-            if (selectedMode == NavigationHelper.Mode.SHUTTLE) {
+            if (selectedMode == RouteTravelMode.SHUTTLE) {
 
                 if (mMap != null && (shuttleMarkers[0] == null || shuttleMarkers[1] == null)) {
                     shuttleMarkers = ShuttleHelper.showShuttleStops(this, mMap, shuttleMarkers);
@@ -1476,15 +1451,16 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 };
 
                 // Walk A → pickup
-                NavigationHelper.fetchDirections(
+                NavigationHelper.fetchRoute(
                         startCoords,
                         pickupStop,
-                        NavigationHelper.Mode.WALKING,
+                        RouteTravelMode.WALK,
                         BuildConfig.MAPS_API_KEY,
-                        new NavigationHelper.DirectionsCallback() {
-
+                        new NavigationHelper.RoutesCallback() {
                             @Override
-                            public void onSuccess(List<LatLng> path, String durationText) {
+                            public void onSuccess(Route route) {
+                                List<LatLng> path = route.getPoints();
+                                String durationText = route.getDuration();
                                 walkToMinutes[0] = parseDurationToMinutes(durationText);
                                 walkToDone[0] = true;
                                 runOnUiThread(() -> {
@@ -1502,44 +1478,46 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                                 });
                                 updateTotalDuration.run();
                             }
-
                             @Override
                             public void onError(Exception e) {
                                 e.printStackTrace();
                                 walkToDone[0] = true;
                                 updateTotalDuration.run();
                             }
-                        });
+                        }
+                );
+
 
                 // Walk dropoff → B
-                NavigationHelper.fetchDirections(
+                NavigationHelper.fetchRoute(
                         dropoffStop,
                         destCoords,
-                        NavigationHelper.Mode.WALKING,
+                        RouteTravelMode.WALK,
                         BuildConfig.MAPS_API_KEY,
-                        new NavigationHelper.DirectionsCallback() {
-
+                        new NavigationHelper.RoutesCallback() {
                             @Override
-                            public void onSuccess(List<LatLng> path, String durationText) {
+                            public void onSuccess(Route route) {
+                                List<LatLng> path = route.getPoints();
+                                String durationText = route.getDuration();
                                 walkFromMinutes[0] = parseDurationToMinutes(durationText);
                                 walkFromDone[0] = true;
                                 runOnUiThread(() ->
                                         walkFromStopPolyline = drawSegmentPolyline(path, true));
                                 updateTotalDuration.run();
                             }
-
                             @Override
                             public void onError(Exception e) {
                                 e.printStackTrace();
                                 walkFromDone[0] = true;
                                 updateTotalDuration.run();
                             }
-                        });
+                        }
+                );
 
                 ShuttleHelper.fetchDuration(
                         startCoords,
                         BuildConfig.MAPS_API_KEY,
-                        new NavigationHelper.DirectionsCallback() {
+                        new ShuttleHelper.ShuttleCallback() {
                             @Override
                             public void onSuccess(List<LatLng> path, String durationText) {
                                 shuttleMinutes[0] = parseDurationToMinutes(durationText);
@@ -1620,9 +1598,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             if (btnEndTrip != null) btnEndTrip.performClick();
         }
     }
-    public Polyline getBluePolyline(){
-        return bluePolyline;
-    }
 
     /**
      * Adjusts the GO button width based on whether timetable button is visible
@@ -1647,8 +1622,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     //Helper methods for shuttle 3 leg addition
      private void clearNormalRoute() {
-        if (bluePolyline != null) bluePolyline.remove();
-        bluePolyline = null;
+         for (Polyline polyline : routePolylines) {
+             polyline.remove();
+         }
+         directionsList.clear();
+         routePolylines.clear();
 
         if (startDot != null) startDot.remove();
         startDot = null;
