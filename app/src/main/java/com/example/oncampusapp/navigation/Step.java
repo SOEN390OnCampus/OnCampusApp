@@ -6,7 +6,7 @@ import com.google.android.gms.maps.model.LatLng;
 import java.util.List;
 
 /**
- * Step is a single part of a route. (e.g. Take bus to go to ...)
+ * Represents a segment of a route. (e.g. Take bus to go to ...)
  */
 public class Step {
     private RouteTravelMode travelMode;

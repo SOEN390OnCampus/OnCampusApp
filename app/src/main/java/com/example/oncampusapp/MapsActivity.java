@@ -55,7 +55,7 @@ import com.example.oncampusapp.navigation.NavigationHelper;
 import com.example.oncampusapp.navigation.Route;
 import com.example.oncampusapp.navigation.RouteTravelMode;
 import com.example.oncampusapp.navigation.Step;
-import com.example.oncampusapp.navigation.StepDirection;
+import com.example.oncampusapp.navigation.Direction;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationResult;
 import com.google.maps.android.SphericalUtil;
@@ -115,7 +115,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     private GoogleMap mMap;
     public static Map<String, Building> buildingsMap = new HashMap<>();
-    private final List<StepDirection> directionsList = new ArrayList<>();
+    private final List<Direction> directionsList = new ArrayList<>();
     private int currentDirectionIndex = 0;
     private Map<String, BuildingDetails> geoIdToBuildingDetailsMap;
     private ActivityMapsBinding binding;
@@ -1236,7 +1236,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 isPreviewActive = true;
             }
 
-            StepDirection dir = new StepDirection(
+            Direction dir = new Direction(
                     step.getInstructions(),
                     step.getDistance(),
                     step.getDuration(),
@@ -1272,7 +1272,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         if (directionsList.isEmpty()) return;
 
-        StepDirection stepDir = directionsList.get(currentDirectionIndex);
+        Direction stepDir = directionsList.get(currentDirectionIndex);
 
         String direction = stepDir.getInstructions() + "\nin " + stepDir.getDistance();
 

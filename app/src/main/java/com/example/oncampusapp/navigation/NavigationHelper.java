@@ -128,6 +128,8 @@ public class NavigationHelper {
                 .put("travelMode", mode.getValue());
         if (mode == RouteTravelMode.TRANSIT) {
             requestBody.put("transitPreferences", new JSONObject()
+                    // TODO: Change this hardcoded value as a parameter if there are additional types of
+                    // routing preferences that a user may have.
                     .put("routingPreference", "LESS_WALKING"));
         }
         return requestBody.toString();

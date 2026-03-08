@@ -4,7 +4,10 @@ import com.google.android.gms.maps.model.LatLng;
 
 import java.util.List;
 
-public class StepDirection {
+/**
+ * Represents a navigation step used by the UI when displaying route directions.
+ */
+public class Direction {
 
     private String instructions;
     private String distance;
@@ -17,8 +20,8 @@ public class StepDirection {
 
     private LatLng transitArrivalStop;
 
-    public StepDirection(String instructions, String distance, String duration,
-                         RouteTravelMode travelMode, List<LatLng> points) {
+    public Direction(String instructions, String distance, String duration,
+                     RouteTravelMode travelMode, List<LatLng> points) {
         this.instructions = instructions;
         this.distance = distance;
         this.duration = duration;
