@@ -239,41 +239,43 @@
             </LinearLayout>
         </LinearLayout>
 
+
+
         <LinearLayout
-    android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:orientation="horizontal"
-    android:gravity="center_vertical">
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
 
-    <Button
-        android:id="@+id/btn_go"
-        android:layout_width="0dp"
-        android:layout_height="55dp"
-        android:layout_weight="1"
-        android:backgroundTint="@android:color/black"
-        android:text="@string/go"
-        android:textColor="@android:color/white"
-        android:textSize="18sp"
-        android:textStyle="bold"
-        app:cornerRadius="25dp" />
+            <Button
+                android:id="@+id/btn_go"
+                android:layout_width="0dp"
+                android:layout_height="55dp"
+                android:layout_weight="1"
+                android:backgroundTint="@android:color/black"
+                android:text="@string/go"
+                android:textColor="@android:color/white"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                app:cornerRadius="25dp" />
 
-    <Button
-        android:id="@+id/btn_shuttle_timetable"
-        android:layout_width="wrap_content"
-        android:layout_height="55dp"
-        android:layout_marginStart="8dp"
-        android:backgroundTint="#912338"
-        android:text="🚌 Schedule"
-        android:textColor="@android:color/white"
-        android:textSize="14sp"
-        android:paddingStart="12dp"
-        android:paddingEnd="12dp"
-        android:visibility="gone"
-        app:cornerRadius="25dp" />
+            <Button
+                android:id="@+id/btn_shuttle_timetable"
+                android:layout_width="wrap_content"
+                android:layout_height="55dp"
+                android:layout_marginStart="8dp"
+                android:backgroundTint="#912338"
+                android:text="🚌 Schedule"
+                android:textColor="@android:color/white"
+                android:textSize="14sp"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp"
+                android:visibility="gone"
+                app:cornerRadius="25dp" />
 
-</LinearLayout>
-       
-          
+        </LinearLayout>
+
+
         <FrameLayout
             android:id="@+id/close_search"
             android:layout_width="match_parent"
@@ -281,15 +283,19 @@
             android:layout_marginTop="10dp"
             android:background="?attr/selectableItemBackground"
             android:clickable="true"
-            android:focusable="true">
+            android:focusable="true"
+            android:visibility="visible">
+
             <ImageView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="bottom|center_horizontal"
                 android:contentDescription="@string/hide_the_search_section"
-                android:src="@drawable/baseline_arrow_drop_up" />
+                android:src="@drawable/baseline_arrow_drop_up"
+                android:visibility="visible" />
 
         </FrameLayout>
+
         <LinearLayout
             android:id="@+id/layout_navigation_active"
             android:layout_width="match_parent"
@@ -388,5 +394,67 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:menu="@menu/bottom_nav_menu" />
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/dirLayout"
+        android:layout_width="386dp"
+        android:layout_height="96dp"
+        android:layout_marginTop="83dp"
+        android:layout_marginEnd="16dp"
+        android:background="@drawable/bg_white_rounded"
+        android:visibility="gone"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <ImageButton
+            android:id="@+id/prevDirBtn"
+            android:layout_width="60dp"
+            android:layout_height="60dp"
+            android:layout_marginStart="5dp"
+            android:layout_marginTop="11dp"
+            android:layout_marginEnd="24dp"
+            android:layout_marginBottom="17dp"
+            android:background="@drawable/bg_btn_navigation"
+            android:src="@drawable/ic_arrow_back"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toStartOf="@+id/textDir"
+            app:layout_constraintHorizontal_bias="0.0"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintVertical_bias="0.625" />
+
+        <ImageButton
+            android:id="@+id/nextDirBtn"
+            android:layout_width="60dp"
+            android:layout_height="60dp"
+            android:layout_marginStart="329dp"
+            android:layout_marginTop="32dp"
+            android:layout_marginEnd="32dp"
+            android:layout_marginBottom="32dp"
+            android:background="@drawable/bg_btn_navigation"
+            android:padding="12dp"
+            android:src="@drawable/ic_arrow_next"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHorizontal_bias="0.314"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <TextView
+            android:id="@+id/textDir"
+            android:layout_width="249dp"
+            android:layout_height="71dp"
+            android:layout_marginStart="69dp"
+            android:layout_marginTop="13dp"
+            android:layout_marginEnd="67dp"
+            android:layout_marginBottom="20dp"
+            android:text="@string/sample_direction"
+            android:textSize="13sp"
+            android:gravity="center|start"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+    </androidx.constraintlayout.widget.ConstraintLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

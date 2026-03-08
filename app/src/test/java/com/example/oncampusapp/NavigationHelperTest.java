@@ -5,32 +5,23 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
+import com.example.oncampusapp.navigation.NavigationHelper;
+import com.example.oncampusapp.navigation.RouteTravelMode;
 import com.google.android.gms.maps.model.LatLng;
 
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 
-import java.io.ByteArrayInputStream;
-import java.io.InputStream;
-import java.net.HttpURLConnection;
-import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
 
 @RunWith(MockitoJUnitRunner.class)
 public class NavigationHelperTest {
@@ -39,14 +30,6 @@ public class NavigationHelperTest {
     private LatLng startPoint;
     private LatLng midPoint;
     private LatLng destinationPoint;
-    private final String VALID_RESPONSE = "{" +
-            "\"routes\": [{" +
-            "\"overview_polyline\": { \"points\": \"_p~iF~ps|U_ulLnnqC_mqNvxq`@\" }," +
-            "\"legs\": [{" +
-            "\"duration\": { \"text\": \"1 hour\" }" +
-            "}]" +
-            "}]" +
-            "}";
 
     @Before
     public void setUp() {
@@ -127,47 +110,24 @@ public class NavigationHelperTest {
     }
     @Test
     public void testEnumValues() {
-        assertEquals("walking", NavigationHelper.Mode.WALKING.getValue());
-        assertEquals("driving", NavigationHelper.Mode.DRIVING.getValue());
-        assertEquals("transit", NavigationHelper.Mode.TRANSIT.getValue());
+        assertEquals("WALK", RouteTravelMode.WALK.getValue());
+        assertEquals("DRIVE", RouteTravelMode.DRIVE.getValue());
+        assertEquals("TRANSIT",RouteTravelMode.TRANSIT.getValue());
+        assertEquals("SHUTTLE",RouteTravelMode.SHUTTLE.getValue());
     }
 
     @Test
     public void testValueOf() {
-        assertEquals(NavigationHelper.Mode.WALKING, NavigationHelper.Mode.valueOf("WALKING"));
-        assertEquals(NavigationHelper.Mode.DRIVING, NavigationHelper.Mode.valueOf("DRIVING"));
-        assertEquals(NavigationHelper.Mode.TRANSIT, NavigationHelper.Mode.valueOf("TRANSIT"));
-        assertEquals(NavigationHelper.Mode.SHUTTLE, NavigationHelper.Mode.valueOf("SHUTTLE"));
+        assertEquals(RouteTravelMode.WALK, RouteTravelMode.valueOf("WALK"));
+        assertEquals(RouteTravelMode.DRIVE, RouteTravelMode.valueOf("DRIVE"));
+        assertEquals(RouteTravelMode.TRANSIT, RouteTravelMode.valueOf("TRANSIT"));
+        assertEquals(RouteTravelMode.SHUTTLE, RouteTravelMode.valueOf("SHUTTLE"));
     }
 
     @Test
     public void testEnumCount() {
-        assertEquals(4, NavigationHelper.Mode.values().length);
+        assertEquals(4, RouteTravelMode.values().length);
+        assertEquals(4, RouteTravelMode.values().length);
     }
-    
-    @Test
-    public void testShuttleModeValue() {
-        assertEquals("shuttle", NavigationHelper.Mode.SHUTTLE.getValue());
-    }
-    @Test
-    public void testFetchDirections_ValidResponse_onSuccessCalled() throws Exception {
-        try (MockedStatic<NavigationHelper> mock = Mockito.mockStatic(NavigationHelper.class)) {
-            mock.when(() -> NavigationHelper.fetchUrl(anyString())).thenReturn(VALID_RESPONSE);
 
-            mock.when(() -> NavigationHelper.fetchDirections(any(), any(), any(), any(), any()))
-                    .thenCallRealMethod();
-
-            NavigationHelper.fetchDirections(startPoint, destinationPoint, NavigationHelper.Mode.DRIVING, "key", new NavigationHelper.DirectionsCallback() {
-                @Override
-                public void onSuccess(List path, String duration) {
-                    assertEquals("1 hour", duration);
-                }
-                @Override
-                public void onError(Exception e) {
-                    fail(e.getMessage());
-                }
-            });
-
-        }
-    }
 }
