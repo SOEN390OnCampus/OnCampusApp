@@ -15,6 +15,10 @@
           "navigationInstruction": {
             "maneuver": "DEPART",
             "instructions": "Head northwest on Rue Mackay"
+          },
+          "localizedValues": {
+            "distance": {"text": "0.1 km"},
+            "staticDuration": {"text": "1 min"}
           }
         },
         {
@@ -37,11 +41,23 @@
             "transitLine": {
               "vehicle": {"type": "BUS"}
             }
+          },
+          "localizedValues": {
+            "distance": {"text": "0.1 km"},
+            "staticDuration": {"text": "1 min"}
           }
         },
         {
           "travelMode": "WALK",
-          "polyline": {"encodedPolyline": "kgmtGjzm`Mw@w@"}
+          "polyline": {"encodedPolyline": "kgmtGjzm`Mw@w@"},
+          "localizedValues": {
+            "distance": {"text": "0.1 km"},
+            "staticDuration": {"text": "1 min"}
+          },
+          "navigationInstruction": {
+            "maneuver": "END",
+            "instructions": "Walk ahead"
+          }
         }
       ]
     }]
