@@ -280,7 +280,41 @@ public class ScheduleViewer extends AppCompatActivity {
         titleView.setText(title);
         locView.setText(shortLocation);
 
-        // --- Color Mapping Logic ---
+        String[] colors = getEventColors(colorId);
+        String fgColorHex = colors[0];
+        String bgColorHex = colors[1];
+
+        // Apply the mapped colors
+        strip.setBackgroundColor(Color.parseColor(fgColorHex));
+        bg.setBackgroundColor(Color.parseColor(bgColorHex));
+        titleView.setTextColor(Color.parseColor(fgColorHex));
+        // ---------------------------
+
+        int startHour = getHourFromIso(startIso);
+        int startMin = getMinFromIso(startIso);
+        int endHour = getHourFromIso(endIso);
+        int endMin = getMinFromIso(endIso);
+
+        int topMarginMins = ((startHour - START_HOUR) * 60) + startMin;
+        int durationMins = ((endHour - startHour) * 60) + (endMin - startMin);
+
+        FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, dpToPx(durationMins));
+        params.topMargin = dpToPx(topMarginMins);
+
+        layout.setLayoutParams(params);
+        return layout;
+    }
+
+    private void snapToMonday(Calendar cal) {
+        cal.set(Calendar.DAY_OF_WEEK, Calendar.MONDAY);
+        cal.set(Calendar.HOUR_OF_DAY, 0);
+        cal.set(Calendar.MINUTE, 0);
+        cal.set(Calendar.SECOND, 0);
+        cal.set(Calendar.MILLISECOND, 0);
+    }
+
+    protected String[] getEventColors(String colorId) {
         String fgColorHex;
         String bgColorHex;
 
@@ -292,7 +326,7 @@ public class ScheduleViewer extends AppCompatActivity {
             }
         }).getAsInt();
 
-        bgColorHex = switch (colorIdVal) {
+        bgColorHex = switch (colorIdVal % 11) {
             case 1 -> {
                 fgColorHex = "#7986CB";
                 yield "#E8EAF6";
@@ -333,61 +367,34 @@ public class ScheduleViewer extends AppCompatActivity {
                 fgColorHex = "#0B8043";
                 yield "#E8F5E9";
             }
-//            case 11: // Tomato
-//                fgColorHex = "#D50000"; bgColorHex = "#FFEBEE"; break;
             default -> {
                 fgColorHex = "#4285F4";
                 yield "#DCE6F8";
             }
         };
 
-        // Apply the mapped colors
-        strip.setBackgroundColor(Color.parseColor(fgColorHex));
-        bg.setBackgroundColor(Color.parseColor(bgColorHex));
-        titleView.setTextColor(Color.parseColor(fgColorHex));
-        // ---------------------------
-
-        int startHour = getHourFromIso(startIso);
-        int startMin = getMinFromIso(startIso);
-        int endHour = getHourFromIso(endIso);
-        int endMin = getMinFromIso(endIso);
-
-        int topMarginMins = ((startHour - START_HOUR) * 60) + startMin;
-        int durationMins = ((endHour - startHour) * 60) + (endMin - startMin);
-
-        FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, dpToPx(durationMins));
-        params.topMargin = dpToPx(topMarginMins);
-
-        layout.setLayoutParams(params);
-        return layout;
+        return new String[]{fgColorHex, bgColorHex};
     }
 
-    private void snapToMonday(Calendar cal) {
-        cal.set(Calendar.DAY_OF_WEEK, Calendar.MONDAY);
-        cal.set(Calendar.HOUR_OF_DAY, 0);
-        cal.set(Calendar.MINUTE, 0);
-        cal.set(Calendar.SECOND, 0);
-        cal.set(Calendar.MILLISECOND, 0);
-    }
-
-    private int getHourFromIso(String iso) {
+    protected int getHourFromIso(String iso) {
         try {
             if(!iso.contains("T")) return 0;
             return Integer.parseInt(iso.split("T")[1].substring(0, 2));
         } catch (Exception e) { return 0; }
     }
 
-    private int getMinFromIso(String iso) {
+    protected int getMinFromIso(String iso) {
         try {
             if(!iso.contains("T")) return 0;
             return Integer.parseInt(iso.split("T")[1].substring(3, 5));
         } catch (Exception e) { return 0; }
     }
 
-    private int dpToPx(int dp) { return (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, dp, getResources().getDisplayMetrics()); }
+    protected int dpToPx(int dp) {
+        return (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, dp, getResources().getDisplayMetrics());
+    }
 
-    private Calendar parseIsoToCalendar(String iso) {
+    protected Calendar parseIsoToCalendar(String iso) {
         try {
             if(!iso.contains("T")) return null;
             String datePart = iso.split("T")[0];
@@ -399,7 +406,7 @@ public class ScheduleViewer extends AppCompatActivity {
         } catch (Exception e) { return null; }
     }
 
-    private String getDayOfWeek(String isoDateTime) {
+    protected String getDayOfWeek(String isoDateTime) {
         try {
             if(!isoDateTime.contains("T")) return "";
             String datePart = isoDateTime.split("T")[0];
