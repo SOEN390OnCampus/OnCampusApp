@@ -1147,7 +1147,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
 
     // Update signature to accept duration
-    private void drawRouteOnMap(List<LatLng> decodedPath, String duration, List<Step> steps, boolean isDotted) {
+    private void drawRouteOnMap(List<LatLng> decodedPath, String duration, List<Step> steps) {
         if (mMap == null || decodedPath == null) return;
 
         // Update the Time Text
@@ -1211,6 +1211,18 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     color = Color.parseColor("#4285F4");
                 }
 
+            } else if (step.getTravelMode()== RouteTravelMode.WALK) {
+                PolylineOptions options = new PolylineOptions()
+                        .addAll(step.getPoints())
+                        .color(Color.parseColor("#4285F4"))
+                        .width(20)
+                        .zIndex(2)
+                        .geodesic(true)
+                        .pattern(Arrays.asList(new Dot(), new Gap(20)));
+
+                Polyline polyline = mMap.addPolyline(options);
+                routePolylines.add(polyline);
+                isPreviewActive = true;
             } else {
                 PolylineOptions options = new PolylineOptions()
                         .addAll(step.getPoints())
@@ -1218,10 +1230,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                         .width(20)
                         .zIndex(2)
                         .geodesic(true);
-                if (isDotted) {
-                    List<PatternItem> pattern = Arrays.asList(new Dot(), new Gap(20));
-                    options.pattern(pattern);
-                }
 
                 Polyline polyline = mMap.addPolyline(options);
                 routePolylines.add(polyline);
@@ -1542,13 +1550,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             NavigationHelper.fetchRoute(startCoords, destCoords, selectedMode, BuildConfig.MAPS_API_KEY, new NavigationHelper.RoutesCallback() {
                 @Override
                 public void onSuccess(Route route) {
-                    if (selectedMode == RouteTravelMode.WALK) {
-                        Log.i("RouteClient", "Walking route found");
-                        runOnUiThread(() -> drawRouteOnMap(route.getPoints(), route.getDuration(), route.getSteps(), true)); // Dotted line for walking
-                    } else {
-                        Log.i("RouteClient", "Transit route found");
-                        runOnUiThread(() -> drawRouteOnMap(route.getPoints(), route.getDuration(), route.getSteps(), false)); // Straight line for everything else
-                    }
+                        runOnUiThread(() -> drawRouteOnMap(route.getPoints(), route.getDuration(), route.getSteps()));
+                        runOnUiThread(() -> drawRouteOnMap(route.getPoints(), route.getDuration(), route.getSteps()));
                 }
 
                 @Override
@@ -1842,4 +1845,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             requestMultiplePermissionsLauncher.launch(permissionsToRequest.toArray(new String[0]));
         }
     }
+    public List<Polyline> getRoutePolylines(){
+        return this.routePolylines;
+    }
+
 }
