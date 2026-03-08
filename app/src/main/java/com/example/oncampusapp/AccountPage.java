@@ -251,6 +251,9 @@ public class AccountPage extends AppCompatActivity {
             JSONObject root = new JSONObject(calendarListJson);
             JSONArray items = root.getJSONArray("items");
 
+            TextView calendarCount = findViewById(R.id.calendar_count);
+            calendarCount.setText("YOUR CALENDARS (" + items.length() + ")");
+
             for (int i = 0; i < items.length(); i++) {
                 JSONObject calendar = items.getJSONObject(i);
 

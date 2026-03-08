@@ -27,6 +27,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.function.IntSupplier;
 
 public class ScheduleViewer extends AppCompatActivity {
 
@@ -75,7 +76,7 @@ public class ScheduleViewer extends AppCompatActivity {
         String selectedCalendarId = prefs.getString("selected_calendar", "");
 
         if (calendarId.equals(selectedCalendarId))
-            btnMainCalendar.setText("Selected");
+            btnMainCalendar.setText("Selected ✓");
 
         btnMainCalendar.setOnClickListener(v -> {
             if (calendarId.equals(selectedCalendarId))
@@ -85,7 +86,7 @@ public class ScheduleViewer extends AppCompatActivity {
             editor.putString("selected_calendar", calendarId);
             editor.apply();
 
-            btnMainCalendar.setText("Selected");
+            btnMainCalendar.setText("Selected ✓");
         });
 
         calendarTitle.setText(calendarName);
@@ -279,32 +280,62 @@ public class ScheduleViewer extends AppCompatActivity {
         String fgColorHex;
         String bgColorHex;
 
-        switch (Integer.parseInt(colorId) % 11) {
-            case 1: // Lavender
-                fgColorHex = "#7986CB"; bgColorHex = "#E8EAF6"; break;
-            case 2: // Sage
-                fgColorHex = "#33B679"; bgColorHex = "#E8F5E9"; break;
-            case 3: // Grape
-                fgColorHex = "#8E24AA"; bgColorHex = "#F3E5F5"; break;
-            case 4: // Flamingo
-                fgColorHex = "#E67C73"; bgColorHex = "#FBE9E7"; break;
-            case 5: // Banana
-                fgColorHex = "#F6BF26"; bgColorHex = "#FFFDE7"; break;
-            case 6: // Tangerine
-                fgColorHex = "#F4511E"; bgColorHex = "#FBE9E7"; break;
-            case 7: // Peacock
-                fgColorHex = "#039BE5"; bgColorHex = "#E1F5FE"; break;
-            case 8: // Graphite
-                fgColorHex = "#616161"; bgColorHex = "#F5F5F5"; break;
-            case 9: // Blueberry
-                fgColorHex = "#3F51B5"; bgColorHex = "#E8EAF6"; break;
-            case 10: // Basil
-                fgColorHex = "#0B8043"; bgColorHex = "#E8F5E9"; break;
+        int colorIdVal = ((IntSupplier) () -> {
+            try {
+                return Integer.parseInt(colorId);
+            } catch (Exception e) {
+                return 0;
+            }
+        }).getAsInt();
+
+        bgColorHex = switch (colorIdVal) {
+            case 1 -> {
+                fgColorHex = "#7986CB";
+                yield "#E8EAF6";
+            }
+            case 2 -> {
+                fgColorHex = "#33B679";
+                yield "#E8F5E9";
+            }
+            case 3 -> {
+                fgColorHex = "#8E24AA";
+                yield "#F3E5F5";
+            }
+            case 4 -> {
+                fgColorHex = "#E67C73";
+                yield "#FBE9E7";
+            }
+            case 5 -> {
+                fgColorHex = "#F6BF26";
+                yield "#FFFDE7";
+            }
+            case 6 -> {
+                fgColorHex = "#F4511E";
+                yield "#FBE9E7";
+            }
+            case 7 -> {
+                fgColorHex = "#039BE5";
+                yield "#E1F5FE";
+            }
+            case 8 -> {
+                fgColorHex = "#616161";
+                yield "#F5F5F5";
+            }
+            case 9 -> {
+                fgColorHex = "#3F51B5";
+                yield "#E8EAF6";
+            }
+            case 10 -> {
+                fgColorHex = "#0B8043";
+                yield "#E8F5E9";
+            }
 //            case 11: // Tomato
 //                fgColorHex = "#D50000"; bgColorHex = "#FFEBEE"; break;
-            default:  // Default fallback (Google Blue)
-                fgColorHex = "#4285F4"; bgColorHex = "#DCE6F8"; break;
-        }
+            default -> {
+                fgColorHex = "#4285F4";
+                yield "#DCE6F8";
+            }
+        };
 
         // Apply the mapped colors
         strip.setBackgroundColor(Color.parseColor(fgColorHex));
