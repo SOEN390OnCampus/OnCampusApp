@@ -12,6 +12,10 @@ import static androidx.test.espresso.matcher.ViewMatchers.withText;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.is;
 
+import android.Manifest;
+import android.content.Context;
+import android.content.SharedPreferences;
+import android.os.Build;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewParent;
@@ -20,10 +24,12 @@ import androidx.test.espresso.ViewInteraction;
 import androidx.test.ext.junit.rules.ActivityScenarioRule;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.LargeTest;
+import androidx.test.platform.app.InstrumentationRegistry;
 
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeMatcher;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -35,6 +41,16 @@ public class GoogleCalendarAuthE2ETest {
     @Rule
     public ActivityScenarioRule<MapsActivity> mActivityScenarioRule =
             new ActivityScenarioRule<>(MapsActivity.class);
+
+    @Before
+    public void resetSelectedCalendarPreference() {
+        Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
+        SharedPreferences prefs = context.getSharedPreferences("OnCampusPrefs", Context.MODE_PRIVATE);
+
+        SharedPreferences.Editor editor = prefs.edit();
+        editor.putString("selected_calendar", null);
+        editor.apply();
+    }
 
     @Test
     public void googleCalendarAuthE2ETest() {
@@ -56,6 +72,40 @@ public class GoogleCalendarAuthE2ETest {
 
         onView(allOf(withId(R.id.btn_allow), withText("Allow"), isDisplayed()))
                 .perform(click());
+    }
+
+    @Test
+    public void OpenCalendarTest() throws InterruptedException {
+        onView(allOf(withId(R.id.nav_account),
+                withContentDescription("Favorites"),
+                isDisplayed()))
+                .perform(click());
+
+        Thread.sleep(3000);
+
+        onView(childAtPosition(withId(R.id.calendarListContainer), 0))
+                .perform(click());
+
+        Thread.sleep(3000);
+
+        onView(withId(R.id.nav_right))
+                .perform(click());
+
+        onView(withId(R.id.nav_left))
+                .perform(click());
+
+        onView(withId(R.id.btn_select_main_calendar))
+                .perform(click());
+
+        onView(withId(R.id.btn_back))
+                .perform(click());
+
+        Thread.sleep(3000);
+
+        onView(childAtPosition(withId(R.id.calendarListContainer), 1))
+                .perform(click());
+
+        Thread.sleep(3000);
     }
 
     private static Matcher<View> childAtPosition(

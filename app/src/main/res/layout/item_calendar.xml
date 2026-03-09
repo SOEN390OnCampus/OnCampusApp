@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:padding="12dp"
+    android:layout_marginBottom="8dp"
+    android:gravity="center_vertical"
+    android:background="@drawable/bg_calendar_item"
+    android:clickable="true"
+    android:focusable="true">
+
+    <View
+        android:id="@+id/calendar_color_dot"
+        android:layout_width="16dp"
+        android:layout_height="16dp"
+        android:background="@drawable/bg_circle" />
+
+    <TextView
+        android:id="@+id/calendar_name"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:layout_marginStart="12dp"
+        android:textSize="16sp"
+        android:textColor="#333333" />
+
+    <TextView
+        android:id="@+id/calendar_selected_badge"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Selected"
+        android:textColor="#1967D2"
+        android:textSize="12sp"
+        android:textStyle="bold"
+        android:paddingHorizontal="8dp"
+        android:paddingVertical="4dp"
+        android:background="@drawable/bg_selected_badge"
+        android:visibility="gone" /> </LinearLayout>

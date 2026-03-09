@@ -14,7 +14,6 @@
         android:layout_marginStart="16dp"
         android:layout_marginTop="24dp"
         android:src="@drawable/ic_back"
-        android:tint="#7A1C1C"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         app:tint="#7A1C1C" />

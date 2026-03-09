@@ -1,141 +1,145 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:fillViewport="true">
+    android:orientation="vertical"
+    android:background="#F8F9FA">
 
-    <HorizontalScrollView
+    <RelativeLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content">
+        android:layout_height="60dp"
+        android:background="#8B1E2D"
+        android:paddingHorizontal="16dp">
 
-        <LinearLayout
-            android:id="@+id/week_container"
+        <ImageView
+            android:id="@+id/btn_back"
+            android:layout_width="26dp"
+            android:layout_height="26dp"
+            android:src="@drawable/ic_back"
+            android:layout_centerVertical="true"
+            app:tint="@android:color/white" />
+
+        <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:padding="8dp">
+            android:text="Back to calendar"
+            android:textColor="#FFFFFF"
+            android:textSize="18sp"
+            android:layout_toEndOf="@id/btn_back"
+            android:layout_marginStart="16dp"
+            android:layout_centerVertical="true"/>
 
-            <!-- Each day column -->
+        <Button
+            android:id="@+id/btn_select_main_calendar"
+            android:layout_width="wrap_content"
+            android:layout_height="36dp"
+            android:text="Select as Main"
+            android:textColor="#FFFFFF"
+            android:textSize="12sp"
+            android:background="@drawable/btn_outline_white"
+            android:layout_alignParentEnd="true"
+            android:layout_centerVertical="true"
+            android:paddingHorizontal="12dp"/>
+    </RelativeLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="12dp"
+        android:gravity="center_vertical">
+        <View
+            android:id="@+id/calendar_header_title_color"
+            android:layout_width="10dp"
+            android:layout_height="10dp"
+            android:background="#0F9D58"
+            android:layout_marginEnd="8dp"/>
+        <TextView
+            android:id="@+id/calendar_header_title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Fall 2025 — Weekly Schedule"
+            android:textStyle="bold"
+            android:textSize="16sp"
+            android:textColor="#333333"/>
+    </LinearLayout>
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingHorizontal="16dp"
+        android:paddingBottom="8dp">
+
+        <TextView
+            android:id="@+id/nav_left"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:text="◀"
+            android:textColor="#FFFFFF"
+            android:gravity="center"
+            android:background="@drawable/bg_circle_red"
+            android:layout_alignParentStart="true"/>
+
+        <TextView
+            android:id="@+id/week_title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Sep 8 – 14, 2025"
+            android:textSize="14sp"
+            android:textColor="#555555"
+            android:layout_centerInParent="true"/>
+
+        <TextView
+            android:id="@+id/nav_right"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:text="▶"
+            android:textColor="#FFFFFF"
+            android:gravity="center"
+            android:background="@drawable/bg_circle_red"
+            android:layout_alignParentEnd="true"/>
+    </RelativeLayout>
+
+    <LinearLayout
+        android:id="@+id/header_row"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:paddingBottom="4dp">
+
+        <View android:layout_width="35dp" android:layout_height="match_parent"/>
+
+    </LinearLayout>
+
+    <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#E0E0E0"/>
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:fillViewport="true">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
             <LinearLayout
-                android:id="@+id/day_monday"
-                android:layout_width="120dp"
+                android:id="@+id/time_column"
+                android:layout_width="35dp"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:background="#f0f0f0"
-                android:padding="4dp">
-
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="Mon"
-                    android:textStyle="bold"
-                    android:gravity="center"
-                    android:paddingBottom="8dp"/>
-
-                <!-- Events will be added programmatically here -->
+                android:paddingTop="8dp">
             </LinearLayout>
 
             <LinearLayout
-                android:id="@+id/day_tuesday"
-                android:layout_width="120dp"
+                android:id="@+id/days_container"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:background="#f9f9f9"
-                android:padding="4dp">
-
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="Tue"
-                    android:textStyle="bold"
-                    android:gravity="center"
-                    android:paddingBottom="8dp"/>
+                android:orientation="horizontal">
             </LinearLayout>
-
-            <!-- Repeat for Wed–Sun -->
-            <LinearLayout
-                android:id="@+id/day_wednesday"
-                android:layout_width="120dp"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:background="#f0f0f0"
-                android:padding="4dp">
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="Wed"
-                    android:textStyle="bold"
-                    android:gravity="center"
-                    android:paddingBottom="8dp"/>
-            </LinearLayout>
-
-            <LinearLayout
-                android:id="@+id/day_thursday"
-                android:layout_width="120dp"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:background="#f9f9f9"
-                android:padding="4dp">
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="Thu"
-                    android:textStyle="bold"
-                    android:gravity="center"
-                    android:paddingBottom="8dp"/>
-            </LinearLayout>
-
-            <LinearLayout
-                android:id="@+id/day_friday"
-                android:layout_width="120dp"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:background="#f0f0f0"
-                android:padding="4dp">
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="Fri"
-                    android:textStyle="bold"
-                    android:gravity="center"
-                    android:paddingBottom="8dp"/>
-            </LinearLayout>
-
-            <LinearLayout
-                android:id="@+id/day_saturday"
-                android:layout_width="120dp"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:background="#f9f9f9"
-                android:padding="4dp">
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="Sat"
-                    android:textStyle="bold"
-                    android:gravity="center"
-                    android:paddingBottom="8dp"/>
-            </LinearLayout>
-
-            <LinearLayout
-                android:id="@+id/day_sunday"
-                android:layout_width="120dp"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:background="#f0f0f0"
-                android:padding="4dp">
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="Sun"
-                    android:textStyle="bold"
-                    android:gravity="center"
-                    android:paddingBottom="8dp"/>
-            </LinearLayout>
-
-
 
         </LinearLayout>
-    </HorizontalScrollView>
-</ScrollView>
+    </ScrollView>
+</LinearLayout>

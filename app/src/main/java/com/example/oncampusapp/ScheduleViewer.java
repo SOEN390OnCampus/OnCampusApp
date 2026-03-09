@@ -1,18 +1,20 @@
 package com.example.oncampusapp;
 
-import android.content.res.ColorStateList;
+import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.util.TypedValue;
 import android.view.Gravity;
+import android.view.View;
 import android.view.ViewGroup;
-import android.widget.ImageView;
+import android.view.Window;
+import android.view.WindowManager;
+import android.widget.Button;
+import android.widget.FrameLayout;
 import android.widget.LinearLayout;
-import android.widget.ScrollView;
 import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.content.ContextCompat;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -23,118 +25,287 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.function.IntSupplier;
 
 public class ScheduleViewer extends AppCompatActivity {
 
-    private LinearLayout mainRow;
-    private Map<String, LinearLayout> dayColumns = new HashMap<>();
-
-    private Calendar currentWeek = Calendar.getInstance();
+    private LinearLayout headerRow, timeColumn, daysContainer;
     private TextView weekTitle;
+
+    private Map<String, FrameLayout> dayColumns = new HashMap<>();
+    private final Calendar currentWeek = Calendar.getInstance();
+
+    private final int START_HOUR = 7; // 7 AM
+    private final int END_HOUR = 22;  // 10 PM
+    private final int HOUR_HEIGHT_DP = 60; // 1 min = 1 dp height
+
+    private String calendarJson;
+
+    private CalendarRepository calendarRepository;
+
+    private final ExecutorService executor = Executors.newSingleThreadExecutor();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        buildLayout(); // Create UI manually
+        Window window = getWindow();
+        window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
+        window.setStatusBarColor(Color.parseColor("#8B1E2D"));
 
-        snapToMonday(currentWeek);
-        updateWeekTitle();
-        updateDayHeaders();
+        calendarRepository = CalendarRepository.getInstance();
 
-        refreshEventsForWeek();
-    }
+        setContentView(R.layout.activity_schedule);
 
-    /**
-     * Builds a 7-column week layout manually (Google Calendar style)
-     */
-    private void buildLayout() {
+        headerRow = findViewById(R.id.header_row);
 
-        LinearLayout root = new LinearLayout(this);
-        root.setOrientation(LinearLayout.VERTICAL);
+        setContentView(R.layout.activity_schedule);
 
-        // ---------- TOP BAR ----------
-        LinearLayout headerBar = new LinearLayout(this);
-        headerBar.setOrientation(LinearLayout.HORIZONTAL);
-        headerBar.setPadding(32,32,32,32);
-        headerBar.setBackgroundColor(ContextCompat.getColor(this, R.color.header_bar_background));
+        headerRow = findViewById(R.id.header_row);
+        timeColumn = findViewById(R.id.time_column);
+        daysContainer = findViewById(R.id.days_container);
+        weekTitle = findViewById(R.id.week_title);
+        Button btnMainCalendar = findViewById(R.id.btn_select_main_calendar);
+        TextView calendarTitle = findViewById(R.id.calendar_header_title);
+        View calendarColorDot = findViewById(R.id.calendar_header_title_color);
 
-        ImageView leftArrow = new ImageView(this);
-        leftArrow.setImageResource(android.R.drawable.ic_media_previous);
-        leftArrow.setImageTintList(ColorStateList.valueOf(Color.WHITE));
-        int sizePx = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 24, getResources().getDisplayMetrics());
-        leftArrow.setLayoutParams(new LinearLayout.LayoutParams(sizePx, sizePx));
+        String calendarName = getIntent().getStringExtra("calendar_name");
+        String calendarColor = getIntent().getStringExtra("calendar_color");
+        String calendarId = getIntent().getStringExtra("calendar_id");
+        assert calendarId != null;
 
-        weekTitle = new TextView(this);
-        weekTitle.setTextColor(Color.WHITE);
-        weekTitle.setTextSize(18f);
-        weekTitle.setPadding(32,0,32,0);
+        SharedPreferences prefs = getSharedPreferences("OnCampusPrefs", MODE_PRIVATE);
+        String selectedCalendarId = prefs.getString("selected_calendar", "");
 
-        TextView rightArrow = new TextView(this);
-        rightArrow.setText("▶");
-        rightArrow.setTextSize(22f);
-        rightArrow.setTextColor(Color.WHITE);
+        if (calendarId.equals(selectedCalendarId))
+            btnMainCalendar.setText("Selected ✓");
 
-        headerBar.addView(leftArrow);
-        headerBar.addView(weekTitle);
-        headerBar.addView(rightArrow);
+        btnMainCalendar.setOnClickListener(v -> {
+            if (calendarId.equals(selectedCalendarId))
+                return;
 
-        root.addView(headerBar);
+            SharedPreferences.Editor editor = prefs.edit();
+            editor.putString("selected_calendar", calendarId);
+            editor.apply();
 
-        // ---------- WEEK GRID ----------
-        ScrollView scrollView = new ScrollView(this);
-        mainRow = new LinearLayout(this);
-        mainRow.setOrientation(LinearLayout.HORIZONTAL);
-        mainRow.setBackgroundColor(Color.parseColor("#F1F3F4"));
+            btnMainCalendar.setText("Selected ✓");
+        });
 
-        String[] days = {
-                "monday","tuesday","wednesday",
-                "thursday","friday","saturday","sunday"
-        };
+        calendarTitle.setText(calendarName);
+        calendarColorDot.setBackgroundColor(Color.parseColor(calendarColor));
 
-        for (String day : days) {
+        getCalendarEvents();
 
-            LinearLayout columnWrapper = new LinearLayout(this);
-            columnWrapper.setOrientation(LinearLayout.VERTICAL);
-            columnWrapper.setLayoutParams(new LinearLayout.LayoutParams(
-                    0, ViewGroup.LayoutParams.MATCH_PARENT, 1f));
-
-            TextView header = new TextView(this);
-            header.setGravity(Gravity.CENTER);
-            header.setPadding(8,16,8,16);
-            header.setBackgroundColor(Color.parseColor("#E0E0E0"));
-
-            LinearLayout column = new LinearLayout(this);
-            column.setOrientation(LinearLayout.VERTICAL);
-            column.setPadding(16,16,16,16);
-
-            dayColumns.put(day, column);
-
-            columnWrapper.addView(header);
-            columnWrapper.addView(column);
-
-            mainRow.addView(columnWrapper);
-        }
-
-        scrollView.addView(mainRow);
-        root.addView(scrollView);
-
-        setContentView(root);
-
-        // Set current week to Monday
-        snapToMonday(currentWeek);
-        updateWeekTitle();
-        updateDayHeaders();
-
-        leftArrow.setOnClickListener(v -> {
+        findViewById(R.id.nav_left).setOnClickListener(v -> {
             currentWeek.add(Calendar.WEEK_OF_YEAR, -1);
             updateWeek();
         });
 
-        rightArrow.setOnClickListener(v -> {
+        findViewById(R.id.nav_right).setOnClickListener(v -> {
             currentWeek.add(Calendar.WEEK_OF_YEAR, 1);
             updateWeek();
         });
+
+        findViewById(R.id.btn_back).setOnClickListener(v -> finish());
+    }
+
+    public void getCalendarEvents() {
+        executor.execute(() -> {
+            try {
+                String calendarToken = getIntent().getStringExtra("calendar_token");
+                String id = getIntent().getStringExtra("calendar_id");
+
+                String calendarEvents = calendarRepository.fetchCalendarEvents(calendarToken, id);
+                JSONObject eventsRoot = new JSONObject(calendarEvents);
+                JSONArray events = eventsRoot.optJSONArray("items");
+
+                assert events != null;
+                calendarJson = events.toString();
+
+                runOnUiThread(() -> {
+                    setupGrid();
+                    snapToMonday(currentWeek);
+                    updateWeek();
+                });
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        });
+    }
+
+    private void setupGrid() {
+        // 1. Build Time Column (Left Side)
+        for (int i = START_HOUR; i <= END_HOUR; i++) {
+            TextView timeTxt = new TextView(this);
+            String amPm = (i < 12 || i == 24) ? "AM" : "PM";
+            int displayHour = (i % 12 == 0) ? 12 : (i % 12);
+
+            // Text is forced vertically (Hour on top, AM/PM below)
+            timeTxt.setText(displayHour + "\n" + amPm);
+            timeTxt.setTextSize(9f);
+            timeTxt.setTextColor(Color.parseColor("#999999"));
+            timeTxt.setGravity(Gravity.CENTER_HORIZONTAL | Gravity.TOP);
+
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, dpToPx(HOUR_HEIGHT_DP));
+            timeTxt.setLayoutParams(lp);
+            timeColumn.addView(timeTxt);
+        }
+
+        // 2. Build Day Columns (7 Days - Mon to Sun)
+        String[] days = {"monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"};
+
+        for (String day : days) {
+            // Header cell using layout_weight = 1
+            LinearLayout headerCell = new LinearLayout(this);
+            headerCell.setOrientation(LinearLayout.VERTICAL);
+            headerCell.setGravity(Gravity.CENTER);
+            LinearLayout.LayoutParams headerParams = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1.0f);
+            headerCell.setLayoutParams(headerParams);
+
+            TextView dayName = new TextView(this);
+            dayName.setTextSize(10f);
+            dayName.setTextColor(Color.parseColor("#777777"));
+
+            TextView dayNum = new TextView(this);
+            dayNum.setTextSize(12f);
+            dayNum.setTextColor(Color.BLACK);
+
+            headerCell.addView(dayName);
+            headerCell.addView(dayNum);
+            headerCell.setTag(day);
+            headerRow.addView(headerCell);
+
+            // FrameLayout for events using layout_weight = 1
+            FrameLayout frame = new FrameLayout(this);
+            int totalHeight = (END_HOUR - START_HOUR + 1) * HOUR_HEIGHT_DP;
+            LinearLayout.LayoutParams flp = new LinearLayout.LayoutParams(0, dpToPx(totalHeight), 1.0f);
+
+            // Faint border to visually separate the columns
+            frame.setBackgroundResource(android.R.drawable.divider_horizontal_bright);
+            frame.setLayoutParams(flp);
+
+            dayColumns.put(day, frame);
+            daysContainer.addView(frame);
+        }
+    }
+
+    private void updateWeek() {
+        updateWeekTitle();
+        updateDayHeaders();
+        refreshEventsForWeek();
+    }
+
+    private void updateWeekTitle() {
+        Calendar start = (Calendar) currentWeek.clone();
+        Calendar end = (Calendar) currentWeek.clone();
+        end.add(Calendar.DAY_OF_MONTH, 6); // Mon-Sun bounds (7 days)
+
+        SimpleDateFormat monthFormat = new SimpleDateFormat("MMM", Locale.getDefault());
+        String title = monthFormat.format(start.getTime()) + " " + start.get(Calendar.DAY_OF_MONTH) +
+                " – " + end.get(Calendar.DAY_OF_MONTH) + ", " + end.get(Calendar.YEAR);
+        weekTitle.setText(title);
+    }
+
+    private void updateDayHeaders() {
+        Calendar temp = (Calendar) currentWeek.clone();
+        SimpleDateFormat dayNameFmt = new SimpleDateFormat("EE", Locale.getDefault()); // E.g., "Mo", "Tu"
+        SimpleDateFormat dayNumFmt = new SimpleDateFormat("d", Locale.getDefault());
+
+        for (int i = 1; i < headerRow.getChildCount(); i++) { // Skip index 0 (empty spacer)
+            LinearLayout cell = (LinearLayout) headerRow.getChildAt(i);
+            TextView nameView = (TextView) cell.getChildAt(0);
+            TextView numView = (TextView) cell.getChildAt(1);
+
+            nameView.setText(dayNameFmt.format(temp.getTime()).toUpperCase());
+            numView.setText(dayNumFmt.format(temp.getTime()));
+
+            temp.add(Calendar.DAY_OF_MONTH, 1);
+        }
+    }
+
+    private void refreshEventsForWeek() {
+        for (FrameLayout column : dayColumns.values()) {
+            column.removeAllViews();
+        }
+
+        try {
+            if(calendarJson == null) return;
+            JSONArray eventsArray = new JSONArray(calendarJson);
+
+            Calendar weekStart = (Calendar) currentWeek.clone();
+            Calendar weekEnd = (Calendar) currentWeek.clone();
+            weekEnd.add(Calendar.DAY_OF_MONTH, 6);
+
+            for (int i = 0; i < eventsArray.length(); i++) {
+                JSONObject event = eventsArray.getJSONObject(i);
+                String title = event.optString("summary", "No Title");
+                String location = event.optString("location", "");
+                String colorId = event.optString("colorId", "");
+
+                JSONObject startObj = event.getJSONObject("start");
+                JSONObject endObj = event.getJSONObject("end");
+
+                String startIso = startObj.optString("dateTime", startObj.optString("date", ""));
+                String endIso = endObj.optString("dateTime", endObj.optString("date", ""));
+
+                Calendar eventDate = parseIsoToCalendar(startIso);
+                if (eventDate == null) continue;
+
+                if (!eventDate.before(weekStart) && !eventDate.after(weekEnd)) {
+                    String day = getDayOfWeek(startIso);
+                    FrameLayout column = dayColumns.get(day);
+
+                    if (column != null) {
+                        column.addView(createEventBox(title, location, startIso, endIso, colorId));
+                    }
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private View createEventBox(String title, String location, String startIso, String endIso, String colorId) {
+        View layout = getLayoutInflater().inflate(R.layout.item_schedule, null);
+
+        TextView titleView = layout.findViewById(R.id.event_title);
+        TextView locView = layout.findViewById(R.id.event_location);
+        View strip = layout.findViewById(R.id.event_strip);
+        View bg = layout.findViewById(R.id.event_bg);
+
+        String[] locationSplitted = location.split(" - ");
+        String shortLocation = locationSplitted[locationSplitted.length - 1];
+
+        titleView.setText(title);
+        locView.setText(shortLocation);
+
+        String[] colors = getEventColors(colorId);
+        String fgColorHex = colors[0];
+        String bgColorHex = colors[1];
+
+        // Apply the mapped colors
+        strip.setBackgroundColor(Color.parseColor(fgColorHex));
+        bg.setBackgroundColor(Color.parseColor(bgColorHex));
+        titleView.setTextColor(Color.parseColor(fgColorHex));
+        // ---------------------------
+
+        int startHour = getHourFromIso(startIso);
+        int startMin = getMinFromIso(startIso);
+        int endHour = getHourFromIso(endIso);
+        int endMin = getMinFromIso(endIso);
+
+        int topMarginMins = ((startHour - START_HOUR) * 60) + startMin;
+        int durationMins = ((endHour - startHour) * 60) + (endMin - startMin);
+
+        FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, dpToPx(durationMins));
+        params.topMargin = dpToPx(topMarginMins);
+
+        layout.setLayoutParams(params);
+        return layout;
     }
 
     private void snapToMonday(Calendar cal) {
@@ -145,188 +316,107 @@ public class ScheduleViewer extends AppCompatActivity {
         cal.set(Calendar.MILLISECOND, 0);
     }
 
-    private void updateWeek() {
-        snapToMonday(currentWeek);
-        updateWeekTitle();
-        updateDayHeaders();
-        refreshEventsForWeek();
-    }
+    protected String[] getEventColors(String colorId) {
+        String fgColorHex;
+        String bgColorHex;
 
-    private void updateWeekTitle() {
-
-        Calendar start = (Calendar) currentWeek.clone();
-        Calendar end = (Calendar) currentWeek.clone();
-        end.add(Calendar.DAY_OF_MONTH, 6);
-
-        SimpleDateFormat monthDay = new SimpleDateFormat("MMM d", Locale.getDefault());
-        SimpleDateFormat yearFormat = new SimpleDateFormat("yyyy", Locale.getDefault());
-
-        String title = monthDay.format(start.getTime()) + " - " +
-                monthDay.format(end.getTime()) + ", " +
-                yearFormat.format(end.getTime());
-
-        weekTitle.setText(title);
-    }
-
-    private void updateDayHeaders() {
-
-        Calendar temp = (Calendar) currentWeek.clone();
-        SimpleDateFormat dayFormat =
-                new SimpleDateFormat("EEE d", Locale.getDefault());
-
-        for (int i = 0; i < 7; i++) {
-
-            LinearLayout columnWrapper =
-                    (LinearLayout) mainRow.getChildAt(i);
-
-            TextView header =
-                    (TextView) columnWrapper.getChildAt(0);
-
-            header.setText(dayFormat.format(temp.getTime()));
-
-            temp.add(Calendar.DAY_OF_MONTH, 1);
-        }
-    }
-    /**
-     * Parses JSON and displays events in the correct day column
-     */
-    private void refreshEventsForWeek() {
-
-        for (LinearLayout column : dayColumns.values()) {
-            column.removeAllViews();
-        }
-
-        try {
-            JSONArray eventsArray = new JSONArray(
-                    getIntent().getStringExtra("calendar_events_json"));
-
-            Calendar weekStart = (Calendar) currentWeek.clone();
-            Calendar weekEnd = (Calendar) currentWeek.clone();
-            weekEnd.add(Calendar.DAY_OF_MONTH, 6);
-
-            for (int i = 0; i < eventsArray.length(); i++) {
-
-                JSONObject event = eventsArray.getJSONObject(i);
-                String title = event.optString("summary", "No Title");
-
-                JSONObject startObj = event.getJSONObject("start");
-                String start = startObj.optString("dateTime",
-                        startObj.optString("date", ""));
-
-                Calendar eventDate = parseIsoToCalendar(start);
-
-                if (eventDate == null) continue;
-
-                if (!eventDate.before(weekStart) && !eventDate.after(weekEnd)) {
-
-                    String day = getDayOfWeek(start);
-                    LinearLayout column = dayColumns.get(day);
-                    if (column != null) {
-                        column.addView(createEventBoxFromXml(title, start, start));
-                    }
-                }
+        int colorIdVal = ((IntSupplier) () -> {
+            try {
+                return Integer.parseInt(colorId);
+            } catch (Exception e) {
+                return 0;
             }
+        }).getAsInt();
 
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        bgColorHex = switch (colorIdVal % 11) {
+            case 1 -> {
+                fgColorHex = "#7986CB";
+                yield "#E8EAF6";
+            }
+            case 2 -> {
+                fgColorHex = "#33B679";
+                yield "#E8F5E9";
+            }
+            case 3 -> {
+                fgColorHex = "#8E24AA";
+                yield "#F3E5F5";
+            }
+            case 4 -> {
+                fgColorHex = "#E67C73";
+                yield "#FBE9E7";
+            }
+            case 5 -> {
+                fgColorHex = "#F6BF26";
+                yield "#FFFDE7";
+            }
+            case 6 -> {
+                fgColorHex = "#F4511E";
+                yield "#FBE9E7";
+            }
+            case 7 -> {
+                fgColorHex = "#039BE5";
+                yield "#E1F5FE";
+            }
+            case 8 -> {
+                fgColorHex = "#616161";
+                yield "#F5F5F5";
+            }
+            case 9 -> {
+                fgColorHex = "#3F51B5";
+                yield "#E8EAF6";
+            }
+            case 10 -> {
+                fgColorHex = "#0B8043";
+                yield "#E8F5E9";
+            }
+            default -> {
+                fgColorHex = "#4285F4";
+                yield "#DCE6F8";
+            }
+        };
+
+        return new String[]{fgColorHex, bgColorHex};
     }
 
-    private Calendar parseIsoToCalendar(String iso) {
+    protected int getHourFromIso(String iso) {
         try {
-            if (!iso.contains("T")) return null;
+            if(!iso.contains("T")) return 0;
+            return Integer.parseInt(iso.split("T")[1].substring(0, 2));
+        } catch (Exception e) { return 0; }
+    }
 
+    protected int getMinFromIso(String iso) {
+        try {
+            if(!iso.contains("T")) return 0;
+            return Integer.parseInt(iso.split("T")[1].substring(3, 5));
+        } catch (Exception e) { return 0; }
+    }
+
+    protected int dpToPx(int dp) {
+        return (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, dp, getResources().getDisplayMetrics());
+    }
+
+    protected Calendar parseIsoToCalendar(String iso) {
+        try {
+            if(!iso.contains("T")) return null;
             String datePart = iso.split("T")[0];
-
             SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
             Date date = sdf.parse(datePart);
-
             Calendar cal = Calendar.getInstance();
             cal.setTime(date);
             return cal;
-
-        } catch (Exception e) {
-            return null;
-        }
+        } catch (Exception e) { return null; }
     }
 
-    /**
-     * Creates styled event block
-     */
-    private LinearLayout createEventBoxFromXml(String title, String start, String end) {
-        LinearLayout layout = (LinearLayout) getLayoutInflater()
-                .inflate(R.layout.item_schedule, null); // event_item.xml is your XML filename
-
-        TextView titleView = layout.findViewById(R.id.event_title);
-        TextView timeView = layout.findViewById(R.id.event_time);
-
-        titleView.setText(title);
-        timeView.setText(formatTime(start) + " - " + formatTime(end));
-
-        // Optional: set background programmatically or leave XML styling
-        int bgColor;
-        int borderColor;
-
-        if (title.contains("MATH")) {
-            bgColor = Color.parseColor("#F4E7C5");
-            borderColor = Color.parseColor("#F4B400");
-        } else if (title.contains("COMP")) {
-            bgColor = Color.parseColor("#DCE6F8");
-            borderColor = Color.parseColor("#4285F4");
-        } else if (title.contains("SOEN")) {
-            bgColor = Color.parseColor("#F8D7DA");
-            borderColor = Color.parseColor("#DB4437");
-        } else {
-            bgColor = Color.parseColor("#D4EDDA");
-            borderColor = Color.parseColor("#0F9D58");
-        }
-
-        layout.setBackground(createRoundedBackground(bgColor, borderColor));
-
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT
-        );
-        lp.setMargins(0, 24, 0, 0);
-        layout.setLayoutParams(lp);
-
-        return layout;
-    }
-
-    /**
-     * Extract HH:mm from ISO datetime
-     */
-    private String formatTime(String iso) {
+    protected String getDayOfWeek(String isoDateTime) {
         try {
-            if (!iso.contains("T")) return "All Day";
-
-            String time = iso.split("T")[1];
-            return time.substring(0,5);
-
-        } catch (Exception e) {
-            return "";
-        }
-    }
-
-    /**
-     * Converts ISO date to lowercase weekday name
-     * (API 24 safe)
-     */
-    private String getDayOfWeek(String isoDateTime) {
-        try {
-            if (!isoDateTime.contains("T")) return "";
-
+            if(!isoDateTime.contains("T")) return "";
             String datePart = isoDateTime.split("T")[0];
-
             SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
             Date date = sdf.parse(datePart);
-
             Calendar cal = Calendar.getInstance();
             cal.setTime(date);
-
-            int dayOfWeek = cal.get(Calendar.DAY_OF_WEEK);
-
-            switch (dayOfWeek) {
+            switch (cal.get(Calendar.DAY_OF_WEEK)) {
                 case Calendar.MONDAY: return "monday";
                 case Calendar.TUESDAY: return "tuesday";
                 case Calendar.WEDNESDAY: return "wednesday";
@@ -335,24 +425,7 @@ public class ScheduleViewer extends AppCompatActivity {
                 case Calendar.SATURDAY: return "saturday";
                 case Calendar.SUNDAY: return "sunday";
             }
-
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
+        } catch (Exception e) { return ""; }
         return "";
-    }
-
-    private android.graphics.drawable.Drawable createRoundedBackground(int bgColor, int borderColor) {
-
-        android.graphics.drawable.GradientDrawable shape =
-                new android.graphics.drawable.GradientDrawable();
-
-        shape.setColor(bgColor);
-        shape.setCornerRadius(25f);
-
-        shape.setStroke(8, borderColor); // border thickness
-
-        return shape;
     }
 }

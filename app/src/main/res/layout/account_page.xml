@@ -5,6 +5,8 @@
     android:layout_height="match_parent"
     android:background="#F5F5F5">
 
+    <!-- HEADER BAR -->
+
     <LinearLayout
         android:id="@+id/header_bar"
         android:layout_width="0dp"
@@ -33,9 +35,8 @@
             android:textSize="16sp" />
     </LinearLayout>
 
-    <include
-        android:id="@+id/included_banner"
-        layout="@layout/layout_next_event_banner" />
+
+    <!-- SCROLL CONTENT -->
 
     <ScrollView
         android:layout_width="0dp"
@@ -51,6 +52,15 @@
             android:orientation="vertical"
             android:padding="20dp">
 
+            <include
+                android:id="@+id/included_banner"
+                layout="@layout/layout_next_event_banner"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="0dp"
+                android:layout_marginEnd="0dp"
+                android:layout_marginTop="0dp"
+                android:layout_marginBottom="20dp" />
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -67,6 +77,10 @@
                     android:textSize="24sp"
                     android:textStyle="bold" />
 
+                <!-- REFRESH BUTTON -->
+
+                <!-- CONNECTED STATUS -->
+
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/refreshCalendar"
                     android:layout_width="167dp"
@@ -78,16 +92,6 @@
                     app:iconGravity="textTop"
                     app:iconSize="36dp"
                     app:iconTint="@android:color/white" />
-
-                <Button
-                    android:id="@+id/btnOpenCalendar"
-                    android:layout_width="166dp"
-                    android:layout_height="60dp"
-                    android:backgroundTint="#7A1C1C"
-                    android:text="Open Calendar"
-                    android:textAllCaps="false"
-                    android:textColor="#FFFFFF"
-                    android:textSize="16sp" />
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -114,13 +118,18 @@
                         android:textSize="12sp"/>
                 </LinearLayout>
 
+                <!-- CALENDAR LIST TITLE -->
+
                 <TextView
+                    android:id="@+id/calendar_count"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="16dp"
                     android:text="YOUR CALENDARS (2)"
                     android:textColor="#777"
                     android:textSize="12sp" />
+
+                <!-- CALENDAR ITEM -->
 
                 <LinearLayout
                     android:id="@+id/calendarListContainer"
@@ -129,7 +138,11 @@
                     android:orientation="vertical"
                     android:layout_marginTop="10dp"/>
 
+
             </LinearLayout>
+
+
+            <!-- REVIEW CARD -->
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -159,8 +172,11 @@
                     app:iconSize="30dp"/>
             </LinearLayout>
 
+
         </LinearLayout>
     </ScrollView>
+    >
+
 
     <com.google.android.material.bottomnavigation.BottomNavigationView
         android:id="@+id/bottom_nav"

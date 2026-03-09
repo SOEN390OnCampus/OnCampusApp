@@ -2,11 +2,15 @@ package com.example.oncampusapp;
 
 import android.app.Dialog;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
+import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.Window;
+import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -26,23 +30,42 @@ import org.json.JSONObject;
 public class AccountPage extends AppCompatActivity {
 
     private ImageView backButton;
+
     private String eventsJson;
+    private String calendarListJson;
+    private String calendarToken;
+
     private BottomNavigationView bottomNav;
+
     private Button btnRefresh;
-    private Button btnOpenCalendar;
+
     private CalendarRepository repository;
+
     private String email;
+
     private LinearLayout calendarContainer;
+
+    // --- Timer Variables for the Live Banner ---
     private android.os.Handler timerHandler = new android.os.Handler();
     private Runnable timerRunnable;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
+
+        Window window = getWindow();
+        window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
+        window.setStatusBarColor(Color.parseColor("#7A1C1C"));
 
         email = getIntent().getStringExtra("email");
 
-        // US-3.3 FIX: Pull from global variable instead of Intent to avoid crashes
+        calendarListJson = getIntent().getStringExtra("calendar_list_json");
+        calendarToken = getIntent().getStringExtra("calendar_token");
+
+        repository = CalendarRepository.getInstance();
+
+        super.onCreate(savedInstanceState);
+
+        // Pull from global variable instead of Intent to avoid crashes
         eventsJson = CalendarEventManager.globalEventsJson;
 
         // US-3.3 REQUIREMENT: Schedule the notification for the next class
@@ -77,31 +100,42 @@ public class AccountPage extends AppCompatActivity {
             txtUserEmail.setText("Not signed in");
         }
 
-        btnOpenCalendar.setOnClickListener(v -> {
-            Intent intent = new Intent(this, ScheduleViewer.class);
-            // US-3.3 FIX: We don't put eventsJson in the intent anymore!
-            startActivity(intent);
-        });
-
         btnRefresh.setOnClickListener(v -> {
             showConnectDialog();
         });
 
+        // Populate the dynamic calendar list
+        populateCalendarList();
+
+        // --- Start the Live Ticker Loop ---
         timerRunnable = new Runnable() {
             @Override
             public void run() {
                 refreshBannerUI();
-                timerHandler.postDelayed(this, 1000); // Run this exact block again in 1000ms (1 second)
+                timerHandler.postDelayed(this, 1000);
             }
         };
-
         timerHandler.post(timerRunnable);
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        populateCalendarList();
+    }
+
+    // --- Stop the timer when leaving to prevent crashes ---
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (timerHandler != null && timerRunnable != null) {
+            timerHandler.removeCallbacks(timerRunnable);
+        }
     }
 
     private void setViews() {
         bottomNav = findViewById(R.id.bottom_nav);
         calendarContainer = findViewById(R.id.calendarListContainer);
-        btnOpenCalendar = findViewById(R.id.btnOpenCalendar);
         btnRefresh = findViewById(R.id.refreshCalendar);
         backButton = findViewById(R.id.btn_back);
     }
@@ -110,55 +144,75 @@ public class AccountPage extends AppCompatActivity {
         bottomNav.setSelectedItemId(R.id.nav_account); // highlight account tab
 
         bottomNav.setOnItemSelectedListener(item -> {
+
             int id = item.getItemId();
+
             if (id == R.id.nav_home) {
                 Intent intent = new Intent(AccountPage.this, MapsActivity.class);
                 startActivity(intent);
                 finish();
                 return true;
-            } else if (id == R.id.nav_account) {
+            }
+
+            else if (id == R.id.nav_account) {
+                // Already on account page
                 return true;
-            } else if (id == R.id.nav_settings) {
+            }
+
+            else if (id == R.id.nav_settings) {
                 Toast.makeText(this, "Settings clicked", Toast.LENGTH_SHORT).show();
                 return true;
             }
+
             return false;
         });
     }
 
     public void setRefreshButton() {
         btnRefresh.setOnClickListener(v -> {
-            GoogleSignInAccount account = GoogleSignIn.getLastSignedInAccount(this);
+
+            GoogleSignInAccount account =
+                    GoogleSignIn.getLastSignedInAccount(this);
+
             btnRefresh.setEnabled(false);
 
             new Thread(() -> {
+
                 try {
+
                     String accessToken = GoogleAuthUtil.getToken(
                             this,
                             account.getAccount(),
                             "oauth2:https://www.googleapis.com/auth/calendar.readonly"
                     );
 
-                    JSONArray events = repository.fetchAllEvents(accessToken);
+                    JSONArray events =
+                            repository.fetchAllEvents(accessToken);
+
                     eventsJson = events.toString();
 
-                    // US-3.3 FIX: Update the global variable so the rest of the app sees the refresh
+                    // Update global events JSON so the banner hydrates dynamically
                     CalendarEventManager.globalEventsJson = eventsJson;
 
                     runOnUiThread(() -> {
                         btnRefresh.setEnabled(true);
-                        Toast.makeText(this, "Calendar updated", Toast.LENGTH_SHORT).show();
-                        // Also refresh banner after manual sync
-                        refreshBannerUI();
+                        Toast.makeText(this,
+                                "Calendar updated",
+                                Toast.LENGTH_SHORT).show();
                     });
 
                 } catch (Exception e) {
+
                     e.printStackTrace();
+
                     runOnUiThread(() -> {
                         btnRefresh.setEnabled(true);
-                        Toast.makeText(this, "Refresh failed", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(this,
+                                "Refresh failed",
+                                Toast.LENGTH_SHORT).show();
                     });
                 }
+
             }).start();
         });
     }
@@ -173,6 +227,7 @@ public class AccountPage extends AppCompatActivity {
         );
         dialog.getWindow().getDecorView().setPadding(32,0,32,0);
 
+        // Populate account info
         GoogleSignInAccount account = GoogleSignIn.getLastSignedInAccount(this);
         if (account != null) {
             TextView txtName = dialog.findViewById(R.id.txt_account_name);
@@ -182,6 +237,7 @@ public class AccountPage extends AppCompatActivity {
             txtName.setText(account.getDisplayName());
             txtEmail.setText(account.getEmail());
 
+            // Set initials from name
             if (account.getDisplayName() != null) {
                 String[] parts = account.getDisplayName().split(" ");
                 String initials = parts.length >= 2
@@ -192,6 +248,7 @@ public class AccountPage extends AppCompatActivity {
         }
 
         dialog.findViewById(R.id.btn_cancel).setOnClickListener(v -> dialog.dismiss());
+
         dialog.findViewById(R.id.btn_allow).setOnClickListener(v -> {
             dialog.dismiss();
             setRefreshButton(); // triggers the actual calendar sync
@@ -201,7 +258,81 @@ public class AccountPage extends AppCompatActivity {
         dialog.show();
     }
 
+    private void populateCalendarList() {
+        if (calendarListJson == null || calendarListJson.isEmpty()) {
+            return;
+        }
 
+        // Get the selected calendar ID from SharedPreferences
+        SharedPreferences prefs = getSharedPreferences("OnCampusPrefs", MODE_PRIVATE);
+        String selectedCalendarId = prefs.getString("selected_calendar", "");
+
+        calendarContainer.removeAllViews(); // Clear any existing items just in case
+
+        try {
+            JSONObject root = new JSONObject(calendarListJson);
+            JSONArray items = root.getJSONArray("items");
+
+            TextView calendarCount = findViewById(R.id.calendar_count);
+            calendarCount.setText("YOUR CALENDARS (" + items.length() + ")");
+
+            for (int i = 0; i < items.length(); i++) {
+                JSONObject calendar = items.getJSONObject(i);
+
+                String id = calendar.getString("id");
+                String summary = calendar.getString("summary");
+                String bgColor = calendar.optString("backgroundColor", "#888888");
+
+                // Inflate the item layout
+                View itemView = getLayoutInflater().inflate(R.layout.item_calendar, calendarContainer, false);
+
+                View dot = itemView.findViewById(R.id.calendar_color_dot);
+                TextView name = itemView.findViewById(R.id.calendar_name);
+                TextView badge = itemView.findViewById(R.id.calendar_selected_badge);
+
+                name.setText(summary);
+
+                // Dynamically color the dot
+                GradientDrawable dotDrawable = (GradientDrawable) getResources().getDrawable(R.drawable.bg_circle, null).mutate();
+                try {
+                    dotDrawable.setColor(Color.parseColor(bgColor));
+                } catch (IllegalArgumentException e) {
+                    dotDrawable.setColor(Color.GRAY); // Fallback for invalid color strings
+                }
+                dot.setBackground(dotDrawable);
+
+                // Show the "Selected" badge if the IDs match
+                if (id.equals(selectedCalendarId)) {
+                    badge.setVisibility(View.VISIBLE);
+                } else {
+                    badge.setVisibility(View.GONE);
+                }
+
+                itemView.setOnClickListener(v -> {
+                    // Disable the clicked view so it can't be clicked again
+                    v.setEnabled(false);
+
+                    Intent intent = new Intent(this, ScheduleViewer.class);
+                    intent.putExtra("calendar_token", calendarToken);
+                    intent.putExtra("calendar_id", id);
+                    intent.putExtra("calendar_name", summary);
+                    intent.putExtra("calendar_color", bgColor);
+
+                    v.setEnabled(true);
+
+                    startActivity(intent);
+                });
+
+                // Add to the container
+                calendarContainer.addView(itemView);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            Toast.makeText(this, "Error loading calendars", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    // --- The Banner UI Math & Injection Logic ---
     private void refreshBannerUI() {
         String eventsJson = CalendarEventManager.globalEventsJson;
         if (eventsJson == null || eventsJson.isEmpty()) return;

@@ -30,6 +30,7 @@ public class CalendarRepository {
         }
         return instance;
     }
+
     public JSONArray fetchAllEvents(String accessToken) throws Exception {
 
         String calendarListJson = fetchCalendarList(accessToken);
