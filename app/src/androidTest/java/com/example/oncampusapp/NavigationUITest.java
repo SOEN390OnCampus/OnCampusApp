@@ -10,7 +10,6 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
-import androidx.test.core.app.ActivityScenario;
 import androidx.test.espresso.Espresso;
 import androidx.test.espresso.action.ViewActions;
 import androidx.test.espresso.assertion.ViewAssertions;
@@ -20,7 +19,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.LargeTest;
 import androidx.test.rule.GrantPermissionRule;
 
-import com.google.android.gms.maps.model.PatternItem;
+import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Polyline;
 
 import org.junit.Rule;
@@ -155,7 +154,7 @@ public class NavigationUITest {
     }
     @Test
     public void testTransportationModeButtons_PolylineUpdate() throws InterruptedException {
-        AtomicReference<List<Polyline>> navigationLine = new AtomicReference<>();
+        AtomicReference<List<LatLng>> previousPoints = new AtomicReference<>();
 
         Thread.sleep(4000); // Wait for map + GeoJSON
 
@@ -169,26 +168,33 @@ public class NavigationUITest {
                 .perform(click(), replaceText("H - Henry F. Hall Building"), closeSoftKeyboard());
 
         Espresso.onView(withId(R.id.et_destination))
-                .perform(click(), replaceText("MB - John Molson School of Business"), closeSoftKeyboard());
+                .perform(click(), replaceText("Richard J Renaud Science Complex (SP)"), closeSoftKeyboard());
 
         // 3. Test for each transportation mode button
-        checkModeBtnAndPolyline(navigationLine, R.id.btn_mode_walking, true);
-        checkModeBtnAndPolyline(navigationLine, R.id.btn_mode_driving, false);
-        checkModeBtnAndPolyline(navigationLine, R.id.btn_mode_transit, false);
+        checkModeBtnAndPolyline(previousPoints, R.id.btn_mode_walking);
+        checkModeBtnAndPolyline(previousPoints, R.id.btn_mode_driving);
+        checkModeBtnAndPolyline(previousPoints, R.id.btn_mode_transit);
     }
     // Helper function for testing the transportation mode buttons
-    private void checkModeBtnAndPolyline(AtomicReference<List<Polyline>> navigationLine, int btnId, boolean expectDotted) throws InterruptedException {
+    private void checkModeBtnAndPolyline(AtomicReference<List<LatLng>> previousPoints, int btnId) throws InterruptedException {
         // Click the mode
         Espresso.onView(withId(btnId)).perform(click());
         Thread.sleep(3000); // Wait for route to draw
 
         // Verify polyline
         activityRule.getScenario().onActivity(activity -> {
-            List<Polyline> polyline = activity.getRoutePolylines();
-            assertNotNull(polyline);
-            assertNotEquals(polyline, navigationLine.get()); // Ensure updated
+            List<Polyline> polylines = activity.getRoutePolylines();
 
-            navigationLine.set(polyline); // Set new polyline for next button test
+            assertNotNull(polylines);
+            assertFalse(polylines.isEmpty());
+
+            List<LatLng> currentPoints = polylines.get(0).getPoints();
+
+            if (previousPoints.get() != null) {
+                assertNotEquals(previousPoints.get(), currentPoints);
+            }
+
+            previousPoints.set(currentPoints);
         });
     }
 }
