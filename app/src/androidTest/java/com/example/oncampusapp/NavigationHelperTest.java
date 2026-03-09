@@ -14,6 +14,7 @@ import com.example.oncampusapp.navigation.RouteTravelMode;
 import com.example.oncampusapp.navigation.Step;
 import com.example.oncampusapp.navigation.TransitDetails;
 import com.example.oncampusapp.navigation.TransitVehicleType;
+import com.google.android.gms.common.api.ApiException;
 import com.google.android.gms.maps.model.LatLng;
 
 import org.json.JSONException;
@@ -189,7 +190,7 @@ public class NavigationHelperTest {
                 start,
                 end,
                 RouteTravelMode.TRANSIT,
-                "INVALID_KEY",
+                null,
                 new NavigationHelper.RoutesCallback() {
                     @Override
                     public void onSuccess(Route route) {
