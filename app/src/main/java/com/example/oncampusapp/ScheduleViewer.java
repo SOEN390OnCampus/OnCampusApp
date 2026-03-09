@@ -97,10 +97,6 @@ public class ScheduleViewer extends AppCompatActivity {
         calendarColorDot.setBackgroundColor(Color.parseColor(calendarColor));
 
         getCalendarEvents();
-        setupGrid();
-
-        snapToMonday(currentWeek);
-        updateWeek();
 
         findViewById(R.id.nav_left).setOnClickListener(v -> {
             currentWeek.add(Calendar.WEEK_OF_YEAR, -1);
@@ -125,8 +121,14 @@ public class ScheduleViewer extends AppCompatActivity {
                 JSONObject eventsRoot = new JSONObject(calendarEvents);
                 JSONArray events = eventsRoot.optJSONArray("items");
 
+                assert events != null;
                 calendarJson = events.toString();
 
+                runOnUiThread(() -> {
+                    setupGrid();
+                    snapToMonday(currentWeek);
+                    updateWeek();
+                });
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
