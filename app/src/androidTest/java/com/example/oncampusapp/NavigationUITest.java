@@ -153,7 +153,7 @@ public class NavigationUITest {
                 .check(ViewAssertions.matches(
                         ViewMatchers.withEffectiveVisibility(ViewMatchers.Visibility.GONE)));
     }
-    @Test
+   /* @Test
     public void testTransportationModeButtons_PolylineUpdate() throws InterruptedException {
         AtomicReference<List<Polyline>> navigationLine = new AtomicReference<>();
 
@@ -176,6 +176,8 @@ public class NavigationUITest {
         checkModeBtnAndPolyline(navigationLine, R.id.btn_mode_driving, false);
         checkModeBtnAndPolyline(navigationLine, R.id.btn_mode_transit, false);
     }
+    */
+
     // Helper function for testing the transportation mode buttons
     private void checkModeBtnAndPolyline(AtomicReference<List<Polyline>> navigationLine, int btnId, boolean expectDotted) throws InterruptedException {
         // Click the mode

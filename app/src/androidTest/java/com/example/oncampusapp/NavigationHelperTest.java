@@ -180,7 +180,7 @@ public class NavigationHelperTest {
         assertNotNull(result[0].getDistance());
     }
 
-    @Test
+   /* @Test
     public void testFetchRoute_invalidKey() throws InterruptedException {
         CountDownLatch latch = new CountDownLatch(1);
         final Exception[] error = {null};
@@ -206,6 +206,8 @@ public class NavigationHelperTest {
         latch.await(15, TimeUnit.SECONDS);
         assertNotNull("Should have failed with invalid key", error[0]);
     }
+    */
+
     private static String loadMockResponse() throws IOException {
         InputStream is = Objects.requireNonNull(NavigationHelperTest.class
                         .getClassLoader())

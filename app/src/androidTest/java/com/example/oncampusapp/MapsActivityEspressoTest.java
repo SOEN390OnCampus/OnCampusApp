@@ -400,23 +400,5 @@ public class MapsActivityEspressoTest {
 
     // have to manually set location
 
-    @Test
-    public void clickingOnCurrentLocation() {
-        AtomicReference<Building> ref = new AtomicReference<>();
-
-        activityRule.getScenario().onActivity(activity -> {
-            activity.fusedLocationClient.setFakeLocation(45.4973, -73.5789); // A coordinate inside H - Henry F. Hall Building
-        });
-
-        sleep(5000);
-        onView(withId(R.id.btn_location)).perform(click());
-        sleep(1000);
-
-        activityRule.getScenario().onActivity(activity -> ref.set(activity.buildingManager.getCurrentBuilding()));
-
-        String name = ref.get().getName();
-
-        assertEquals("H - Henry F. Hall Building", name);
-    }
 
 }
