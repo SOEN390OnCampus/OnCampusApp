@@ -899,6 +899,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         // Decrement to signal that the map is now Idle
         if (!mapIdlingResource.isIdleNow())
             mapIdlingResource.decrement();
+
+        ImageButton btnIndoorMap = findViewById(R.id.btn_indoor_map);
+        btnIndoorMap.setOnClickListener(v -> {
+            BuildingFloorSelectDialog dialog = new BuildingFloorSelectDialog();
+            dialog.show(getSupportFragmentManager(), "BuildingFloorSelectDialog");
+        });
     }
 
     private GeoJsonFeature createSquareFeature(LatLng center, String id) {
@@ -1905,4 +1911,5 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             }
         });
     }
+
 }

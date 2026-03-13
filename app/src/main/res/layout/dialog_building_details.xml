@@ -63,9 +63,11 @@
         tools:ignore="UseCompoundDrawables">
         <ImageView
             android:src="@drawable/ic_location"
-            android:layout_width="30dp"
-            android:layout_height="30dp"
-            android:layout_gravity="top"/>
+            android:layout_margin="5dp"
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:layout_gravity="center"
+            app:tint="@color/concordia_red" />
         <TextView
             android:id="@+id/txt_building_address"
             android:layout_width="wrap_content"

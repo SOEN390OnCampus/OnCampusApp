@@ -1,0 +1,68 @@
+[
+  {
+    "id": "CC",
+    "fullName": "Central Building",
+    "floors": [
+      {
+        "id": "1",
+        "name": "Floor 1"
+      }
+    ]
+  },
+  {
+    "id": "H",
+    "fullName": "Henry F. Hall Building",
+    "floors": [
+      {
+        "id": "8",
+        "name": "Floor 8"
+      },
+      {
+        "id": "9",
+        "name": "Floor 9"
+      }
+    ]
+  },
+  {
+    "id": "MB",
+    "fullName": "John Molson Building",
+    "floors": [
+      {
+        "id": "S2",
+        "name": "Floor S2"
+      },
+      {
+        "id": "1",
+        "name": "Floor 1"
+      }
+    ]
+  },
+  {
+    "id": "VE",
+    "fullName": "Vanier Extension",
+    "floors": [
+      {
+        "id": "1",
+        "name": "Floor 1"
+      },
+      {
+        "id": "2",
+        "name": "Floor 2"
+      }
+    ]
+  },
+  {
+    "id": "VL",
+    "fullName": "Vanier Library Building",
+    "floors": [
+      {
+        "id": "1",
+        "name": "Floor 1"
+      },
+      {
+        "id": "2",
+        "name": "Floor 2"
+      }
+    ]
+  }
+]
