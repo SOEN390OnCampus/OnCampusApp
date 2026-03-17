@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_dialog_indoor_map"
+    android:orientation="vertical">
+
+    <LinearLayout
+        android:padding="8dp"
+        android:background="@drawable/bg_dialog_indoor_map_top"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <ImageView
+            android:layout_margin="10dp"
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:src="@drawable/ic_location"
+            android:tint="@color/white"/>
+        <TextView
+            android:layout_margin="10dp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="@color/white"
+            android:text="@string/select_building"
+            android:textSize="16sp"
+            android:textStyle="bold"/>
+
+    </LinearLayout>
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rv_indoor_building"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:maxHeight="400dp"
+        android:nestedScrollingEnabled="true">
+
+    </androidx.recyclerview.widget.RecyclerView>
+
+</LinearLayout>

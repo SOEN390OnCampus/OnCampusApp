@@ -75,6 +75,7 @@ dependencies {
     androidTestImplementation libs.mockito.android
     androidTestImplementation libs.rules
     androidTestImplementation 'androidx.test.uiautomator:uiautomator:2.3.0'
+    androidTestImplementation 'androidx.test.espresso:espresso-contrib:3.5.1'
     implementation libs.places
     implementation libs.play.services.auth
 }

@@ -70,6 +70,12 @@
 
         <activity android:name=".AccountPage" />
 
+        <activity
+            android:name=".IndoorMapActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.OnCampusApp" />
+
     </application>
 
 </manifest>
