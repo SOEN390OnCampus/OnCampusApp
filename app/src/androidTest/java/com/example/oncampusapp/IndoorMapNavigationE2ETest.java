@@ -1,8 +1,6 @@
 package com.example.oncampusapp;
 
-import androidx.test.core.app.ActivityScenario;
 import androidx.test.espresso.contrib.RecyclerViewActions;
-import androidx.test.espresso.matcher.ViewMatchers;
 import androidx.test.ext.junit.rules.ActivityScenarioRule;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 
@@ -26,26 +24,25 @@ public class IndoorMapNavigationE2ETest {
             new ActivityScenarioRule<>(MapsActivity.class);
 
     @Test
-    public void testNavigateToIndoorMapViaDialog() throws InterruptedException {
+    public void testNavigateToIndoorMapViaDialog() {
         // 1. Open the Building Selection Dialog
         onView(withId(R.id.btn_indoor_map)).perform(click());
 
-        // 2. Find the RecyclerView row that contains the text "H" and click the entire row
+        // 2. Ensure Dialog is displayed, then click the "H" building row to expand the floor list
+        onView(withId(R.id.rv_indoor_building)).check(matches(isDisplayed()));
+
         onView(withId(R.id.rv_indoor_building))
                 .perform(RecyclerViewActions.actionOnItem(
                         hasDescendant(withText("H")), click()
                 ));
 
-        // Let the dropdown animation finish (Espresso is sometimes too fast)
-        Thread.sleep(500);
-
-        // 3. Click the Chip for floor "8" (this will trigger the Intent)
+        // 3. Click the Chip for floor "8"
+        // Espresso's internal idling will automatically wait for the RecyclerView to update
+        // and display the chip, provided emulator animations are disabled.
         onView(withText("8")).perform(click());
 
-        // Let the new Activity launch
-        Thread.sleep(1000);
-
-        // 4. Verify that the IndoorMapActivity launched successfully!
+        // 4. Verify that the IndoorMapActivity launched successfully
+        // Activity transitions are naturally synchronized by Espresso.
         onView(withId(R.id.indoor_map_view)).check(matches(isDisplayed()));
         onView(withId(R.id.et_indoor_search)).check(matches(isDisplayed()));
     }

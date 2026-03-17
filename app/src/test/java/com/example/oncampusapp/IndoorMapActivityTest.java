@@ -48,7 +48,7 @@ public class IndoorMapActivityTest {
         // Test Match Hall Floor 8
         List<IndoorNode> resultH8 = (List<IndoorNode>) loadNodesMethod.invoke(mockActivity, 1, "8");
         assertEquals(1, resultH8.size());
-        assertEquals("H-807", resultH8.get(0).label);
+        assertEquals("H-807", resultH8.get(0).getLabel());
 
         // Reset stream for next call
         fakeInputStream.reset();
@@ -60,7 +60,7 @@ public class IndoorMapActivityTest {
 
         boolean foundMBS2 = false;
         for (IndoorNode node : resultS2) {
-            if (node.label.equals("MB-S2.440")) foundMBS2 = true;
+            if (node.getLabel().equals("MB-S2.440")) foundMBS2 = true;
         }
 
         assertTrue("Failed to find the MB-S2 room via buildingId quirk", foundMBS2);
@@ -85,6 +85,6 @@ public class IndoorMapActivityTest {
         List<IndoorNode> result = (List<IndoorNode>) loadNodesMethod.invoke(mockActivity, 1, "1");
 
         assertEquals(1, result.size());
-        assertEquals("H-101", result.get(0).label);
+        assertEquals("H-101", result.get(0).getLabel());
     }
 }

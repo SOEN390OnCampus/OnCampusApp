@@ -72,8 +72,8 @@ public class IndoorMapActivity extends AppCompatActivity {
         // Get all room names on this floor
         List<String> roomNames = new ArrayList<>();
         for (IndoorNode node : currentFloorNodes) {
-            if (node.label != null && !node.label.trim().isEmpty()) {
-                roomNames.add(node.label);
+            if (node.getLabel() != null && !node.getLabel().trim().isEmpty()) {
+                roomNames.add(node.getLabel());
             }
         }
 
@@ -88,7 +88,7 @@ public class IndoorMapActivity extends AppCompatActivity {
             for (IndoorNode node : currentFloorNodes) {
                 if (selectedRoom.equals(node.label)) {
                     // Send coordinates to the map
-                    mapView.setPinLocation(node.x, node.y);
+                    mapView.setPinLocation(node.getX(), node.getY());
 
                     // Hide the keyboard automatically
                     InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
@@ -129,10 +129,11 @@ public class IndoorMapActivity extends AppCompatActivity {
 
                 // ONLY save the node if it matches our rules AND actually has a searchable name
                 if (isFloorMatch && !label.isEmpty()) {
-                    IndoorNode node = new IndoorNode();
-                    node.label = label;
-                    node.x = (float) obj.getDouble("x");
-                    node.y = (float) obj.getDouble("y");
+                    IndoorNode node = new IndoorNode(
+                            label,
+                            (float) obj.getDouble("x"),
+                            (float) obj.getDouble("y")
+                    );
 
                     nodeList.add(node);
                 }
