@@ -102,7 +102,8 @@ public class BuildingFloorAdapter extends RecyclerView.Adapter<BuildingFloorAdap
     }
 
     public static class IndoorBuildingViewHolder extends RecyclerView.ViewHolder {
-        TextView tvBuildingId, tvFullName;
+        TextView tvBuildingId;
+        TextView tvFullName;
         ImageView ivDropDown;
         LinearLayout floorContainer;
         ChipGroup floorChipsGroup;
