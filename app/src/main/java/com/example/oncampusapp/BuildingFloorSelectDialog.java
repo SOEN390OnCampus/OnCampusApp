@@ -74,7 +74,6 @@ public class BuildingFloorSelectDialog extends DialogFragment {
         }
     }
 
-    // TODO: Update res/raw/floor_menu.json to include more buildings
     // Loading the floor data in res/raw
     private List<BuildingFloorData> loadBuildingFloorData() {
         List<BuildingFloorData> buildings = new ArrayList<>();

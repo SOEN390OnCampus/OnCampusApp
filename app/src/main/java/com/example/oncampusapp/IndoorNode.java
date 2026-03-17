@@ -1,9 +1,9 @@
 package com.example.oncampusapp;
 
 public class IndoorNode {
-    public String label;
-    public float x;
-    public float y;
+    private String label;
+    private float x;
+    private float y;
 
     public IndoorNode() {}
 

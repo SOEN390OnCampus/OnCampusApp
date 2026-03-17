@@ -16,8 +16,10 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -89,7 +91,7 @@ public class IndoorMapActivity extends AppCompatActivity {
             String selectedRoom = (String) parent.getItemAtPosition(position);
 
             for (IndoorNode node : currentFloorNodes) {
-                if (selectedRoom.equals(node.label)) {
+                if (selectedRoom.equals(node.getLabel())) {
                     // Send coordinates to the map
                     mapView.setPinLocation(node.getX(), node.getY());
 
@@ -105,12 +107,15 @@ public class IndoorMapActivity extends AppCompatActivity {
 
     private List<IndoorNode> loadNodesForFloor(int resourceId, String targetFloor) {
         List<IndoorNode> nodeList = new ArrayList<>();
-        try {
-            InputStream is = getResources().openRawResource(resourceId);
-            byte[] buffer = new byte[is.available()];
-            is.read(buffer);
-            is.close();
-            String json = new String(buffer, "UTF-8");
+        try (InputStream is = getResources().openRawResource(resourceId);
+             BufferedReader reader = new BufferedReader(new InputStreamReader(is, "UTF-8"))) {
+
+            StringBuilder sb = new StringBuilder();
+            String line;
+            while ((line = reader.readLine()) != null) {
+                sb.append(line);
+            }
+            String json = sb.toString();
 
             JSONObject root = new JSONObject(json);
             JSONArray nodesArray = root.getJSONArray("nodes");
@@ -118,8 +123,8 @@ public class IndoorMapActivity extends AppCompatActivity {
             for (int i = 0; i < nodesArray.length(); i++) {
                 JSONObject obj = nodesArray.getJSONObject(i);
 
-                String nodeFloor = obj.getString("floor");
-                String nodeBuildingId = obj.optString("buildingId", ""); // Grab this to check for MB-S2
+                String nodeFloor = obj.optString("floor", "");
+                String nodeBuildingId = obj.optString("buildingId", ""); 
                 String label = obj.optString("label", "").trim();
 
                 // Standard match
@@ -134,10 +139,9 @@ public class IndoorMapActivity extends AppCompatActivity {
                 if (isFloorMatch && !label.isEmpty()) {
                     IndoorNode node = new IndoorNode(
                             label,
-                            (float) obj.getDouble("x"),
-                            (float) obj.getDouble("y")
+                            (float) obj.optDouble("x", 0.0),
+                            (float) obj.optDouble("y", 0.0)
                     );
-
                     nodeList.add(node);
                 }
             }
