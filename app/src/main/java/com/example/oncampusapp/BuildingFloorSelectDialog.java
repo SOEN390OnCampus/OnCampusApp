@@ -18,8 +18,10 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
@@ -104,8 +106,10 @@ public class BuildingFloorSelectDialog extends DialogFragment {
                 buildings.add(new BuildingFloorData(id, fullName, floors));
             }
 
-        } catch (Exception e) {
-            e.printStackTrace();
+        } catch (IOException e) {
+            Log.e("BuildingFloorData", "Failed to read floor_menu resource", e);
+        } catch (JSONException e) {
+            Log.e("BuildingFloorData", "Failed to parse floor_menu resource", e);
         }
         Log.d("Buildings", "Count: " + buildings.size());
 
