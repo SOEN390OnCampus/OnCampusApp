@@ -2,7 +2,6 @@ package com.example.oncampusapp;
 
 import android.content.Intent;
 import android.content.res.ColorStateList;
-import android.graphics.Color;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -11,6 +10,7 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.material.chip.Chip;
@@ -26,6 +26,7 @@ public class BuildingFloorAdapter extends RecyclerView.Adapter<BuildingFloorAdap
     public BuildingFloorAdapter(List<BuildingFloorData> buildingFloorDataList) {
         this.buildingFloorDataList = buildingFloorDataList;
     }
+
     @NonNull
     @Override
     public IndoorBuildingViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
@@ -46,22 +47,29 @@ public class BuildingFloorAdapter extends RecyclerView.Adapter<BuildingFloorAdap
         // Set dropdown arrow rotation
         holder.ivDropDown.setRotation(isExpanded ? 180 : 0);
 
-        holder.tvBuildingId.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#807d0c22")));
+        // Set the default muted color
+        holder.tvBuildingId.setBackgroundTintList(ColorStateList.valueOf(
+                ContextCompat.getColor(holder.itemView.getContext(), R.color.concordia_red_muted)
+        ));
 
         // Show/hide floors
         holder.floorContainer.setVisibility(isExpanded ? View.VISIBLE : View.GONE);
 
         // Add the floor chips (block) if expanded
         if (isExpanded) {
-
             holder.floorChipsGroup.removeAllViews();
 
             for (BuildingFloorData.Floor floor : buildingFloorData.getFloors()) {
                 Chip chip = generateChip(holder, floor, buildingFloorData);
                 holder.floorChipsGroup.addView(chip);
             }
-            holder.tvBuildingId.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#912338")));
+
+            // Set the solid active color when expanded
+            holder.tvBuildingId.setBackgroundTintList(ColorStateList.valueOf(
+                    ContextCompat.getColor(holder.itemView.getContext(), R.color.concordia_red)
+            ));
         }
+
         // Expand/collapse on row click
         holder.itemView.setOnClickListener(v -> {
             int previousExpanded = expandedPosition;
