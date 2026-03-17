@@ -14,12 +14,42 @@
     "fullName": "Henry F. Hall Building",
     "floors": [
       {
+        "id": "1",
+        "name": "Floor 1"
+      },
+      {
+        "id": "2",
+        "name": "Floor 2"
+      },
+      {
         "id": "8",
         "name": "Floor 8"
       },
       {
         "id": "9",
         "name": "Floor 9"
+      }
+    ]
+  },
+  {
+    "id": "LB",
+    "fullName": "J.W. McConnell Building",
+    "floors": [
+      {
+        "id": "2",
+        "name": "Floor 2"
+      },
+      {
+        "id": "3",
+        "name": "Floor 3"
+      },
+      {
+        "id": "4",
+        "name": "Floor 4"
+      },
+      {
+        "id": "5",
+        "name": "Floor 5"
       }
     ]
   },

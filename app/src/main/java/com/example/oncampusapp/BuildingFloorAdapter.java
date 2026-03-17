@@ -1,5 +1,6 @@
 package com.example.oncampusapp;
 
+import android.content.Intent;
 import android.content.res.ColorStateList;
 import android.graphics.Color;
 import android.view.LayoutInflater;
@@ -76,12 +77,15 @@ public class BuildingFloorAdapter extends RecyclerView.Adapter<BuildingFloorAdap
         Chip chip = (Chip) LayoutInflater.from(holder.itemView.getContext())
                 .inflate(R.layout.item_floor_chip, holder.floorChipsGroup, false);
         chip.setText(floor.id());
-        chip.setOnClickListener(v -> onFloorSelected(buildingFloorData.getId(), floor.id()));
+        chip.setOnClickListener(v -> onFloorSelected(v.getContext(), buildingFloorData.getId(), floor.id()));
         return chip;
     }
 
-    private void onFloorSelected(String buildingId, String floorId){
-        //TODO: Handle floor selection
+    private void onFloorSelected(android.content.Context context, String buildingId, String floorId){
+        Intent intent = new Intent(context, IndoorMapActivity.class);
+        intent.putExtra("BUILDING_ID", buildingId);
+        intent.putExtra("FLOOR_ID", floorId);
+        context.startActivity(intent);
     }
 
     @Override
