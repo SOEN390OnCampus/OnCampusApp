@@ -130,8 +130,9 @@
                     android:layout_height="36dp"
                     android:src="@drawable/ic_clock"
                     android:background="@drawable/bg_circle"
-                    android:backgroundTint="#F5F5F5"
-                    android:padding="6dp"
+                    android:backgroundTint="#EDE7E7"
+                    app:tint="#7A1C1C"
+                    android:padding="2dp"
                     android:contentDescription="Time" />
 
                 <LinearLayout
@@ -220,7 +221,8 @@
                     android:layout_width="24dp"
                     android:layout_height="24dp"
                     android:layout_gravity="center"
-                    android:src="@drawable/baseline_arrow_drop_up"
+                    android:src="@drawable/ic_arrow_next"
+                    android:rotation="-90"
                     app:tint="#FFFFFF"
                     android:contentDescription="Go straight" />
             </FrameLayout>
