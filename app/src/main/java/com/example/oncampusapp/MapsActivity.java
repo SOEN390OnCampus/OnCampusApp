@@ -182,6 +182,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private Polyline shuttlePolyline;
     private Polyline walkFromStopPolyline;
 
+    // Indoor room data – populated in background once map is ready
+    private final java.util.Map<String, IndoorNode> indoorRoomMap = new java.util.LinkedHashMap<>();
+    private ArrayAdapter<String> searchSuggestionsAdapter;
+
 
 
 
@@ -556,6 +560,23 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 return;
             }
 
+            // ── Indoor room detection ──────────────────────────────────────
+            IndoorNode fromRoom = indoorRoomMap.get(startText);
+            IndoorNode toRoom   = indoorRoomMap.get(destText);
+
+            if (fromRoom != null && toRoom != null) {
+                launchIndoorRoute(fromRoom, toRoom);
+                return;
+            }
+            if (fromRoom != null || toRoom != null) {
+                Toast.makeText(this,
+                    "Mix of indoor room and outdoor location is not supported.\n"
+                    + "Please enter two rooms (e.g. H-867) or two buildings.",
+                    Toast.LENGTH_LONG).show();
+                return;
+            }
+            // ── End indoor detection ───────────────────────────────────────
+
             // Always re-check same-campus rule before starting navigation
             LatLng startCoords = BuildingLookup.getLatLngFromBuildingName(startText, buildingsMap);
             LatLng destCoords = BuildingLookup.getLatLngFromBuildingName(destText, buildingsMap);
@@ -885,12 +906,15 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         Collections.sort(buildingSuggestions);
 
         // Create the adapter for building suggestions
-        ArrayAdapter<String> adapter = new ArrayAdapter<>(this,
+        searchSuggestionsAdapter = new ArrayAdapter<>(this,
                 android.R.layout.simple_dropdown_item_1line, buildingSuggestions);
 
         // Set the adapter to both views
-        startDestinationText.setAdapter(adapter);
-        endDestinationText.setAdapter(adapter);
+        startDestinationText.setAdapter(searchSuggestionsAdapter);
+        endDestinationText.setAdapter(searchSuggestionsAdapter);
+
+        // Load indoor room labels in background and merge them into the same adapter
+        loadIndoorRoomsIntoAdapter();
 
         btnSgwLoy.setOnClickListener(v -> switchCampus());
         btnLocation.setOnClickListener(v -> goToCurrentLocation());
@@ -1910,6 +1934,119 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     mapIdlingResource.decrement();
             }
         });
+    }
+
+    // ── Indoor navigation helpers ─────────────────────────────────────────────
+
+    /**
+     * Loads every labeled room from every building JSON and merges the labels
+     * into the shared search autocomplete adapter.
+     */
+    private void loadIndoorRoomsIntoAdapter() {
+        new Thread(() -> {
+            String[] buildingIds = {"H", "MB", "LB", "CC", "VE", "VL"};
+            List<String> newLabels = new ArrayList<>();
+
+            for (String bid : buildingIds) {
+                int resId = getResources().getIdentifier(
+                        bid.toLowerCase(), "raw", getPackageName());
+                if (resId == 0) continue;
+
+                try (java.io.InputStream is = getResources().openRawResource(resId);
+                     java.io.BufferedReader reader = new java.io.BufferedReader(
+                             new java.io.InputStreamReader(is, "UTF-8"))) {
+
+                    StringBuilder sb = new StringBuilder();
+                    String line;
+                    while ((line = reader.readLine()) != null) sb.append(line);
+
+                    org.json.JSONArray nodes = new org.json.JSONObject(sb.toString())
+                            .getJSONArray("nodes");
+
+                    for (int i = 0; i < nodes.length(); i++) {
+                        org.json.JSONObject obj = nodes.getJSONObject(i);
+                        String label = obj.optString("label", "").trim();
+                        if (label.isEmpty() || indoorRoomMap.containsKey(label)) continue;
+
+                        IndoorNode node = new IndoorNode(
+                                obj.getString("id"),
+                                label,
+                                obj.optString("type", ""),
+                                obj.optString("buildingId", ""),
+                                obj.optString("floor", ""),
+                                (float) obj.optDouble("x", 0.0),
+                                (float) obj.optDouble("y", 0.0),
+                                obj.optBoolean("accessible", true)
+                        );
+                        indoorRoomMap.put(label, node);
+                        newLabels.add(label);
+                    }
+
+                } catch (Exception e) {
+                    Log.e("MapsActivity", "Failed to load indoor rooms for " + bid, e);
+                }
+            }
+
+            runOnUiThread(() -> {
+                if (searchSuggestionsAdapter != null && !newLabels.isEmpty()) {
+                    searchSuggestionsAdapter.addAll(newLabels);
+                    searchSuggestionsAdapter.notifyDataSetChanged();
+                }
+            });
+        }).start();
+    }
+
+    /**
+     * Runs Dijkstra for an indoor route between two rooms and launches
+     * IndoorMapActivity with the computed path.
+     */
+    private void launchIndoorRoute(IndoorNode fromRoom, IndoorNode toRoom) {
+        String fromBuilding = fromRoom.getRootBuildingId();
+        String toBuilding   = toRoom.getRootBuildingId();
+
+        if (!fromBuilding.equalsIgnoreCase(toBuilding)) {
+            Toast.makeText(this,
+                "Cross-building indoor navigation is not supported yet.\n"
+                + "Both rooms must be in the same building.",
+                Toast.LENGTH_LONG).show();
+            return;
+        }
+
+        int resId = getResources().getIdentifier(
+                fromBuilding.toLowerCase(), "raw", getPackageName());
+        if (resId == 0) {
+            Toast.makeText(this, "Building data not found.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        new Thread(() -> {
+            IndoorGraph graph = new IndoorGraph();
+            try (java.io.InputStream is = getResources().openRawResource(resId)) {
+                graph.load(is);
+            } catch (Exception e) {
+                Log.e("MapsActivity", "Graph load failed", e);
+                runOnUiThread(() ->
+                    Toast.makeText(this, "Error loading building data.", Toast.LENGTH_SHORT).show());
+                return;
+            }
+
+            List<String> path = graph.shortestPath(fromRoom.getId(), toRoom.getId());
+
+            runOnUiThread(() -> {
+                if (path.isEmpty()) {
+                    Toast.makeText(this, "No indoor path found between these rooms.",
+                            Toast.LENGTH_LONG).show();
+                    return;
+                }
+                Intent intent = new Intent(this, IndoorMapActivity.class);
+                intent.putExtra("BUILDING_ID",   fromBuilding);
+                intent.putExtra("FLOOR_ID",      fromRoom.getFloorMenuId());
+                intent.putExtra("FROM_NODE_ID",  fromRoom.getId());
+                intent.putExtra("TO_NODE_ID",    toRoom.getId());
+                intent.putExtra("PATH_NODE_IDS", String.join(",", path));
+                startActivity(intent);
+            });
+        }).start();
     }
 
 }
