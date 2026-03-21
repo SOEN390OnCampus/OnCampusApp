@@ -1,5 +1,7 @@
 package com.example.oncampusapp;
 
+import android.util.Log;
+
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -95,6 +97,14 @@ public class IndoorGraph {
      * Room-type nodes are never used as intermediate hops.
      */
     public List<String> shortestPath(String sourceId, String targetId) {
+
+        Log.d("GRAPH", "Neighbors of " + sourceId + ":");
+
+        for (Edge e : adj.get(sourceId)) {
+            IndoorNode n = nodes.get(e.targetId);
+            Log.d("GRAPH", "→ " + e.targetId + " (" + n.getType() + ")");
+        }
+
         if (!nodes.containsKey(sourceId) || !nodes.containsKey(targetId)) {
             return Collections.emptyList();
         }
@@ -114,15 +124,19 @@ public class IndoorGraph {
 
         while (!pq.isEmpty()) {
             String current     = pq.poll();
+            Log.d("GRAPH", "Visiting: " + current);
             if (current.equals(targetId)) break;
 
             double currentDist = dist.getOrDefault(current, Double.MAX_VALUE);
             if (currentDist == Double.MAX_VALUE) continue;
 
             for (Edge edge : adj.getOrDefault(current, Collections.emptyList())) {
+                Log.d("GRAPH", "  exploring → " + edge.targetId);
                 IndoorNode neighbor = nodes.get(edge.targetId);
+                // allow rooms as intermediate nodes
                 if (neighbor != null && "room".equals(neighbor.getType())
-                        && !edge.targetId.equals(targetId)) {
+                        && neighbor.getId().equals(sourceId)) {
+                    // skip only if it loops back to the source itself
                     continue;
                 }
                 double newDist = currentDist + edge.weight;
@@ -134,7 +148,11 @@ public class IndoorGraph {
             }
         }
 
-        if (!prev.containsKey(targetId)) return Collections.emptyList();
+        if (!prev.containsKey(targetId))  {
+            Log.e("GRAPH", "Target NOT reached: " + targetId);
+            Log.e("GRAPH", "Visited nodes: " + prev.keySet());
+            return Collections.emptyList();
+        }
 
         LinkedList<String> path = new LinkedList<>();
         String cursor = targetId;
