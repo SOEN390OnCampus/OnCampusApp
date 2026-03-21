@@ -218,6 +218,7 @@
                 android:backgroundTint="#99FFFFFF">
 
                 <ImageView
+                    android:id="@+id/iv_step_direction_icon"
                     android:layout_width="24dp"
                     android:layout_height="24dp"
                     android:layout_gravity="center"
@@ -256,10 +257,13 @@
 
             <!-- Checkmark circle -->
             <FrameLayout
+                android:id="@+id/btn_step_confirm"
                 android:layout_width="40dp"
                 android:layout_height="40dp"
                 android:background="@drawable/bg_circle"
-                android:backgroundTint="#99FFFFFF">
+                android:backgroundTint="#99FFFFFF"
+                android:clickable="true"
+                android:focusable="true">
 
                 <TextView
                     android:layout_width="wrap_content"
@@ -303,6 +307,7 @@
                 android:backgroundTint="#DDDDDD">
 
                 <ImageView
+                    android:id="@+id/iv_next_step_icon"
                     android:layout_width="20dp"
                     android:layout_height="20dp"
                     android:layout_gravity="center"
