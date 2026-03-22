@@ -14,6 +14,7 @@ import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.ScaleGestureDetector;
 import android.view.View;
+import androidx.annotation.VisibleForTesting;
 
 import androidx.core.content.ContextCompat;
 import androidx.core.graphics.drawable.DrawableCompat;
@@ -147,7 +148,8 @@ public class IndoorMapView extends View {
      * Resamples {@code raw} into points spaced exactly {@code spacing} map-pixels
      * apart by walking segment-by-segment and interpolating linearly.
      */
-    private List<PointF> interpolateEvenPoints(List<PointF> raw, float spacing) {
+    @VisibleForTesting
+    List<PointF> interpolateEvenPoints(List<PointF> raw, float spacing) {
         List<PointF> result = new ArrayList<>();
         if (raw.size() < 2) return new ArrayList<>(raw);
 
