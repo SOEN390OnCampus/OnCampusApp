@@ -98,58 +98,39 @@ public class IndoorGraph {
      */
     public List<String> shortestPath(String sourceId, String targetId) {
 
-        Log.d("GRAPH", "Neighbors of " + sourceId + ":");
-
-        for (Edge e : adj.get(sourceId)) {
-            IndoorNode n = nodes.get(e.targetId);
-            Log.d("GRAPH", "→ " + e.targetId + " (" + n.getType() + ")");
-        }
+        logNeighbors(sourceId);
 
         if (!nodes.containsKey(sourceId) || !nodes.containsKey(targetId)) {
             return Collections.emptyList();
         }
-        if (sourceId.equals(targetId)) {
-            return Collections.singletonList(sourceId);
-        }
 
         Map<String, Double> dist = new HashMap<>();
         Map<String, String> prev = new HashMap<>();
+        PriorityQueue<String> pq = new PriorityQueue<>(Comparator.comparingDouble(dist::get));
 
-        for (String id : nodes.keySet()) dist.put(id, Double.MAX_VALUE);
+        for (String node : nodes.keySet()) {
+            dist.put(node, Double.MAX_VALUE);
+        }
+
         dist.put(sourceId, 0.0);
-
-        PriorityQueue<String> pq = new PriorityQueue<>(
-                Comparator.comparingDouble(id -> dist.getOrDefault(id, Double.MAX_VALUE)));
         pq.add(sourceId);
 
         while (!pq.isEmpty()) {
-            String current     = pq.poll();
-            Log.d("GRAPH", "Visiting: " + current);
-            if (current.equals(targetId)) break;
-
-            double currentDist = dist.getOrDefault(current, Double.MAX_VALUE);
-            if (currentDist == Double.MAX_VALUE) continue;
+            String current = pq.poll();
 
             for (Edge edge : adj.getOrDefault(current, Collections.emptyList())) {
-                Log.d("GRAPH", "  exploring → " + edge.targetId);
-                IndoorNode neighbor = nodes.get(edge.targetId);
-
-                double penalty = 0;
-                // allow rooms as intermediate nodes only as last resort
-                if (neighbor != null && "room".equals(neighbor.getType())
-                        && !edge.targetId.equals(targetId)) {
-                    penalty = 1000;
-                }
-                double newDist = currentDist + edge.weight + penalty;
-                if (newDist < dist.getOrDefault(edge.targetId, Double.MAX_VALUE)) {
-                    dist.put(edge.targetId, newDist);
-                    prev.put(edge.targetId, current);
-                    pq.add(edge.targetId);
-                }
+                relaxEdge(current, edge, targetId, dist, prev, pq);
             }
         }
 
-        if (!prev.containsKey(targetId))  {
+        return buildPath(sourceId, targetId, prev);
+    }
+
+    private List<String> buildPath(String sourceId,
+                                   String targetId,
+                                   Map<String, String> prev) {
+
+        if (!prev.containsKey(targetId)) {
             Log.e("GRAPH", "Target NOT reached: " + targetId);
             Log.e("GRAPH", "Visited nodes: " + prev.keySet());
             return Collections.emptyList();
@@ -157,13 +138,47 @@ public class IndoorGraph {
 
         LinkedList<String> path = new LinkedList<>();
         String cursor = targetId;
+
         while (cursor != null) {
             path.addFirst(cursor);
             cursor = prev.get(cursor);
         }
 
-        if (!sourceId.equals(path.getFirst())) return Collections.emptyList();
-        return path;
+        return sourceId.equals(path.getFirst()) ? path : Collections.emptyList();
+    }
+
+    private void relaxEdge(String current,
+                           Edge edge,
+                           String targetId,
+                           Map<String, Double> dist,
+                           Map<String, String> prev,
+                           PriorityQueue<String> pq) {
+
+        double currentDist = dist.get(current);
+        double penalty = getPenalty(edge.targetId, targetId);
+        double newDist = currentDist + edge.weight + penalty;
+
+        if (newDist < dist.getOrDefault(edge.targetId, Double.MAX_VALUE)) {
+            dist.put(edge.targetId, newDist);
+            prev.put(edge.targetId, current);
+            pq.add(edge.targetId);
+        }
+    }
+
+    private double getPenalty(String targetId, String finalTargetId) {
+        IndoorNode node = nodes.get(targetId);
+        if (node != null && "room".equals(node.getType()) && !targetId.equals(finalTargetId)) {
+            return 1000;
+        }
+        return 0;
+    }
+
+    private void logNeighbors(String sourceId) {
+        Log.d("GRAPH", "Neighbors of " + sourceId + ":");
+        for (Edge e : adj.getOrDefault(sourceId, Collections.emptyList())) {
+            IndoorNode n = nodes.get(e.targetId);
+            Log.d("GRAPH", "→ " + e.targetId + " (" + n.getType() + ")");
+        }
     }
 
     public IndoorNode getNode(String id) {

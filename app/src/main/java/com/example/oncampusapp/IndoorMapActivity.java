@@ -59,6 +59,10 @@ public class IndoorMapActivity extends AppCompatActivity {
     private List<IndoorNode> currentFloorNodes = new ArrayList<>();
     private IndoorMapView    mapView;
 
+    private static final String TAG = "IndoorMapActivity";
+
+    private static final String FLOOR = "Floor ";
+
     private String   buildingId;
     private String   fromNodeId;
     private String   toNodeId;
@@ -122,7 +126,7 @@ public class IndoorMapActivity extends AppCompatActivity {
                 try (InputStream is = getResources().openRawResource(finalJsonResId)) {
                     graph.load(is);
                 } catch (IOException | JSONException e) {
-                    Log.e("IndoorMapActivity", "Failed to load graph", e);
+                    Log.e(TAG, "Failed to load graph", e);
                     return;
                 }
 
@@ -167,83 +171,151 @@ public class IndoorMapActivity extends AppCompatActivity {
     }
 
     private List<NavigationStep> generateAllSteps() {
+        if (floorSequence.isEmpty()) return new ArrayList<>();
+
         List<NavigationStep> steps = new ArrayList<>();
-        if (floorSequence.isEmpty()) return steps;
 
         for (int f = 0; f < floorSequence.size(); f++) {
-            String           floorId    = floorSequence.get(f);
+            String floorId = floorSequence.get(f);
             List<IndoorNode> floorNodes = byFloor.get(floorId);
-            if (floorNodes == null || floorNodes.isEmpty()) continue;
 
-            steps.add(new NavigationStep(StepType.GO_STRAIGHT,
-                    "Go Straight", "Floor " + floorId, floorId));
+            if (isInvalidFloor(floorNodes)) continue;
 
-            for (int n = 1; n < floorNodes.size() - 1; n++) {
-                IndoorNode prev = floorNodes.get(n - 1);
-                IndoorNode cur  = floorNodes.get(n);
-                IndoorNode next = floorNodes.get(n + 1);
-
-                String type = cur.getType();
-                if (type == null ||
-                        (!type.contains("hallway") && !type.contains("doorway"))) continue;
-
-                StepType turn = computeTurnType(prev, cur, next);
-                if (turn == StepType.GO_STRAIGHT) continue;
-
-                NavigationStep last = steps.get(steps.size() - 1);
-                if (last.type == turn) continue;
-
-                String turnTitle = turn == StepType.TURN_LEFT ? "Turn Left" : "Turn Right";
-                steps.add(new NavigationStep(turn, turnTitle, "Floor " + floorId, floorId));
-                steps.add(new NavigationStep(StepType.GO_STRAIGHT,
-                        "Go Straight", "Floor " + floorId, floorId));
-            }
-
-            if (f < floorSequence.size() - 1) {
-                String   nextFloor  = floorSequence.get(f + 1);
-                StepType transType  = findTransitionType(floorId);
-                String   transTitle = transitionTitle(transType, nextFloor);
-                steps.add(new NavigationStep(transType, transTitle,
-                        "From Floor " + floorId + " to Floor " + nextFloor, floorId));
-            }
+            addInitialStep(steps, floorId);
+            processFloorNodes(steps, floorNodes, floorId);
+            addTransitionStepIfNeeded(steps, f, floorId);
         }
 
-        IndoorNode destNode  = graph.getNode(pathNodeIds[pathNodeIds.length - 1].trim());
-        String     destLabel = (destNode != null && destNode.getLabel() != null)
-                ? destNode.getLabel() : "destination";
-        String lastFloor = floorSequence.get(floorSequence.size() - 1);
-        steps.add(new NavigationStep(StepType.ARRIVE,
-                "You have arrived!", "At " + destLabel, lastFloor));
+        return filterSteps(steps);
+    }
 
+    private boolean isInvalidFloor(List<IndoorNode> nodes) {
+        return nodes == null || nodes.isEmpty();
+    }
+
+    private void addInitialStep(List<NavigationStep> steps, String floorId) {
+        steps.add(new NavigationStep(
+                StepType.GO_STRAIGHT,
+                "Go Straight",
+                FLOOR + floorId,
+                floorId
+        ));
+    }
+
+    private void processFloorNodes(List<NavigationStep> steps,
+                                   List<IndoorNode> nodes,
+                                   String floorId) {
+
+        for (int i = 1; i < nodes.size() - 1; i++) {
+            IndoorNode prev = nodes.get(i - 1);
+            IndoorNode cur = nodes.get(i);
+            IndoorNode next = nodes.get(i + 1);
+
+            if (!isTurnCandidate(cur)) continue;
+
+            StepType turn = computeTurnType(prev, cur, next);
+            if (shouldSkipTurn(steps, turn)) continue;
+
+            addTurnSteps(steps, turn, floorId);
+        }
+    }
+
+    private boolean isTurnCandidate(IndoorNode node) {
+        String type = node.getType();
+        return type != null &&
+                (type.contains("hallway") || type.contains("doorway"));
+    }
+
+    private boolean shouldSkipTurn(List<NavigationStep> steps, StepType turn) {
+        if (turn == StepType.GO_STRAIGHT) return true;
+
+        NavigationStep last = steps.get(steps.size() - 1);
+        return last.type == turn;
+    }
+
+    private void addTurnSteps(List<NavigationStep> steps,
+                              StepType turn,
+                              String floorId) {
+
+        String title = (turn == StepType.TURN_LEFT) ? "Turn Left" : "Turn Right";
+
+        steps.add(new NavigationStep(turn, title, FLOOR + floorId, floorId));
+        steps.add(new NavigationStep(StepType.GO_STRAIGHT,
+                "Go Straight", FLOOR + floorId, floorId));
+    }
+
+    private void addTransitionStepIfNeeded(List<NavigationStep> steps,
+                                           int index,
+                                           String floorId) {
+
+        if (index >= floorSequence.size() - 1) return;
+
+        String nextFloor = floorSequence.get(index + 1);
+        StepType type = findTransitionType(floorId);
+        String title = transitionTitle(type, nextFloor);
+
+        steps.add(new NavigationStep(type, title, FLOOR + floorId, floorId));
+    }
+
+    private List<NavigationStep> filterSteps(List<NavigationStep> steps) {
         List<NavigationStep> filtered = new ArrayList<>();
+
         for (int i = 0; i < steps.size(); i++) {
-            NavigationStep s = steps.get(i);
-            if (s.type == StepType.GO_STRAIGHT) {
-                boolean nextIsTransition = i + 1 < steps.size()
-                        && isTransitionStep(steps.get(i + 1).type);
-                boolean prevWasTransition = i > 0
-                        && isTransitionStep(steps.get(i - 1).type);
-                if (nextIsTransition || prevWasTransition) continue;
-            }
-            filtered.add(s);
+            if (shouldFilterOut(steps, i)) continue;
+            filtered.add(steps.get(i));
         }
+
         return filtered;
+    }
+
+    private boolean shouldFilterOut(List<NavigationStep> steps, int i) {
+        NavigationStep current = steps.get(i);
+
+        if (current.type != StepType.GO_STRAIGHT) return false;
+
+        boolean beforeTransition =
+                i > 0 && isTransition(steps.get(i - 1));
+
+        boolean afterTransition =
+                i < steps.size() - 1 && isTransition(steps.get(i + 1));
+
+        return beforeTransition || afterTransition;
+    }
+
+    private boolean isTransition(NavigationStep step) {
+        return step.type != StepType.GO_STRAIGHT &&
+                step.type != StepType.TURN_LEFT &&
+                step.type != StepType.TURN_RIGHT;
     }
 
     private StepType findTransitionType(String curFloorId) {
         boolean pastCurFloor = false;
         for (String raw : pathNodeIds) {
-            IndoorNode n = graph.getNode(raw.trim());
-            if (n == null) continue;
-            if (n.getFloorMenuId().equals(curFloorId)) { pastCurFloor = true; continue; }
-            if (pastCurFloor) {
-                String t = n.getType();
-                if (t != null && t.contains("escalator")) return StepType.TAKE_ESCALATOR;
-                if (t != null && t.contains("stair"))     return StepType.TAKE_STAIRS;
-                if (t != null && t.contains("elevator"))  return StepType.TAKE_ELEVATOR;
+            IndoorNode node = graph.getNode(raw.trim());
+            if (node == null) continue;
+            if (!pastCurFloor) {
+                pastCurFloor = isSameFloor(node, curFloorId);
+                continue;
             }
+            StepType type = getTransitionType(node);
+            if (type != null) return type;
         }
         return StepType.TAKE_ELEVATOR;
+    }
+
+    private StepType getTransitionType(IndoorNode node) {
+        String type = node.getType();
+        if (type == null) return null;
+
+        if (type.contains("escalator")) return StepType.TAKE_ESCALATOR;
+        if (type.contains("stair"))     return StepType.TAKE_STAIRS;
+        if (type.contains("elevator"))  return StepType.TAKE_ELEVATOR;
+
+        return null;
+    }
+
+    private boolean isSameFloor(IndoorNode node, String floorId) {
+        return floorId.equals(node.getFloorMenuId());
     }
 
     private String transitionTitle(StepType type, String nextFloor) {
@@ -497,9 +569,9 @@ public class IndoorMapActivity extends AppCompatActivity {
                 }
             }
         } catch (IOException e) {
-            Log.e("IndoorMapActivity", "Failed to read node resource: " + resourceId, e);
+            Log.e(TAG, "Failed to read node resource: " + resourceId, e);
         } catch (JSONException e) {
-            Log.e("IndoorMapActivity", "Failed to parse node resource: " + resourceId, e);
+            Log.e(TAG, "Failed to parse node resource: " + resourceId, e);
         }
         return nodeList;
     }
