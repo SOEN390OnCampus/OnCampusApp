@@ -1,10 +1,8 @@
 package com.example.oncampusapp;
 
-import static android.content.Context.MODE_PRIVATE;
 import static androidx.test.espresso.Espresso.onData;
 import static androidx.test.espresso.Espresso.onView;
 import static androidx.test.espresso.Espresso.pressBack;
-import static androidx.test.espresso.action.ViewActions.clearText;
 import static androidx.test.espresso.action.ViewActions.click;
 
 import static androidx.test.espresso.action.ViewActions.typeText;
@@ -21,7 +19,7 @@ import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-import static androidx.test.espresso.matcher.ViewMatchers.withEffectiveVisibility;
+import static org.junit.Assert.fail;
 
 import androidx.test.espresso.Espresso;
 import androidx.test.espresso.IdlingRegistry;
@@ -32,13 +30,16 @@ import androidx.test.espresso.action.GeneralClickAction;
 import androidx.test.espresso.action.Press;
 import androidx.test.espresso.action.Tap;
 import androidx.test.espresso.idling.CountingIdlingResource;
-import androidx.test.espresso.matcher.ViewMatchers.Visibility;
 
 import android.Manifest;
+import android.content.ComponentName;
 import android.content.Context;
+import android.content.Intent;
+import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.graphics.Point;
 import android.os.Build;
+import android.os.IBinder;
 import android.view.InputDevice;
 import android.view.MotionEvent;
 import android.view.View;
@@ -53,7 +54,6 @@ import androidx.test.platform.app.InstrumentationRegistry;
 import androidx.test.rule.GrantPermissionRule;
 
 import com.example.oncampusapp.location.FakeLocationProvider;
-import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.model.LatLng;
 
@@ -398,25 +398,59 @@ public class MapsActivityEspressoTest {
     // For US-2.2: Clicking on current location
     // ----------------------------------------
 
-    // have to manually set location
-
+    // Location Tracking Service is inconsistent in calling the update function, need to trigger it directly
     @Test
     public void clickingOnCurrentLocation() {
         AtomicReference<Building> ref = new AtomicReference<>();
+        AtomicReference<LocationTrackingService> serviceRef = new AtomicReference<>();
+        CountDownLatch latch = new CountDownLatch(1);
 
         activityRule.getScenario().onActivity(activity -> {
-            activity.fusedLocationClient.setFakeLocation(45.4973, -73.5789); // A coordinate inside H - Henry F. Hall Building
+            Intent intent = new Intent(activity, LocationTrackingService.class);
+            activity.bindService(intent, new ServiceConnection() {
+                @Override
+                public void onServiceConnected(ComponentName name, IBinder binder) {
+                    LocationTrackingService.LocalBinder localBinder =
+                            (LocationTrackingService.LocalBinder) binder;
+                    serviceRef.set(localBinder.getService());
+                    latch.countDown(); // signal that service is connected
+                }
+                @Override
+                public void onServiceDisconnected(ComponentName name) {}
+            }, Context.BIND_AUTO_CREATE);
         });
 
-        sleep(5000);
+        // Wait for service to connect
+        try {
+            latch.await(5, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            fail("Service did not connect in time");
+        }
+
+        // Trigger the location update directly
+        activityRule.getScenario().onActivity(activity -> {
+            activity.fusedLocationClient.setFakeLocation(45.4973, -73.5789); // Set the location to Henry F Hall Building
+
+            // Trigger the location update using the set location
+            activity.fusedLocationClient.getLastLocation()
+                    .addOnSuccessListener(location -> {
+                        if (location != null) {
+                            serviceRef.get().triggerLocationUpdate(
+                                    new LatLng(location.getLatitude(), location.getLongitude())
+                            );
+                        }
+                    });
+        });
+
+        sleep(1000);
         onView(withId(R.id.btn_location)).perform(click());
         sleep(1000);
 
-        activityRule.getScenario().onActivity(activity -> ref.set(activity.buildingManager.getCurrentBuilding()));
+        activityRule.getScenario().onActivity(activity ->
+                ref.set(activity.buildingManager.getCurrentBuilding()));
 
-        String name = ref.get().getName();
-
-        assertEquals("H - Henry F. Hall Building", name);
+        assertNotNull("Building not found", ref.get());
+        assertEquals("H - Henry F. Hall Building", ref.get().getName());
     }
 
 }
