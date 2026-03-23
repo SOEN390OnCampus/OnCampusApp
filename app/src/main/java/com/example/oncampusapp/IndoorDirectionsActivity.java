@@ -3,6 +3,7 @@ package com.example.oncampusapp;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.ArrayAdapter;
@@ -108,7 +109,7 @@ public class IndoorDirectionsActivity extends AppCompatActivity {
             try (InputStream is = getResources().openRawResource(resId)) {
                 parseRoomsFromStream(is);
             } catch (IOException | JSONException e) {
-                e.printStackTrace();
+                Log.e("LoadRooms", "Error loading rooms for building: " + buildingId, e);
             }
         }
 
@@ -199,7 +200,7 @@ public class IndoorDirectionsActivity extends AppCompatActivity {
             try (InputStream is = getResources().openRawResource(resId)) {
                 graph.load(is);
             } catch (IOException | JSONException e) {
-                e.printStackTrace();
+                Log.e("LoadGraph", "Error loading map data", e);
                 runOnUiThread(() -> showStatus("Error loading building map data."));
                 return;
             }
