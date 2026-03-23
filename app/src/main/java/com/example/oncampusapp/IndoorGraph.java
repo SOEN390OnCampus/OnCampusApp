@@ -133,13 +133,14 @@ public class IndoorGraph {
             for (Edge edge : adj.getOrDefault(current, Collections.emptyList())) {
                 Log.d("GRAPH", "  exploring → " + edge.targetId);
                 IndoorNode neighbor = nodes.get(edge.targetId);
-                // allow rooms as intermediate nodes
+
+                double penalty = 0;
+                // allow rooms as intermediate nodes only as last resort
                 if (neighbor != null && "room".equals(neighbor.getType())
-                        && neighbor.getId().equals(sourceId)) {
-                    // skip only if it loops back to the source itself
-                    continue;
+                        && !edge.targetId.equals(targetId)) {
+                    penalty = 1000;
                 }
-                double newDist = currentDist + edge.weight;
+                double newDist = currentDist + edge.weight + penalty;
                 if (newDist < dist.getOrDefault(edge.targetId, Double.MAX_VALUE)) {
                     dist.put(edge.targetId, newDist);
                     prev.put(edge.targetId, current);
