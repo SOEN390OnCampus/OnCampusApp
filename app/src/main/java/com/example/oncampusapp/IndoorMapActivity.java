@@ -220,7 +220,7 @@ public class IndoorMapActivity extends AppCompatActivity {
                 ? destNode.getLabel() : "destination";
 
         steps.add(new NavigationStep(
-                StepType.GO_STRAIGHT,
+                StepType.ARRIVE,
                 "You have arrived!",
                 "At " + destLabel,
                 lastFloor
@@ -497,6 +497,7 @@ public class IndoorMapActivity extends AppCompatActivity {
         if (step.type == StepType.ARRIVE) {
             btn.setBackgroundTintList(ColorStateList.valueOf(activeColor));
             btn.setOnClickListener(null);
+            btn.setClickable(false);
         } else {
             btn.setBackgroundTintList(ColorStateList.valueOf(inactiveColor));
             btn.setOnClickListener(v -> {
