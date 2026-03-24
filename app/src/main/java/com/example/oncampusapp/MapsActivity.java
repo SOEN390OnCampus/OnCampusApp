@@ -125,6 +125,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private boolean isRoutePickerOpen = false;
     private boolean isPreviewActive = false;
 
+    private boolean pendingNotificationDirections = false;
+
     private final Handler bannerHandler = new Handler();
     private final Runnable bannerRunnable = new Runnable() {
         @Override
@@ -242,6 +244,20 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         binding = ActivityMapsBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
 
+        // Cancels any pending notifications
+        Intent intent = getIntent();
+        if (intent != null && intent.hasExtra("notification_id")) {
+            int notificationId = intent.getIntExtra("notification_id", -1);
+
+            if (notificationId != -1) {
+                NotificationManager manager =
+                        (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+                if (manager != null) {
+                    manager.cancel(notificationId);
+                }
+            }
+        }
+
         // Preload shuttle route data from bundled JSON
         ShuttleHelper.init(this);
         View bannerView = findViewById(R.id.included_banner);
@@ -344,6 +360,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         loadBuildingDetails();
 
         checkAndDisplayNextEventBanner();
+
+        handleNotificationDirectionsIntent(getIntent());
 
     }
 
@@ -905,6 +923,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             BuildingFloorSelectDialog dialog = new BuildingFloorSelectDialog();
             dialog.show(getSupportFragmentManager(), "BuildingFloorSelectDialog");
         });
+
+        tryGenerateDirectionsFromNotification();
     }
 
     private GeoJsonFeature createSquareFeature(LatLng center, String id) {
@@ -1327,7 +1347,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
     }
 
-
     @SuppressLint("MissingPermission")
     private void startNavigationUpdates() {
         // Stop any existing listener to be safe
@@ -1384,9 +1403,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         return true;
     }
 
-
-
-
      // Converts a Google Directions API duration string into total minutes.
     //Definition: total = walkToStop + shuttleRide + walkFromStop (A-->ShuttleX-->ShuttleY-->B)
     private int parseDurationToMinutes(String durationText) {
@@ -1411,10 +1427,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         return totalMinutes;
     }
-
-
-
-
     private void initiateRoutePreview() {
         String startName = startDestinationText.getText().toString().trim();
         String destName = endDestinationText.getText().toString().trim();
@@ -1584,7 +1596,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 @Override
                 public void onSuccess(Route route) {
                         runOnUiThread(() -> drawRouteOnMap(route.getPoints(), route.getDuration(), route.getSteps()));
-                        runOnUiThread(() -> drawRouteOnMap(route.getPoints(), route.getDuration(), route.getSteps()));
                 }
 
                 @Override
@@ -1602,10 +1613,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             }
         }
     }
-
-
-
-
     private void updateRouteProgress(LatLng userLocation) {
 
         if (currentRoutePoints == null || currentRoutePoints.isEmpty()) return;
@@ -1622,7 +1629,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     polyline.setPoints(updatedPath);
                 }
             }
-
             currentRoutePoints = updatedPath;
         }
 
@@ -1654,7 +1660,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
         btnGo.setLayoutParams(params);
     }
-
 
     //Helper methods for shuttle 3 leg addition
      private void clearNormalRoute() {
@@ -1705,7 +1710,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         return mMap.addPolyline(options);
     }
 
-
     public GeoJsonLayer getLayer(){
         return layer;
     }
@@ -1729,9 +1733,24 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         View bannerView = findViewById(R.id.included_banner);
 
         if (nextClass != null && bannerView != null) {
+            bannerView.setOnClickListener(v -> {
+                handleBannerDirectionsClick(nextClass);
+            });
 
             TextView titleView = bannerView.findViewById(R.id.banner_event_title);
             TextView detailsView = bannerView.findViewById(R.id.banner_event_details);
+
+            LinearLayout directionsContainer = bannerView.findViewById(R.id.banner_directions_container);
+            ImageView goButton = bannerView.findViewById(R.id.banner_btn_go);
+
+            if (directionsContainer != null) {
+                directionsContainer.setVisibility(View.VISIBLE);
+                directionsContainer.setOnClickListener(v -> handleBannerDirectionsClick(nextClass));
+            }
+
+            if (goButton != null) {
+                goButton.setOnClickListener(v -> handleBannerDirectionsClick(nextClass));
+            }
 
             // Failsafe if views aren't found
             if (titleView == null || detailsView == null) return;
@@ -1835,6 +1854,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             }
         } else if (bannerView != null) {
             bannerView.setVisibility(View.GONE);
+            ImageView goButton = bannerView.findViewById(R.id.banner_btn_go);
+            if (goButton != null) goButton.setVisibility(View.GONE);
         }
     }
 
@@ -1881,7 +1902,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     public List<Polyline> getRoutePolylines() {
         return this.routePolylines;
     }
-
     public void moveMapToLocation(LatLng location, float zoom) {
         mapIdlingResource.increment();
 
@@ -1909,7 +1929,315 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 if (!mapIdlingResource.isIdleNow())
                     mapIdlingResource.decrement();
             }
+
         });
     }
+    private void handleNotificationDirectionsIntent(Intent intent) {
+        if (intent == null) return;
 
+        boolean openDirections = intent.getBooleanExtra("OPEN_DIRECTIONS", false);
+        if (!openDirections) return;
+
+        pendingNotificationDirections = true;
+        tryGenerateDirectionsFromNotification();
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+
+        // Cancels any existing notifications
+        if (intent != null && intent.hasExtra("notification_id")) {
+            int notificationId = intent.getIntExtra("notification_id", -1);
+
+            if (notificationId != -1) {
+                NotificationManager manager =
+                        (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+                if (manager != null) {
+                    manager.cancel(notificationId);
+                }
+            }
+        }
+        handleNotificationDirectionsIntent(intent);
+    }
+
+    private void tryGenerateDirectionsFromNotification() {
+        if (!pendingNotificationDirections) return;
+
+        if (mMap == null || startDestinationText == null || endDestinationText == null || buildingsMap.isEmpty()) {
+            return;
+        }
+
+        String eventsJson = CalendarEventManager.globalEventsJson;
+        if (eventsJson == null || eventsJson.isEmpty()) {
+            Toast.makeText(this, "No calendar events available", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        try {
+            org.json.JSONObject nextClass = CalendarEventManager.findNextUpcomingEvent(eventsJson);
+            if (nextClass == null) {
+                Toast.makeText(this, "No upcoming class found", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            String destinationBuilding = extractBuildingNameFromEvent(nextClass);
+            if (destinationBuilding == null || destinationBuilding.isEmpty()) {
+                Toast.makeText(this, "Could not determine next class location", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            org.json.JSONObject previousClass = findPreviousClass(eventsJson, nextClass);
+
+            if (previousClass != null && isPreviousClassWithin15Minutes(previousClass, nextClass)) {
+                String previousBuilding = extractBuildingNameFromEvent(previousClass);
+                if (previousBuilding != null && !previousBuilding.isEmpty()) {
+                    openRouteFromBuildings(previousBuilding, destinationBuilding);
+                    pendingNotificationDirections = false;
+                    return;
+                }
+            }
+
+            openRouteFromCurrentLocation(destinationBuilding);
+            pendingNotificationDirections = false;
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            Toast.makeText(this, "Failed to generate directions", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private org.json.JSONObject findPreviousClass(String eventsJson, org.json.JSONObject nextClass) {
+        try {
+            org.json.JSONArray events = new org.json.JSONArray(eventsJson);
+
+            java.text.SimpleDateFormat format =
+                    new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX", java.util.Locale.getDefault());
+
+            long nextStart = format.parse(
+                    nextClass.getJSONObject("start").getString("dateTime")
+            ).getTime();
+
+            org.json.JSONObject bestPrevious = null;
+            long latestEnd = Long.MIN_VALUE;
+
+            for (int i = 0; i < events.length(); i++) {
+                org.json.JSONObject event = events.getJSONObject(i);
+
+                if (!event.has("start") || !event.has("end")) continue;
+                if (!event.getJSONObject("start").has("dateTime")) continue;
+                if (!event.getJSONObject("end").has("dateTime")) continue;
+
+                long eventEnd = format.parse(
+                        event.getJSONObject("end").getString("dateTime")
+                ).getTime();
+
+                if (eventEnd <= nextStart && eventEnd > latestEnd) {
+                    bestPrevious = event;
+                    latestEnd = eventEnd;
+                }
+            }
+
+            return bestPrevious;
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    private boolean isPreviousClassWithin15Minutes(org.json.JSONObject previousClass, org.json.JSONObject nextClass) {
+        try {
+            java.text.SimpleDateFormat format =
+                    new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX", java.util.Locale.getDefault());
+
+            long previousEnd = format.parse(
+                    previousClass.getJSONObject("end").getString("dateTime")
+            ).getTime();
+
+            long nextStart = format.parse(
+                    nextClass.getJSONObject("start").getString("dateTime")
+            ).getTime();
+
+            long diffMinutes = (nextStart - previousEnd) / (60 * 1000);
+            return diffMinutes <= 15;
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+    private String extractBuildingNameFromEvent(org.json.JSONObject event) {
+        if (event == null || geoIdToBuildingDetailsMap == null) return null;
+
+        String rawLocation = event.optString("location", "").trim();
+        if (rawLocation.isEmpty()) return null;
+
+        String lower = rawLocation.toLowerCase();
+
+        // 1. Exact match against known building names
+        for (BuildingDetails details : geoIdToBuildingDetailsMap.values()) {
+            if (details.getName() != null) {
+                String buildingName = details.getName().trim();
+                if (!buildingName.isEmpty() && lower.contains(buildingName.toLowerCase())) {
+                    return buildingName;
+                }
+            }
+        }
+
+        // 2. Concordia short-code fallback
+        if (lower.startsWith("h") || lower.contains("hall")) {
+            return "Henry F. Hall Building";
+        }
+        if (lower.startsWith("mb") || lower.contains("john molson")) {
+            return "John Molson School of Business";
+        }
+        if (lower.startsWith("ev") || lower.contains("engineering")) {
+            return "Engineering, Computer Science and Visual Arts Integrated Complex";
+        }
+        // Needs fixing
+        if (lower.startsWith("FG") || lower.startsWith("FB") || lower.contains("Faubourg")) {
+            return "Faubourg Tower";
+        }
+
+        // 3. Last fallback: try raw text
+        return rawLocation;
+    }
+
+    private String getCurrentBuildingName() {
+        Building currentBuilding = buildingManager != null ? buildingManager.getCurrentBuilding() : null;
+
+        if (currentBuilding != null) {
+            return currentBuilding.getName();
+        }
+
+        return null;
+    }
+
+    private void openRouteFromBuildings(String startBuilding, String destinationBuilding) {
+        View bannerView = findViewById(R.id.included_banner);
+        if (bannerView != null) {
+            bannerView.setVisibility(View.GONE);
+        }
+
+        if (startDestinationText == null || endDestinationText == null) return;
+
+        startDestinationText.setText(startBuilding);
+        endDestinationText.setText(destinationBuilding);
+
+        View searchBar = findViewById(R.id.search_bar_container);
+        if (searchBar != null) {
+            searchBar.setVisibility(View.GONE);
+        }
+
+        if (routePicker != null) {
+            routePicker.setVisibility(View.VISIBLE);
+        }
+
+        isRoutePickerOpen = true;
+
+        initiateRoutePreview();
+    }
+
+    @SuppressLint("MissingPermission")
+    private void openRouteFromCurrentLocation(String destinationBuilding) {
+        View bannerView = findViewById(R.id.included_banner);
+        if (bannerView != null) {
+            bannerView.setVisibility(View.GONE);
+        }
+        LatLng destCoords = BuildingLookup.getLatLngFromBuildingName(destinationBuilding, buildingsMap);
+
+        if (destCoords == null) {
+            Toast.makeText(this, "Could not find destination building", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
+                != PackageManager.PERMISSION_GRANTED) {
+            Toast.makeText(this, "Location permission not granted", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        fusedLocationClient.getLastLocation()
+                .addOnSuccessListener(this, location -> {
+                    if (location == null) {
+                        Toast.makeText(this, "Could not get current location", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+
+                    LatLng startCoords = new LatLng(location.getLatitude(), location.getLongitude());
+
+                    View searchBar = findViewById(R.id.search_bar_container);
+                    if (searchBar != null) {
+                        searchBar.setVisibility(View.GONE);
+                    }
+
+                    if (routePicker != null) {
+                        routePicker.setVisibility(View.VISIBLE);
+                    }
+
+                    isRoutePickerOpen = true;
+
+                    if (endDestinationText != null) {
+                        endDestinationText.setText(destinationBuilding);
+                    }
+                    if (startDestinationText != null) {
+                        startDestinationText.setText("Current Location");
+                    }
+
+                    NavigationHelper.fetchRoute(
+                            startCoords,
+                            destCoords,
+                            selectedMode,
+                            BuildConfig.MAPS_API_KEY,
+                            new NavigationHelper.RoutesCallback() {
+                                @Override
+                                public void onSuccess(Route route) {
+                                    runOnUiThread(() ->
+                                            drawRouteOnMap(route.getPoints(), route.getDuration(), route.getSteps()));
+                                }
+
+                                @Override
+                                public void onError(Exception e) {
+                                    e.printStackTrace();
+                                    runOnUiThread(() ->
+                                            Toast.makeText(MapsActivity.this, "Failed to load route", Toast.LENGTH_SHORT).show());
+                                }
+                            }
+                    );
+                });
+    }
+
+    private void handleBannerDirectionsClick(org.json.JSONObject nextClass) {
+        View bannerView = findViewById(R.id.included_banner);
+        if (bannerView != null) {
+            bannerView.setVisibility(View.GONE);
+        }
+        try {
+            String destinationBuilding = extractBuildingNameFromEvent(nextClass);
+
+            if (destinationBuilding == null || destinationBuilding.isEmpty()) {
+                Toast.makeText(this, "No location found for this class", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            String eventsJson = CalendarEventManager.globalEventsJson;
+            org.json.JSONObject previousClass = findPreviousClass(eventsJson, nextClass);
+
+            if (previousClass != null && isPreviousClassWithin15Minutes(previousClass, nextClass)) {
+                String previousBuilding = extractBuildingNameFromEvent(previousClass);
+                if (previousBuilding != null && !previousBuilding.isEmpty()) {
+                    openRouteFromBuildings(previousBuilding, destinationBuilding);
+                    return;
+                }
+            }
+
+            openRouteFromCurrentLocation(destinationBuilding);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            Toast.makeText(this, "Failed to open directions", Toast.LENGTH_SHORT).show();
+        }
+    }
 }
