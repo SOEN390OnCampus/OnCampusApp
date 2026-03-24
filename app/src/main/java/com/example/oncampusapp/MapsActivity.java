@@ -1858,6 +1858,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             if (goButton != null) goButton.setVisibility(View.GONE);
         }
     }
+    public void checkAndDisplayNextEventBannerForTest() {
+        checkAndDisplayNextEventBanner();
+    }
 
     // ==========================================
     // Main Branch Methods
@@ -2060,8 +2063,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     nextClass.getJSONObject("start").getString("dateTime")
             ).getTime();
 
-            long diffMinutes = (nextStart - previousEnd) / (60 * 1000);
-            return diffMinutes <= 15;
+            return RouteDecisionHelper.shouldUsePreviousClass(previousEnd, nextStart);
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -2098,7 +2100,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
         // Needs fixing
         if (lower.startsWith("FG") || lower.startsWith("FB") || lower.contains("Faubourg")) {
-            return "Faubourg Tower";
+            return "Le Faubourg";
         }
 
         // 3. Last fallback: try raw text
