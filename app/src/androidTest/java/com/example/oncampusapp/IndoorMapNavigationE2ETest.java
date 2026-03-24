@@ -37,7 +37,7 @@ public class IndoorMapNavigationE2ETest {
         Intents.init();
 
         // Register the IdlingResource before each test starts so Espresso knows to listen to it
-        IdlingRegistry.getInstance().register(EspressoIdlingResource.countingIdlingResource);
+        IdlingRegistry.getInstance().register(EspressoIdlingResource.getIdlingResource());
     }
 
     @After
@@ -46,7 +46,7 @@ public class IndoorMapNavigationE2ETest {
         Intents.release();
 
         // Unregister to prevent memory leaks between different test classes
-        IdlingRegistry.getInstance().unregister(EspressoIdlingResource.countingIdlingResource);
+        IdlingRegistry.getInstance().unregister(EspressoIdlingResource.getIdlingResource());
     }
 
     // ─── EXISTING TEST: BROWSE MAP VIA DIALOG ───────────────────────────────
