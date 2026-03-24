@@ -11,6 +11,7 @@ import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
 import android.widget.TextView;
 import android.widget.Toast;
+import com.example.oncampusapp.util.EspressoIdlingResource;
 
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -73,12 +74,19 @@ public class IndoorDirectionsActivity extends AppCompatActivity {
 
         // Load room data off the main thread
 
+        // Load room data off the main thread
+
+        EspressoIdlingResource.increment(); // 1. Tell Espresso we are loading JSONs
         new Thread(() -> {
-            loadAllRooms();
-            runOnUiThread(() -> {
-                if (isDestroyed()) return;
-                tvStatus.setText("Rooms loaded");
-            });
+            try {
+                loadAllRooms();
+                runOnUiThread(() -> {
+                    if (isDestroyed()) return;
+                    tvStatus.setText("Rooms loaded");
+                });
+            } finally {
+                EspressoIdlingResource.decrement(); // 2. Tell Espresso we are done
+            }
         }).start();
 
         // Back button
@@ -209,36 +217,49 @@ public class IndoorDirectionsActivity extends AppCompatActivity {
         return new Pair<>(fromNode, toNode);
     }
 
+
+
     private void runPathfinding(IndoorNode fromNode, IndoorNode toNode) {
         String buildingId = fromNode.getRootBuildingId();
 
+        EspressoIdlingResource.increment(); // 1. Tell Espresso routing has started
         new Thread(() -> {
-            int resId = getBuildingRawResId(buildingId);
-            if (resId == 0) {
-                runOnUiThread(() -> showStatus("Building data not found."));
-                return;
-            }
-
-            IndoorGraph graph = IndoorGraphCache.getGraph(this, buildingId);
-            if (graph == null) {
-                runOnUiThread(() -> showStatus("Error loading building map data."));
-                return;
-            }
-
-            List<String> path = graph.shortestPath(fromNode.getId(), toNode.getId());
-
-            runOnUiThread(() -> {
-                if (isDestroyed() || isFinishing()) return;
-
-                if (path.isEmpty()) {
-                    showStatus("No path found between these rooms.");
+            try {
+                int resId = getBuildingRawResId(buildingId);
+                if (resId == 0) {
+                    runOnUiThread(() -> showStatus("Building data not found."));
                     return;
                 }
 
-                launchIndoorMap(buildingId, fromNode, toNode, path);
-            });
+                IndoorGraph graph = IndoorGraphCache.getGraph(this, buildingId);
+                if (graph == null) {
+                    runOnUiThread(() -> showStatus("Error loading building map data."));
+                    return;
+                }
+
+                List<String> path = graph.shortestPath(fromNode.getId(), toNode.getId());
+
+                runOnUiThread(() -> {
+                    if (isDestroyed() || isFinishing()) return;
+
+                    if (path.isEmpty()) {
+                        showStatus("No path found between these rooms.");
+                        return;
+                    }
+
+                    launchIndoorMap(buildingId, fromNode, toNode, path);
+                });
+            } finally {
+                // 2. Tell Espresso we are done!
+                // The 'finally' block ensures this runs EVEN IF the code hits
+                // one of those "return;" statements above or crashes entirely.
+                EspressoIdlingResource.decrement();
+            }
         }).start();
     }
+
+
+
 
     private void launchIndoorMap(String buildingId,
                                   IndoorNode fromNode,
