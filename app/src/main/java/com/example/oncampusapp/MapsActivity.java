@@ -1991,16 +1991,15 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         String label = obj.optString("label", "").trim();
         if (label.isEmpty() || indoorRoomMap.containsKey(label)) return;
 
-        IndoorNode node = new IndoorNode(
-                id,
-                label,
-                obj.optString("type", ""),
-                obj.optString("buildingId", ""),
-                obj.optString("floor", ""),
-                (float) obj.optDouble("x", 0.0),
-                (float) obj.optDouble("y", 0.0),
-                obj.optBoolean("accessible", true)
-        );
+        IndoorNode node = new IndoorNode.Builder()
+                .id(id).label(label)
+                .type(obj.optString("type", ""))
+                .buildingId(obj.optString("buildingId", ""))
+                .floor(obj.optString("floor", ""))
+                .x((float) obj.optDouble("x", 0.0))
+                .y((float) obj.optDouble("y", 0.0))
+                .accessible(obj.optBoolean("accessible", true))
+                .build();
         indoorRoomMap.put(label, node);
         newLabels.add(label);
     }

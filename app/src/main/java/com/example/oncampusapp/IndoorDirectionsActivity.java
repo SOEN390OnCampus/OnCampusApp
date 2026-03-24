@@ -149,7 +149,11 @@ public class IndoorDirectionsActivity extends AppCompatActivity {
             float  y          = (float) obj.optDouble("y", 0.0);
             boolean accessible = obj.optBoolean("accessible", true);
 
-            IndoorNode node = new IndoorNode(id, label, type, buildingId, floor, x, y, accessible);
+            IndoorNode node = new IndoorNode.Builder()
+                    .id(id).label(label).type(type)
+                    .buildingId(buildingId).floor(floor)
+                    .x(x).y(y).accessible(accessible)
+                    .build();
             if (!roomLabelToNode.containsKey(label)) {
                 roomLabelToNode.put(label, node);
                 allRoomLabels.add(label);
