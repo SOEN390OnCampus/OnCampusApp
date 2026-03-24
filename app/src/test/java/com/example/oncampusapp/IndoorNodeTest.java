@@ -18,8 +18,12 @@ public class IndoorNodeTest {
 
     @Test
     public void testFullConstructorAndGetters() {
-        // Arrange & Act: Use the full constructor used by JSON loading
-        IndoorNode node = new IndoorNode("node_123", "H-807", "room", "H", "8", 500.0f, 600.0f, true);
+        // Arrange & Act: Use the Builder pattern used by JSON loading
+        IndoorNode node = new IndoorNode.Builder()
+                .id("node_123").label("H-807").type("room")
+                .buildingId("H").floor("8")
+                .x(500.0f).y(600.0f).accessible(true)
+                .build();
 
         // Assert: Check all fields
         assertEquals("node_123", node.getId());
