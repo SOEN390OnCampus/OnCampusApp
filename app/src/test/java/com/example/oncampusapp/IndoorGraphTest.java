@@ -4,9 +4,8 @@ import org.json.JSONException;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
+import java.io.InputStream;
 import java.util.List;
 
 import static org.junit.Assert.*;
@@ -19,26 +18,12 @@ public class IndoorGraphTest {
     public void setUp() throws IOException, JSONException {
         graph = new IndoorGraph();
 
-        // A mini-map to test Dijkstra and the room penalty.
-        String dummyJson = "{" +
-                "  \"nodes\": [" +
-                "    {\"id\": \"H1\", \"type\": \"hallway\"}," +
-                "    {\"id\": \"H2\", \"type\": \"hallway\"}," +
-                "    {\"id\": \"R3\", \"type\": \"room\"}," +
-                "    {\"id\": \"R4\", \"type\": \"room\"}," +
-                "    {\"id\": \"Elevator1\", \"type\": \"elevator\"}," +
-                "    {\"id\": \"Elevator2\", \"type\": \"elevator\"}" +
-                "  ]," +
-                "  \"edges\": [" +
-                "    {\"source\": \"H1\", \"target\": \"H2\", \"weight\": 1.0, \"type\": \"walk\"}," + // Direct walk
-                "    {\"source\": \"H2\", \"target\": \"R3\", \"weight\": 5.0, \"type\": \"walk\"}," +
-                "    {\"source\": \"H1\", \"target\": \"R4\", \"weight\": 2.0, \"type\": \"walk\"}," +
-                "    {\"source\": \"R4\", \"target\": \"H2\", \"weight\": 2.0, \"type\": \"walk\"}," +
-                "    {\"source\": \"Elevator1\", \"target\": \"Elevator2\", \"weight\": 0.0, \"type\": \"elevator\"}" + // Vertical connection
-                "  ]" +
-                "}";
+        // Load the mini-map JSON directly from the test resources folder
+        InputStream is = getClass().getClassLoader().getResourceAsStream("dummy_graph.json");
 
-        ByteArrayInputStream is = new ByteArrayInputStream(dummyJson.getBytes(StandardCharsets.UTF_8));
+        // Good practice: ensure the file was actually found before proceeding
+        assertNotNull("Test resource file 'dummy_graph.json' not found in src/test/resources/", is);
+
         graph.load(is);
     }
 
