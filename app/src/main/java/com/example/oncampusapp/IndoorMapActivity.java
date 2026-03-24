@@ -319,13 +319,14 @@ public class IndoorMapActivity extends AppCompatActivity {
         boolean pastCurFloor = false;
         for (String raw : pathNodeIds) {
             IndoorNode node = graph.getNode(raw.trim());
-            if (node == null) continue;
-            if (!pastCurFloor) {
-                pastCurFloor = isSameFloor(node, curFloorId);
-                continue;
+            if (node != null) {
+                if (!pastCurFloor) {
+                    pastCurFloor = isSameFloor(node, curFloorId);
+                } else {
+                    StepType type = getTransitionType(node);
+                    if (type != null) return type;
+                }
             }
-            StepType type = getTransitionType(node);
-            if (type != null) return type;
         }
         return StepType.TAKE_ELEVATOR;
     }
