@@ -71,7 +71,11 @@ public class IndoorGraph {
             float      y          = (float) obj.optDouble("y", 0.0);
             boolean    accessible = obj.optBoolean("accessible", true);
 
-            nodes.put(id, new IndoorNode(id, label, type, buildingId, floor, x, y, accessible));
+            nodes.put(id, new IndoorNode.Builder()
+                    .id(id).label(label).type(type)
+                    .buildingId(buildingId).floor(floor)
+                    .x(x).y(y).accessible(accessible)
+                    .build());
             adj.put(id, new ArrayList<>());
         }
 

@@ -582,16 +582,16 @@ public class IndoorMapActivity extends AppCompatActivity {
                 }
 
                 if (isFloorMatch && !label.isEmpty()) {
-                    nodeList.add(new IndoorNode(
-                            obj.optString("id", ""),
-                            label,
-                            obj.optString("type", ""),
-                            nodeBuildingId,
-                            nodeFloor,
-                            (float) obj.optDouble("x", 0.0),
-                            (float) obj.optDouble("y", 0.0),
-                            obj.optBoolean("accessible", true)
-                    ));
+                    nodeList.add(new IndoorNode.Builder()
+                            .id(obj.optString("id", ""))
+                            .label(label)
+                            .type(obj.optString("type", ""))
+                            .buildingId(nodeBuildingId)
+                            .floor(nodeFloor)
+                            .x((float) obj.optDouble("x", 0.0))
+                            .y((float) obj.optDouble("y", 0.0))
+                            .accessible(obj.optBoolean("accessible", true))
+                            .build());
                 }
             }
         } catch (IOException e) {
