@@ -236,12 +236,12 @@ public class IndoorMapActivity extends AppCompatActivity {
             IndoorNode cur  = nodes.get(i);
             IndoorNode next = nodes.get(i + 1);
 
-            if (!isTurnCandidate(cur)) continue;
-
-            StepType turn = computeTurnType(prev, cur, next);
-            if (shouldSkipTurn(steps, turn)) continue;
-
-            addTurnSteps(steps, turn, floorId);
+            if (isTurnCandidate(cur)) {
+                StepType turn = computeTurnType(prev, cur, next);
+                if (!shouldSkipTurn(steps, turn)) {
+                    addTurnSteps(steps, turn, floorId);
+                }
+            }
         }
     }
 
