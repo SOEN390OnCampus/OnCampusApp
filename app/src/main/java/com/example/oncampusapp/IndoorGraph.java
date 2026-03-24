@@ -40,10 +40,10 @@ public class IndoorGraph {
         }
     }
 
+    private final static String GRAPH = "GRAPH";
     private final Map<String, IndoorNode> nodes = new HashMap<>();
     private final Map<String, List<Edge>> adj   = new HashMap<>();
 
-    private final static String GRAPH = "GRAPH";
 
     /**
      * Parses nodes and edges from a building JSON InputStream.
@@ -157,11 +157,7 @@ public class IndoorGraph {
 
         if (edge.targetId.equals(finalTargetId)) return 0;
 
-        if ("room".equals(node.getType())) return 1000;
-
-        if ("room_to_door".equals(edge.type)) return 1000;
-
-        if ("hallway".equals(edge.type) && isInsideRoomCluster(edge)) return 1000;
+        if ("room".equals(node.getType()) || "room_to_door".equals(edge.type) || ("hallway".equals(edge.type) && isInsideRoomCluster(edge))) return 10000;
 
         return 0;
     }

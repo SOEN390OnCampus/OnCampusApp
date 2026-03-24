@@ -71,7 +71,14 @@ public class IndoorDirectionsActivity extends AppCompatActivity {
         etTo.setAdapter(autocompleteAdapter);
 
         // Load room data off the main thread
-        new Thread(this::loadAllRooms).start();
+
+        new Thread(() -> {
+            loadAllRooms();
+            runOnUiThread(() -> {
+                if (isDestroyed()) return;
+                tvStatus.setText("Rooms loaded");
+            });
+        }).start();
 
         // Back button
         findViewById(R.id.btn_back).setOnClickListener(v -> finish());
@@ -196,11 +203,8 @@ public class IndoorDirectionsActivity extends AppCompatActivity {
                 return;
             }
 
-            IndoorGraph graph = new IndoorGraph();
-            try (InputStream is = getResources().openRawResource(resId)) {
-                graph.load(is);
-            } catch (IOException | JSONException e) {
-                Log.e("LoadGraph", "Error loading map data", e);
+            IndoorGraph graph = IndoorGraphCache.getGraph(this, finalFromBuilding);
+            if(graph == null) {
                 runOnUiThread(() -> showStatus("Error loading building map data."));
                 return;
             }
@@ -208,6 +212,8 @@ public class IndoorDirectionsActivity extends AppCompatActivity {
             List<String> path = graph.shortestPath(finalFromNode.getId(), finalToNode.getId());
 
             runOnUiThread(() -> {
+                if (isDestroyed() || isFinishing()) return;
+
                 if (path.isEmpty()) {
                     showStatus("No path found between these rooms.");
                     return;

@@ -1956,6 +1956,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             }
 
             runOnUiThread(() -> {
+                if (isDestroyed() || isFinishing()) return;
+
                 if (searchSuggestionsAdapter != null && !newLabels.isEmpty()) {
                     searchSuggestionsAdapter.addAll(newLabels);
                     searchSuggestionsAdapter.notifyDataSetChanged();
@@ -1979,7 +1981,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 processNode(nodes.getJSONObject(i), newLabels);
             }
 
-        } catch (Exception e) {
+        } catch (IOException | JSONException e) {
             Log.e("MapsActivity", "Failed to load indoor rooms for " + buildingId, e);
         }
     }
@@ -2030,7 +2032,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             IndoorGraph graph = new IndoorGraph();
             try (java.io.InputStream is = getResources().openRawResource(resId)) {
                 graph.load(is);
-            } catch (Exception e) {
+            } catch (IOException | JSONException e) {
                 Log.e("MapsActivity", "Graph load failed", e);
                 runOnUiThread(() ->
                     Toast.makeText(this, "Error loading building data.", Toast.LENGTH_SHORT).show());
@@ -2040,6 +2042,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             List<String> path = graph.shortestPath(fromRoom.getId(), toRoom.getId());
 
             runOnUiThread(() -> {
+                if (isDestroyed() || isFinishing()) return;
+
                 if (path.isEmpty()) {
                     Toast.makeText(this, "No indoor path found between these rooms.",
                             Toast.LENGTH_LONG).show();

@@ -19,6 +19,7 @@ import android.widget.Toast;
 
 import androidx.cardview.widget.CardView;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -141,6 +142,8 @@ public class IndoorMapActivity extends AppCompatActivity {
                 List<NavigationStep> steps = generateAllSteps();
 
                 runOnUiThread(() -> {
+                    if (isDestroyed() || isFinishing()) return;
+
                     updateRouteTime(minutes);
                     allSteps = steps;
                     displayStep(0);
@@ -226,7 +229,7 @@ public class IndoorMapActivity extends AppCompatActivity {
 
         for (int i = 1; i < nodes.size() - 1; i++) {
             IndoorNode prev = nodes.get(i - 1);
-            IndoorNode cur = nodes.get(i);
+            IndoorNode cur  = nodes.get(i);
             IndoorNode next = nodes.get(i + 1);
 
             if (!isTurnCandidate(cur)) continue;
@@ -351,8 +354,12 @@ public class IndoorMapActivity extends AppCompatActivity {
      * Fires only for turns ≥ ~44° with both segments ≥ 80 px.
      */
     private StepType computeTurnType(IndoorNode a, IndoorNode b, IndoorNode c) {
-        float ax = b.getX() - a.getX(), ay = b.getY() - a.getY();
-        float bx = c.getX() - b.getX(), by = c.getY() - b.getY();
+
+        float ax = b.getX() - a.getX();
+        float ay = b.getY() - a.getY();
+        float bx = c.getX() - b.getX();
+        float by = c.getY() - b.getY();
+
         float lenA = (float) Math.sqrt(ax * ax + ay * ay);
         float lenB = (float) Math.sqrt(bx * bx + by * by);
         if (lenA < 80f || lenB < 80f) return StepType.GO_STRAIGHT;
@@ -479,16 +486,18 @@ public class IndoorMapActivity extends AppCompatActivity {
         View btn = findViewById(R.id.btn_step_confirm);
         if (btn == null) return;
 
+        int activeColor = ContextCompat.getColor(this, R.color.step_confirm_active);
+        int inactiveColor = ContextCompat.getColor(this, R.color.step_confirm_inactive);
+
         if (step.type == StepType.ARRIVE) {
-            btn.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#4CAF50")));
+            btn.setBackgroundTintList(ColorStateList.valueOf(activeColor));;
             btn.setOnClickListener(null);
         } else {
-            btn.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#99FFFFFF")));
+            btn.setBackgroundTintList(ColorStateList.valueOf(inactiveColor));
             btn.setOnClickListener(v -> {
-                v.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#4CAF50")));
+                v.setBackgroundTintList(ColorStateList.valueOf(activeColor));
                 v.postDelayed(() -> {
-                    v.setBackgroundTintList(
-                            ColorStateList.valueOf(Color.parseColor("#99FFFFFF")));
+                    v.setBackgroundTintList(ColorStateList.valueOf(inactiveColor));
                     displayStep(currentStepIndex + 1);
                 }, 400);
             });
