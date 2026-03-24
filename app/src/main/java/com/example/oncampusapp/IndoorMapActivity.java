@@ -185,7 +185,7 @@ public class IndoorMapActivity extends AppCompatActivity {
             processFloorNodes(steps, floorNodes, floorId);
             addTransitionStepIfNeeded(steps, f, floorId);
         }
-
+        addFinalStep(steps);
         return filterSteps(steps);
     }
 
@@ -194,11 +194,29 @@ public class IndoorMapActivity extends AppCompatActivity {
     }
 
     private void addInitialStep(List<NavigationStep> steps, String floorId) {
+
+
         steps.add(new NavigationStep(
                 StepType.GO_STRAIGHT,
                 "Go Straight",
                 FLOOR + floorId,
                 floorId
+        ));
+    }
+
+    private void addFinalStep(List<NavigationStep> steps) {
+        if (steps.isEmpty()) return;
+
+        IndoorNode destNode  = graph.getNode(pathNodeIds[pathNodeIds.length - 1].trim());
+        String lastFloor = floorSequence.get(floorSequence.size()-1);
+        String destLabel = (destNode != null && destNode.getLabel() != null)
+                ? destNode.getLabel() : "destination";
+
+        steps.add(new NavigationStep(
+                StepType.GO_STRAIGHT,
+                "You have arrived!",
+                "At " + destLabel,
+                lastFloor
         ));
     }
 
@@ -270,6 +288,8 @@ public class IndoorMapActivity extends AppCompatActivity {
 
     private boolean shouldFilterOut(List<NavigationStep> steps, int i) {
         NavigationStep current = steps.get(i);
+
+        if (i == steps.size() - 1) return false;
 
         if (current.type != StepType.GO_STRAIGHT) return false;
 

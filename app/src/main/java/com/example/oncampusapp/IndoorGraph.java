@@ -43,6 +43,8 @@ public class IndoorGraph {
     private final Map<String, IndoorNode> nodes = new HashMap<>();
     private final Map<String, List<Edge>> adj   = new HashMap<>();
 
+    private final static String GRAPH = "GRAPH";
+
     /**
      * Parses nodes and edges from a building JSON InputStream.
      * Edges are treated as undirected (both directions are added).
@@ -131,8 +133,8 @@ public class IndoorGraph {
                                    Map<String, String> prev) {
 
         if (!prev.containsKey(targetId)) {
-            Log.e("GRAPH", "Target NOT reached: " + targetId);
-            Log.e("GRAPH", "Visited nodes: " + prev.keySet());
+            Log.e(GRAPH, "Target NOT reached: " + targetId);
+            Log.e(GRAPH, "Visited nodes: " + prev.keySet());
             return Collections.emptyList();
         }
 
@@ -174,10 +176,10 @@ public class IndoorGraph {
     }
 
     private void logNeighbors(String sourceId) {
-        Log.d("GRAPH", "Neighbors of " + sourceId + ":");
+        Log.d(GRAPH, "Neighbors of " + sourceId + ":");
         for (Edge e : adj.getOrDefault(sourceId, Collections.emptyList())) {
             IndoorNode n = nodes.get(e.targetId);
-            Log.d("GRAPH", "→ " + e.targetId + " (" + n.getType() + ")");
+            Log.d(GRAPH, "→ " + e.targetId + " (" + n.getType() + ")");
         }
     }
 
@@ -217,15 +219,25 @@ public class IndoorGraph {
             for (Edge e : adj.getOrDefault(from, Collections.emptyList())) {
                 if (e.targetId.equals(to)) {
                     if (e.type != null) {
-                        if      (e.type.contains("stair"))     penalty += 30;
-                        else if (e.type.contains("escalator")) penalty += 20;
-                        else if (e.type.contains("elevator"))  penalty += 45;
+                        penalty += penaltyPerType(e.type);
                     }
                     break;
                 }
             }
         }
         return penalty;
+    }
+
+    public int penaltyPerType(String type) {
+        switch(type){
+            case "stair":
+                return 30;
+            case "escalator":
+                return 20;
+            case "elevator":
+                return 45;
+        }
+        return 0;
     }
 
     /** Returns all labeled rooms (nodes with non-empty labels). */

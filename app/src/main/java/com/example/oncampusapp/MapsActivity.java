@@ -1948,43 +1948,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             List<String> newLabels = new ArrayList<>();
 
             for (String bid : buildingIds) {
-                int resId = getResources().getIdentifier(
-                        bid.toLowerCase(), "raw", getPackageName());
-                if (resId == 0) continue;
-
-                try (java.io.InputStream is = getResources().openRawResource(resId);
-                     java.io.BufferedReader reader = new java.io.BufferedReader(
-                             new java.io.InputStreamReader(is, "UTF-8"))) {
-
-                    StringBuilder sb = new StringBuilder();
-                    String line;
-                    while ((line = reader.readLine()) != null) sb.append(line);
-
-                    org.json.JSONArray nodes = new org.json.JSONObject(sb.toString())
-                            .getJSONArray("nodes");
-
-                    for (int i = 0; i < nodes.length(); i++) {
-                        org.json.JSONObject obj = nodes.getJSONObject(i);
-                        String label = obj.optString("label", "").trim();
-                        if (label.isEmpty() || indoorRoomMap.containsKey(label)) continue;
-
-                        IndoorNode node = new IndoorNode(
-                                obj.getString("id"),
-                                label,
-                                obj.optString("type", ""),
-                                obj.optString("buildingId", ""),
-                                obj.optString("floor", ""),
-                                (float) obj.optDouble("x", 0.0),
-                                (float) obj.optDouble("y", 0.0),
-                                obj.optBoolean("accessible", true)
-                        );
-                        indoorRoomMap.put(label, node);
-                        newLabels.add(label);
-                    }
-
-                } catch (Exception e) {
-                    Log.e("MapsActivity", "Failed to load indoor rooms for " + bid, e);
-                }
+                processBuilding(bid, newLabels);
             }
 
             runOnUiThread(() -> {
@@ -1994,6 +1958,45 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 }
             });
         }).start();
+    }
+
+    private void processBuilding(String buildingId, List<String> newLabels) {
+        int resId = getResources().getIdentifier(buildingId.toLowerCase(), "raw", getPackageName());
+        if (resId == 0) return;
+
+        try (java.io.InputStream is = getResources().openRawResource(resId);
+             java.io.BufferedReader reader = new java.io.BufferedReader(
+                     new java.io.InputStreamReader(is, "UTF-8"))) {
+
+            String json = reader.lines().collect(Collectors.joining());
+            org.json.JSONArray nodes = new org.json.JSONObject(json).getJSONArray("nodes");
+
+            for (int i = 0; i < nodes.length(); i++) {
+                processNode(nodes.getJSONObject(i), newLabels);
+            }
+
+        } catch (Exception e) {
+            Log.e("MapsActivity", "Failed to load indoor rooms for " + buildingId, e);
+        }
+    }
+
+    private void processNode(org.json.JSONObject obj, List<String> newLabels) {
+        String id    = obj.optString("id", "").trim();
+        String label = obj.optString("label", "").trim();
+        if (label.isEmpty() || indoorRoomMap.containsKey(label)) return;
+
+        IndoorNode node = new IndoorNode(
+                id,
+                label,
+                obj.optString("type", ""),
+                obj.optString("buildingId", ""),
+                obj.optString("floor", ""),
+                (float) obj.optDouble("x", 0.0),
+                (float) obj.optDouble("y", 0.0),
+                obj.optBoolean("accessible", true)
+        );
+        indoorRoomMap.put(label, node);
+        newLabels.add(label);
     }
 
     /**
