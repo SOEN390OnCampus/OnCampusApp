@@ -3,6 +3,7 @@ package com.example.oncampusapp;
 import android.app.Activity;
 import android.content.Context;
 import android.graphics.Bitmap;
+import android.graphics.PointF;
 import android.view.View;
 
 import androidx.test.core.app.ApplicationProvider;
@@ -13,9 +14,12 @@ import org.robolectric.RobolectricTestRunner;
 import org.robolectric.shadows.ShadowLooper;
 
 import java.lang.reflect.Field;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 import static org.junit.Assert.assertEquals;
-
+import static org.junit.Assert.assertTrue;
 
 @RunWith(RobolectricTestRunner.class)
 public class IndoorMapViewTest {
@@ -69,5 +73,68 @@ public class IndoorMapViewTest {
         float expectedScale = Math.min(expectedScaleX, expectedScaleY) * 0.95f;
 
         assertEquals(expectedScale, actualScale, 0.001);
+    }
+
+    // ─── NEW TESTS FOR PATH INTERPOLATION MATH ──────────────────────────────
+
+    @Test
+    public void testInterpolateEvenPoints_EmptyOrSinglePoint() {
+        Context context = ApplicationProvider.getApplicationContext();
+        IndoorMapView mapView = new IndoorMapView(context, null);
+
+        List<PointF> emptyList = new ArrayList<>();
+        List<PointF> resultEmpty = mapView.interpolateEvenPoints(emptyList, 120f);
+        assertTrue(resultEmpty.isEmpty());
+
+        List<PointF> singlePoint = Arrays.asList(new PointF(10f, 10f));
+        List<PointF> resultSingle = mapView.interpolateEvenPoints(singlePoint, 120f);
+        assertEquals(1, resultSingle.size());
+        assertEquals(10f, resultSingle.get(0).x, 0.001);
+    }
+
+    @Test
+    public void testInterpolateEvenPoints_ShortSegment() {
+        Context context = ApplicationProvider.getApplicationContext();
+        IndoorMapView mapView = new IndoorMapView(context, null);
+
+        // Segment of length 50, but spacing is 120. Should only return the start point.
+        List<PointF> raw = Arrays.asList(
+                new PointF(0f, 0f),
+                new PointF(50f, 0f)
+        );
+
+        List<PointF> result = mapView.interpolateEvenPoints(raw, 120f);
+
+        assertEquals(1, result.size());
+        assertEquals(0f, result.get(0).x, 0.001);
+        assertEquals(0f, result.get(0).y, 0.001);
+    }
+
+    @Test
+    public void testInterpolateEvenPoints_LongStraightLine() {
+        Context context = ApplicationProvider.getApplicationContext();
+        IndoorMapView mapView = new IndoorMapView(context, null);
+
+        // Straight line from x=0 to x=300. Spacing 120. Expected dots: 0, 120, 240.
+        List<PointF> raw = Arrays.asList(
+                new PointF(0f, 0f),
+                new PointF(300f, 0f)
+        );
+
+        List<PointF> result = mapView.interpolateEvenPoints(raw, 120f);
+
+        assertEquals(3, result.size());
+
+        // Start point
+        assertEquals(0f, result.get(0).x, 0.001);
+        assertEquals(0f, result.get(0).y, 0.001);
+
+        // First interpolated dot
+        assertEquals(120f, result.get(1).x, 0.001);
+        assertEquals(0f, result.get(1).y, 0.001);
+
+        // Second interpolated dot
+        assertEquals(240f, result.get(2).x, 0.001);
+        assertEquals(0f, result.get(2).y, 0.001);
     }
 }

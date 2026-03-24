@@ -1,0 +1,17 @@
+{
+  "nodes": [
+    {"id": "H1", "type": "hallway"},
+    {"id": "H2", "type": "hallway"},
+    {"id": "R3", "type": "room"},
+    {"id": "R4", "type": "room"},
+    {"id": "Elevator1", "type": "elevator"},
+    {"id": "Elevator2", "type": "elevator"}
+  ],
+  "edges": [
+    {"source": "H1", "target": "H2", "weight": 1.0, "type": "walk"},
+    {"source": "H2", "target": "R3", "weight": 5.0, "type": "walk"},
+    {"source": "H1", "target": "R4", "weight": 2.0, "type": "walk"},
+    {"source": "R4", "target": "H2", "weight": 2.0, "type": "walk"},
+    {"source": "Elevator1", "target": "Elevator2", "weight": 0.0, "type": "elevator"}
+  ]
+}
