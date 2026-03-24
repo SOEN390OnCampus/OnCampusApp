@@ -436,7 +436,7 @@ public class IndoorMapActivity extends AppCompatActivity {
                     ivIcon.setImageResource(R.drawable.ic_arrow_next);
                     ivIcon.setRotation(0f);
                     break;
-                case TAKE_ELEVATOR: case TAKE_STAIRS: case TAKE_ESCALATOR:
+                case TAKE_ELEVATOR, TAKE_STAIRS, TAKE_ESCALATOR:
                     ivIcon.setImageResource(R.drawable.ic_stairs);
                     ivIcon.setRotation(0f);
                     break;
@@ -471,7 +471,7 @@ public class IndoorMapActivity extends AppCompatActivity {
                     ivNext.setImageResource(R.drawable.ic_arrow_next);
                     ivNext.setRotation(0f);
                     break;
-                case TAKE_ELEVATOR: case TAKE_STAIRS: case TAKE_ESCALATOR:
+                case TAKE_ELEVATOR, TAKE_STAIRS, TAKE_ESCALATOR:
                     ivNext.setImageResource(R.drawable.ic_stairs);
                     ivNext.setRotation(0f);
                     break;
