@@ -128,6 +128,64 @@ public class IndoorGraph {
         return buildPath(sourceId, targetId, prev);
     }
 
+    private void relaxEdge(String current,
+                           Edge edge,
+                           String targetId,
+                           Map<String, Double> dist,
+                           Map<String, String> prev,
+                           PriorityQueue<String> pq) {
+
+        double currentDist = dist.get(current);
+        double penalty = getPenalty(edge, targetId);
+        double newDist = currentDist + edge.weight + penalty;
+
+        if (newDist < dist.getOrDefault(edge.targetId, Double.MAX_VALUE)) {
+            dist.put(edge.targetId, newDist);
+            prev.put(edge.targetId, current);
+            pq.add(edge.targetId);
+        }
+    }
+
+    /**
+     * Fixed penalty logic:
+     * - Penalize intermediate rooms.
+     * - Penalize edges of type "room_to_door".
+     */
+    private double getPenalty(Edge edge, String finalTargetId) {
+        IndoorNode node = nodes.get(edge.targetId);
+        if (node == null) return 0;
+
+        if (edge.targetId.equals(finalTargetId)) return 0;
+
+        if ("room".equals(node.getType())) return 1000;
+
+        if ("room_to_door".equals(edge.type)) return 1000;
+
+        if ("hallway".equals(edge.type) && isInsideRoomCluster(edge)) return 1000;
+
+        return 0;
+    }
+
+    /**
+     * Detects hallway edges that are “inside a room cluster”
+     */
+    private boolean isInsideRoomCluster(Edge edge) {
+        IndoorNode node = nodes.get(edge.targetId);
+        if (node == null) return false;
+
+        // A hallway node is "inside a room cluster" if all neighbors are rooms or doorways
+        for (Edge neighborEdge : adj.getOrDefault(edge.targetId, Collections.emptyList())) {
+            IndoorNode neighbor = nodes.get(neighborEdge.targetId);
+            if (neighbor != null) {
+                String type = neighbor.getType();
+                if (!"room".equals(type) && !"doorway".equals(type)) {
+                    return false; // found a real corridor
+                }
+            }
+        }
+        return true;
+    }
+
     private List<String> buildPath(String sourceId,
                                    String targetId,
                                    Map<String, String> prev) {
@@ -149,37 +207,12 @@ public class IndoorGraph {
         return sourceId.equals(path.getFirst()) ? path : Collections.emptyList();
     }
 
-    private void relaxEdge(String current,
-                           Edge edge,
-                           String targetId,
-                           Map<String, Double> dist,
-                           Map<String, String> prev,
-                           PriorityQueue<String> pq) {
-
-        double currentDist = dist.get(current);
-        double penalty = getPenalty(edge.targetId, targetId);
-        double newDist = currentDist + edge.weight + penalty;
-
-        if (newDist < dist.getOrDefault(edge.targetId, Double.MAX_VALUE)) {
-            dist.put(edge.targetId, newDist);
-            prev.put(edge.targetId, current);
-            pq.add(edge.targetId);
-        }
-    }
-
-    private double getPenalty(String targetId, String finalTargetId) {
-        IndoorNode node = nodes.get(targetId);
-        if (node != null && "room".equals(node.getType()) && !targetId.equals(finalTargetId)) {
-            return 1000;
-        }
-        return 0;
-    }
-
     private void logNeighbors(String sourceId) {
         Log.d(GRAPH, "Neighbors of " + sourceId + ":");
         for (Edge e : adj.getOrDefault(sourceId, Collections.emptyList())) {
             IndoorNode n = nodes.get(e.targetId);
-            Log.d(GRAPH, "→ " + e.targetId + " (" + n.getType() + ")");
+            String type = (n != null) ? n.getType() : "UNKNOWN";
+            Log.d(GRAPH, "→ " + e.targetId + " (" + type + ") [edge type=" + e.type + "]");
         }
     }
 
@@ -236,8 +269,9 @@ public class IndoorGraph {
                 return 20;
             case "elevator":
                 return 45;
+            default:
+                return 0;
         }
-        return 0;
     }
 
     /** Returns all labeled rooms (nodes with non-empty labels). */

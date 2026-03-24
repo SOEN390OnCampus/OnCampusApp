@@ -113,7 +113,7 @@ public class IndoorMapActivity extends AppCompatActivity {
         int jsonResId = getResources().getIdentifier(
                 buildingId.toLowerCase(), "raw", getPackageName());
         if (jsonResId != 0) {
-            currentFloorNodes = loadNodesForFloor(jsonResId, floorId, buildingId);
+            currentFloorNodes = loadNodesForFloor(jsonResId, floorId);
             setupSearchBar();
         }
 
@@ -362,12 +362,6 @@ public class IndoorMapActivity extends AppCompatActivity {
         return StepType.GO_STRAIGHT;
     }
 
-    private boolean isTransitionStep(StepType type) {
-        return type == StepType.TAKE_ELEVATOR
-            || type == StepType.TAKE_STAIRS
-            || type == StepType.TAKE_ESCALATOR;
-    }
-
     private boolean isTransitOnly(List<IndoorNode> nodes) {
         if (nodes == null || nodes.isEmpty()) return true;
         for (IndoorNode n : nodes) {
@@ -550,8 +544,7 @@ public class IndoorMapActivity extends AppCompatActivity {
         });
     }
 
-    private List<IndoorNode> loadNodesForFloor(int resourceId, String targetFloor,
-                                                String rootBuildingId) {
+    private List<IndoorNode> loadNodesForFloor(int resourceId, String targetFloor) {
         List<IndoorNode> nodeList = new ArrayList<>();
         try (InputStream is = getResources().openRawResource(resourceId);
              BufferedReader reader = new BufferedReader(new InputStreamReader(is, "UTF-8"))) {

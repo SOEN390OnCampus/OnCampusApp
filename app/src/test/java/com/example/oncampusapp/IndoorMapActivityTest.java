@@ -42,11 +42,11 @@ public class IndoorMapActivityTest {
         when(mockResources.openRawResource(anyInt())).thenReturn(fakeInputStream);
 
         // Prepare Reflection to call the private loadNodesForFloor method
-        Method loadNodesMethod = IndoorMapActivity.class.getDeclaredMethod("loadNodesForFloor", int.class,String.class, String.class);
+        Method loadNodesMethod = IndoorMapActivity.class.getDeclaredMethod("loadNodesForFloor", int.class,String.class);
         loadNodesMethod.setAccessible(true);
 
         // Test Match Hall Floor 8
-        List<IndoorNode> resultH8 = (List<IndoorNode>) loadNodesMethod.invoke(mockActivity, 1, "8", "H");
+        List<IndoorNode> resultH8 = (List<IndoorNode>) loadNodesMethod.invoke(mockActivity, 1, "8");
 
         assertEquals(1, resultH8.size());
         assertEquals("H-807", resultH8.get(0).getLabel());
@@ -55,7 +55,7 @@ public class IndoorMapActivityTest {
         fakeInputStream.reset();
 
         // Test MB-S2 Quirk
-        List<IndoorNode> resultS2 = (List<IndoorNode>) loadNodesMethod.invoke(mockActivity, 1, "S2", "MB");
+        List<IndoorNode> resultS2 = (List<IndoorNode>) loadNodesMethod.invoke(mockActivity, 1, "S2");
 
         assertEquals(1, resultS2.size());
 
@@ -80,10 +80,10 @@ public class IndoorMapActivityTest {
         when(mockActivity.getResources()).thenReturn(mockResources);
         when(mockResources.openRawResource(anyInt())).thenReturn(fakeInputStream);
 
-        Method loadNodesMethod = IndoorMapActivity.class.getDeclaredMethod("loadNodesForFloor", int.class,String.class,  String.class);
+        Method loadNodesMethod = IndoorMapActivity.class.getDeclaredMethod("loadNodesForFloor", int.class,String.class);
         loadNodesMethod.setAccessible(true);
 
-        List<IndoorNode> result = (List<IndoorNode>) loadNodesMethod.invoke(mockActivity, 1, "1","H");
+        List<IndoorNode> result = (List<IndoorNode>) loadNodesMethod.invoke(mockActivity, 1, "1");
 
         assertEquals(1, result.size());
         assertEquals("H-101", result.get(0).getLabel());

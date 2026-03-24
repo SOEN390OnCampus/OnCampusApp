@@ -71,7 +71,6 @@ import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.CameraPosition;
-import com.google.android.gms.maps.model.Circle;
 import com.google.android.gms.maps.model.CircleOptions;
 import com.google.android.gms.maps.model.Dot;
 import com.google.android.gms.maps.model.Gap;
@@ -79,7 +78,6 @@ import com.google.android.gms.maps.model.GroundOverlayOptions;
 import com.google.android.gms.maps.model.LatLng;
 import com.example.oncampusapp.databinding.ActivityMapsBinding;
 import com.google.android.gms.maps.model.LatLngBounds;
-import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.PatternItem;
 import com.google.android.gms.maps.model.Polyline;
@@ -1621,12 +1619,18 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             if (buildingsMap.isEmpty()) {
                 Toast.makeText(this, "Map is still loading, please wait", Toast.LENGTH_SHORT).show();
             } else {
-                String missing = (startCoords == null) ? startName : destName;
-                Toast.makeText(this, "Could not find: \"" + missing + "\"", Toast.LENGTH_LONG).show();
+                if(checkForInsideRooms(startName) || checkForInsideRooms(destName)) {
+                    String missing = (startCoords == null) ? startName : destName;
+                    Toast.makeText(this, "Could not find: \"" + missing + "\"", Toast.LENGTH_LONG).show();
+                }
             }
         }
     }
 
+    private static boolean checkForInsideRooms(String startName ) {
+        return !startName.contains("H-") && !startName.contains("VE-") && !startName.contains("CC-")
+                && !startName.contains("LB-") && !startName.contains("MB-") && !startName.contains("VL-");
+    }
 
 
 
