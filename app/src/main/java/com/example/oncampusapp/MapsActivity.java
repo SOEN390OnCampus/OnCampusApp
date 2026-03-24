@@ -2006,7 +2006,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             pendingNotificationDirections = false;
 
         } catch (Exception e) {
-            e.printStackTrace();
+            Log.e("MapsActivity", "Direction generation failed");
             Toast.makeText(this, "Failed to generate directions", Toast.LENGTH_SHORT).show();
         }
     }
@@ -2045,7 +2045,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             return bestPrevious;
 
         } catch (Exception e) {
-            e.printStackTrace();
+            Log.e("MapsActivity", "Couldn't find previous class");
             return null;
         }
     }
@@ -2066,7 +2066,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             return RouteDecisionHelper.shouldUsePreviousClass(previousEnd, nextStart);
 
         } catch (Exception e) {
-            e.printStackTrace();
+            Log.e("MapsActivity", "Failed to determine if previous class was within 15 mins");
             return false;
         }
     }
@@ -2202,7 +2202,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
                                 @Override
                                 public void onError(Exception e) {
-                                    e.printStackTrace();
+                                    Log.e("MapsActivity", "Failed to open route from current location");
                                     runOnUiThread(() ->
                                             Toast.makeText(MapsActivity.this, "Failed to load route", Toast.LENGTH_SHORT).show());
                                 }
@@ -2238,7 +2238,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             openRouteFromCurrentLocation(destinationBuilding);
 
         } catch (Exception e) {
-            e.printStackTrace();
+            Log.e("MapsActivity", "Failed to handle banner directions click");
             Toast.makeText(this, "Failed to open directions", Toast.LENGTH_SHORT).show();
         }
     }
