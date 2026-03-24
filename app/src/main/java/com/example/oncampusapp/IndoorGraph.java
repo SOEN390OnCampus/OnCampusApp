@@ -40,7 +40,7 @@ public class IndoorGraph {
         }
     }
 
-    private final static String GRAPH = "GRAPH";
+    private static final String GRAPH = "GRAPH";
     private final Map<String, IndoorNode> nodes = new HashMap<>();
     private final Map<String, List<Edge>> adj   = new HashMap<>();
 
