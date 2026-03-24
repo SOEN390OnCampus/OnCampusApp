@@ -108,8 +108,7 @@ public class IndoorMapActivity extends AppCompatActivity {
         loadFloorImage(floorId);
         displayedFloorId = floorId;
 
-        LinearLayout banner = findViewById(R.id.layout_floor_transition);
-        if (banner != null) banner.setVisibility(View.GONE);
+        setupBanner();
 
         int jsonResId = getResources().getIdentifier(
                 buildingId.toLowerCase(), "raw", getPackageName());
@@ -150,6 +149,11 @@ public class IndoorMapActivity extends AppCompatActivity {
                 });
             }).start();
         }
+    }
+
+    private void setupBanner() {
+        LinearLayout banner = findViewById(R.id.layout_floor_transition);
+        if (banner != null) banner.setVisibility(View.GONE);
     }
 
     private void buildFloorGroups() {

@@ -11,6 +11,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class IndoorGraphCache {
+    private IndoorGraphCache() { }
     private static final Map<String, IndoorGraph> cache = new HashMap<>();
 
     public static synchronized IndoorGraph getGraph(Context context, String buildingId) {

@@ -4,6 +4,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
+import android.util.Pair;
 import android.view.View;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.ArrayAdapter;
@@ -165,9 +166,21 @@ public class IndoorDirectionsActivity extends AppCompatActivity {
         String fromLabel = etFrom.getText().toString().trim();
         String toLabel   = etTo.getText().toString().trim();
 
+        // Validate inputs and get nodes
+        Pair<IndoorNode, IndoorNode> nodes = validateRouteInputs(fromLabel, toLabel);
+        if (nodes == null) return;
+
+        IndoorNode fromNode = nodes.first;
+        IndoorNode toNode   = nodes.second;
+
+        // Run pathfinding in background
+        runPathfinding(fromNode, toNode);
+    }
+
+    private Pair<IndoorNode, IndoorNode> validateRouteInputs(String fromLabel, String toLabel) {
         if (fromLabel.isEmpty() || toLabel.isEmpty()) {
             showStatus("Please enter both a start room and a destination room.");
-            return;
+            return null;
         }
 
         IndoorNode fromNode = roomLabelToNode.get(fromLabel);
@@ -175,41 +188,40 @@ public class IndoorDirectionsActivity extends AppCompatActivity {
 
         if (fromNode == null) {
             showStatus("Room \"" + fromLabel + "\" not found. Check the room number.");
-            return;
+            return null;
         }
         if (toNode == null) {
             showStatus("Room \"" + toLabel + "\" not found. Check the room number.");
-            return;
+            return null;
         }
 
         String fromBuilding = fromNode.getRootBuildingId();
         String toBuilding   = toNode.getRootBuildingId();
-
         if (!fromBuilding.equalsIgnoreCase(toBuilding)) {
-            showStatus("Cross-building navigation is not yet supported.\n"
-                     + "Both rooms must be in the same building.");
-            return;
+            showStatus("Cross-building navigation is not yet supported.\nBoth rooms must be in the same building.");
+            return null;
         }
 
-        // Run pathfinding in background
-        String finalFromBuilding = fromBuilding;
-        IndoorNode finalFromNode = fromNode;
-        IndoorNode finalToNode   = toNode;
+        return new Pair<>(fromNode, toNode);
+    }
+
+    private void runPathfinding(IndoorNode fromNode, IndoorNode toNode) {
+        String buildingId = fromNode.getRootBuildingId();
 
         new Thread(() -> {
-            int resId = getBuildingRawResId(finalFromBuilding);
+            int resId = getBuildingRawResId(buildingId);
             if (resId == 0) {
                 runOnUiThread(() -> showStatus("Building data not found."));
                 return;
             }
 
-            IndoorGraph graph = IndoorGraphCache.getGraph(this, finalFromBuilding);
-            if(graph == null) {
+            IndoorGraph graph = IndoorGraphCache.getGraph(this, buildingId);
+            if (graph == null) {
                 runOnUiThread(() -> showStatus("Error loading building map data."));
                 return;
             }
 
-            List<String> path = graph.shortestPath(finalFromNode.getId(), finalToNode.getId());
+            List<String> path = graph.shortestPath(fromNode.getId(), toNode.getId());
 
             runOnUiThread(() -> {
                 if (isDestroyed() || isFinishing()) return;
@@ -218,7 +230,8 @@ public class IndoorDirectionsActivity extends AppCompatActivity {
                     showStatus("No path found between these rooms.");
                     return;
                 }
-                launchIndoorMap(finalFromBuilding, finalFromNode, finalToNode, path);
+
+                launchIndoorMap(buildingId, fromNode, toNode, path);
             });
         }).start();
     }
