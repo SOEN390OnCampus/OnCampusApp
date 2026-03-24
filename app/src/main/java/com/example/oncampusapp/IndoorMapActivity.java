@@ -494,7 +494,7 @@ public class IndoorMapActivity extends AppCompatActivity {
         int inactiveColor = ContextCompat.getColor(this, R.color.step_confirm_inactive);
 
         if (step.type == StepType.ARRIVE) {
-            btn.setBackgroundTintList(ColorStateList.valueOf(activeColor));;
+            btn.setBackgroundTintList(ColorStateList.valueOf(activeColor));
             btn.setOnClickListener(null);
         } else {
             btn.setBackgroundTintList(ColorStateList.valueOf(inactiveColor));
