@@ -2,11 +2,9 @@ package com.example.oncampusapp;
 
 import com.example.oncampusapp.location.FusedLocationProvider;
 import com.example.oncampusapp.location.ILocationProvider;
-import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationCallback;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationResult;
-import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.location.Priority;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.maps.android.PolyUtil;
@@ -20,6 +18,7 @@ import android.app.Service;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.location.Location;
+import android.os.Binder;
 import android.os.Build;
 import android.os.IBinder;
 import android.os.Looper;
@@ -66,11 +65,18 @@ public class LocationTrackingService extends Service {
             fusedLocationClient.removeLocationUpdates(locationCallback);
         }
     }
+    private final IBinder binder = new LocalBinder();
+
+    public class LocalBinder extends Binder {
+        public LocationTrackingService getService() {
+            return LocationTrackingService.this;
+        }
+    }
 
     @Nullable
     @Override
     public IBinder onBind(Intent intent) {
-        return null; // not a bound service
+        return binder;
     }
 
     // Starts sending notifications
@@ -142,18 +148,22 @@ public class LocationTrackingService extends Service {
             boolean userWasInside = building.currentlyInside;
             boolean userIsCurrentlyInside = PolyUtil.containsLocation(userLocation, building.polygon, true);
 
+            building.currentlyInside = userIsCurrentlyInside;
+
             if (!userWasInside && userIsCurrentlyInside) {
                 Log.d("Building", "Entered " + building.name);
                 sendNotification("You have entered " + building.name);
-                building.currentlyInside = true;
             }
 
             else if (userWasInside && !userIsCurrentlyInside) {
                 Log.d("Building", "Exited " + building.name);
                 sendNotification("You have exited " + building.name);
-                building.currentlyInside = false;
             }
         }
+    }
+    // For testing only
+    public void triggerLocationUpdate(LatLng location) {
+        checkUserInsideBuildings(location);
     }
 }
 

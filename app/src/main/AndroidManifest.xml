@@ -76,6 +76,12 @@
             android:screenOrientation="portrait"
             android:theme="@style/Theme.OnCampusApp" />
 
+        <activity
+            android:name=".IndoorDirectionsActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.OnCampusApp" />
+
     </application>
 
 </manifest>

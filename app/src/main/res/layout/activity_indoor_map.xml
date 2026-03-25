@@ -6,24 +6,28 @@
     android:layout_height="match_parent"
     android:background="#FFFFFF">
 
+    <!-- ── Top bar: back button + search (search hidden in route mode) ───── -->
     <LinearLayout
         android:id="@+id/top_bar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:padding="16dp"
+        android:paddingHorizontal="16dp"
+        android:paddingTop="8dp"
+        android:paddingBottom="4dp"
         app:layout_constraintTop_toTopOf="parent">
 
         <ImageView
             android:id="@+id/btn_back_indoor"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
             android:src="@drawable/ic_back"
             android:background="@drawable/bg_circle"
             android:backgroundTint="#7A1C1C"
             app:tint="@color/white"
-            android:padding="6dp"/>
+            android:padding="8dp"
+            android:contentDescription="Back" />
 
         <AutoCompleteTextView
             android:id="@+id/et_indoor_search"
@@ -40,42 +44,155 @@
             android:completionThreshold="1"
             android:singleLine="true"
             android:textColor="#000000"
-            android:textColorHint="#888888"/>
-
+            android:textColorHint="#888888" />
     </LinearLayout>
 
+    <!-- ── Info cards row (Walking + Time) – route mode only ─────────────── -->
+    <LinearLayout
+        android:id="@+id/row_info_cards"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:paddingHorizontal="16dp"
+        android:paddingBottom="8dp"
+        android:visibility="gone"
+        app:layout_constraintTop_toBottomOf="@id/top_bar">
+
+        <!-- Walking card -->
+        <androidx.cardview.widget.CardView
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="8dp"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="0dp"
+            app:cardBackgroundColor="#F5F5F5">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:padding="12dp">
+
+                <ImageView
+                    android:layout_width="36dp"
+                    android:layout_height="36dp"
+                    android:src="@drawable/ic_walk"
+                    android:background="@drawable/bg_circle"
+                    android:backgroundTint="#7A1C1C"
+                    app:tint="#FFFFFF"
+                    android:padding="8dp"
+                    android:contentDescription="Walking" />
+
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:layout_marginStart="10dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Walking"
+                        android:textColor="#7A1C1C"
+                        android:textSize="14sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Transport mode"
+                        android:textColor="#9E9E9E"
+                        android:textSize="11sp" />
+                </LinearLayout>
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
+        <!-- Time card -->
+        <androidx.cardview.widget.CardView
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="0dp"
+            app:cardBackgroundColor="#F5F5F5">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:padding="12dp">
+
+                <ImageView
+                    android:layout_width="36dp"
+                    android:layout_height="36dp"
+                    android:src="@drawable/ic_clock"
+                    android:background="@drawable/bg_circle"
+                    android:backgroundTint="#EDE7E7"
+                    app:tint="#7A1C1C"
+                    android:padding="2dp"
+                    android:contentDescription="Time" />
+
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:layout_marginStart="10dp">
+
+                    <TextView
+                        android:id="@+id/tv_route_time"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="3 min"
+                        android:textColor="#111111"
+                        android:textSize="14sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="To destination"
+                        android:textColor="#9E9E9E"
+                        android:textSize="11sp" />
+                </LinearLayout>
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+    </LinearLayout>
+
+    <!-- ── Floor title ────────────────────────────────────────────────────── -->
     <TextView
         android:id="@+id/tv_floor_title"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="VE FLOOR 1"
+        android:text="HALL FLOOR 8"
         android:textStyle="bold"
-        android:textSize="20sp"
+        android:textSize="16sp"
         android:textColor="#000000"
-        app:layout_constraintTop_toBottomOf="@id/top_bar"
-        app:layout_constraintBottom_toTopOf="@id/indoor_map_view"
+        android:layout_marginTop="2dp"
+        app:layout_constraintTop_toBottomOf="@id/row_info_cards"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintVertical_chainStyle="packed"
-        app:layout_constraintVertical_bias="0.15" />
+        app:layout_constraintEnd_toEndOf="parent" />
 
+    <!-- ── Map view ───────────────────────────────────────────────────────── -->
     <com.example.oncampusapp.IndoorMapView
         android:id="@+id/indoor_map_view"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        app:layout_constraintDimensionRatio="1:1"
+        android:layout_marginTop="4dp"
+        android:layout_marginBottom="4dp"
+        android:layout_marginStart="8dp"
+        android:layout_marginEnd="8dp"
         app:layout_constraintTop_toBottomOf="@id/tv_floor_title"
         app:layout_constraintBottom_toTopOf="@id/card_poi_legend"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginTop="12dp"
-        android:layout_marginBottom="16dp"
-        android:layout_marginStart="16dp"
-        android:layout_marginEnd="16dp" />
+        app:layout_constraintEnd_toEndOf="parent" />
 
+    <!-- ── POI legend – shown only when a path is displayed ──────────────── -->
     <com.google.android.material.card.MaterialCardView
         android:id="@+id/card_poi_legend"
-        android:layout_width="match_parent"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginHorizontal="16dp"
         app:cardBackgroundColor="#FFFFFF"
@@ -84,7 +201,7 @@
         app:cardElevation="0dp"
         app:cardCornerRadius="8dp"
         app:layout_constraintTop_toBottomOf="@id/indoor_map_view"
-        app:layout_constraintBottom_toTopOf="@id/bottom_nav"
+        app:layout_constraintBottom_toTopOf="@id/card_current_step"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent">
 
@@ -110,32 +227,32 @@
                 android:alignmentMode="alignMargins">
 
                 <LinearLayout style="@style/POIItemStyle">
-                    <ImageView android:src="@drawable/ic_washroom" style="@style/POIIconStyle"/>
+                    <ImageView android:src="@drawable/ic_washroom" style="@style/POIIconStyle" android:contentDescription="Washroom"/>
                     <TextView android:text="Washroom" style="@style/POITextStyle"/>
                 </LinearLayout>
 
                 <LinearLayout style="@style/POIItemStyle">
-                    <ImageView android:src="@drawable/ic_water_fountain" style="@style/POIIconStyle"/>
+                    <ImageView android:src="@drawable/ic_water_fountain" style="@style/POIIconStyle" android:contentDescription="Water Fountain"/>
                     <TextView android:text="Water Fountain" style="@style/POITextStyle"/>
                 </LinearLayout>
 
                 <LinearLayout style="@style/POIItemStyle">
-                    <ImageView android:src="@drawable/ic_escalator" style="@style/POIIconStyle"/>
+                    <ImageView android:src="@drawable/ic_escalator" style="@style/POIIconStyle" android:contentDescription="Escalator"/>
                     <TextView android:text="Escalator" style="@style/POITextStyle"/>
                 </LinearLayout>
 
                 <LinearLayout style="@style/POIItemStyle">
-                    <ImageView android:src="@drawable/ic_stairs" style="@style/POIIconStyle"/>
+                    <ImageView android:src="@drawable/ic_stairs" style="@style/POIIconStyle" android:contentDescription="Stairs"/>
                     <TextView android:text="Stairs" style="@style/POITextStyle"/>
                 </LinearLayout>
 
                 <LinearLayout style="@style/POIItemStyle">
-                    <ImageView android:src="@drawable/ic_emergency_door" style="@style/POIIconStyle"/>
+                    <ImageView android:src="@drawable/ic_emergency_door" style="@style/POIIconStyle" android:contentDescription="Emergency Door"/>
                     <TextView android:text="Emergency Door" style="@style/POITextStyle"/>
                 </LinearLayout>
 
                 <LinearLayout style="@style/POIItemStyle">
-                    <ImageView android:src="@drawable/ic_elevator" style="@style/POIIconStyle"/>
+                    <ImageView android:src="@drawable/ic_elevator" style="@style/POIIconStyle" android:contentDescription="Elevator"/>
                     <TextView android:text="Elevator" style="@style/POITextStyle"/>
                 </LinearLayout>
 
@@ -143,10 +260,194 @@
         </LinearLayout>
     </com.google.android.material.card.MaterialCardView>
 
+    <!-- ── Current direction card (dark red) – route mode only ───────────── -->
+    <androidx.cardview.widget.CardView
+        android:id="@+id/card_current_step"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="16dp"
+        android:visibility="gone"
+        app:cardCornerRadius="20dp"
+        app:cardElevation="4dp"
+        app:cardBackgroundColor="#7A1C1C"
+        app:layout_constraintBottom_toTopOf="@id/card_next_step"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:padding="16dp">
+
+            <!-- Direction icon circle -->
+            <FrameLayout
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:background="@drawable/bg_circle"
+                android:backgroundTint="#99FFFFFF">
+
+                <ImageView
+                    android:id="@+id/iv_step_direction_icon"
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:layout_gravity="center"
+                    android:src="@drawable/ic_arrow_next"
+                    android:rotation="-90"
+                    app:tint="#FFFFFF"
+                    android:contentDescription="Go straight" />
+            </FrameLayout>
+
+            <!-- Step text -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:layout_marginHorizontal="14dp">
+
+                <TextView
+                    android:id="@+id/tv_current_step_title"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Go Straight"
+                    android:textColor="#FFFFFF"
+                    android:textSize="17sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tv_current_step_subtitle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Continue down the main hallway"
+                    android:textColor="#CCFFFFFF"
+                    android:textSize="12sp"
+                    android:layout_marginTop="2dp" />
+            </LinearLayout>
+
+            <!-- Checkmark circle -->
+            <FrameLayout
+                android:id="@+id/btn_step_confirm"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:background="@drawable/bg_circle"
+                android:backgroundTint="#99FFFFFF"
+                android:clickable="true"
+                android:focusable="true">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:text="✓"
+                    android:textColor="#FFFFFF"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+            </FrameLayout>
+        </LinearLayout>
+    </androidx.cardview.widget.CardView>
+
+    <!-- ── Next step card (light grey) – route mode only ────────────────── -->
+    <androidx.cardview.widget.CardView
+        android:id="@+id/card_next_step"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="16dp"
+        android:layout_marginTop="8dp"
+        android:visibility="gone"
+        app:cardCornerRadius="20dp"
+        app:cardElevation="0dp"
+        app:cardBackgroundColor="#F0F0F0"
+        app:layout_constraintBottom_toTopOf="@id/layout_floor_transition"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingHorizontal="16dp"
+            android:paddingVertical="12dp">
+
+            <FrameLayout
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:background="@drawable/bg_circle"
+                android:backgroundTint="#DDDDDD">
+
+                <ImageView
+                    android:id="@+id/iv_next_step_icon"
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:layout_gravity="center"
+                    android:src="@drawable/ic_arrow_next"
+                    app:tint="#9E9E9E"
+                    android:contentDescription="Next step" />
+            </FrameLayout>
+
+            <TextView
+                android:id="@+id/tv_next_step_title"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="14dp"
+                android:text="Turn Right"
+                android:textColor="#9E9E9E"
+                android:textSize="15sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+    </androidx.cardview.widget.CardView>
+
+    <!-- ── Multi-floor transition banner ─────────────────────────────────── -->
+    <LinearLayout
+        android:id="@+id/layout_floor_transition"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:background="#1565C0"
+        android:paddingHorizontal="16dp"
+        android:paddingVertical="10dp"
+        android:visibility="gone"
+        app:layout_constraintBottom_toTopOf="@id/bottom_nav"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <ImageView
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:src="@drawable/ic_stairs"
+            app:tint="#FFFFFF"
+            android:contentDescription="Floor transition" />
+
+        <TextView
+            android:id="@+id/tv_transition_info"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="10dp"
+            android:text=""
+            android:textColor="#FFFFFF"
+            android:textSize="13sp" />
+
+        <Button
+            android:id="@+id/btn_next_floor"
+            android:layout_width="wrap_content"
+            android:layout_height="36dp"
+            android:text="Next Floor"
+            android:textColor="#1565C0"
+            android:backgroundTint="#FFFFFF"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            app:cornerRadius="18dp" />
+    </LinearLayout>
+
+    <!-- ── Bottom navigation ─────────────────────────────────────────────── -->
     <com.google.android.material.bottomnavigation.BottomNavigationView
         android:id="@+id/bottom_nav"
         android:layout_width="match_parent"
-        android:layout_height="70dp"
+        android:layout_height="56dp"
         android:background="#7A1C1C"
         app:itemIconSize="28dp"
         app:itemIconTint="@android:color/white"

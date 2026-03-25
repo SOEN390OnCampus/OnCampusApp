@@ -12659,6 +12659,62 @@
       "type": "stair",
       "weight": 1,
       "accessible": false
+    },
+    {
+      "source": "H_F1_room_125",
+      "target": "H_F1_hallway_waypoint_57",
+      "type": "room_to_door",
+      "weight": 284,
+      "accessible": true
+    },
+    {
+      "source": "H_F1_room_0052",
+      "target": "H_F1_hallway_waypoint_34",
+      "type": "room_to_door",
+      "weight": 308,
+      "accessible": true
+    },
+    {
+      "source": "H_F1_room_199_70",
+      "target": "H_F1_hallway_waypoint_33",
+      "type": "room_to_door",
+      "weight": 127,
+      "accessible": true
+    },
+    {
+      "source": "H_F8_room_877",
+      "target": "H_F8_doorway_45",
+      "type": "room_to_door",
+      "weight": 143,
+      "accessible": true
+    },
+    {
+      "source": "H_F8_room_875",
+      "target": "H_F8_hallway_waypoint_13",
+      "type": "room_to_door",
+      "weight": 130,
+      "accessible": true
+    },
+    {
+      "source": "H_F8_room_810",
+      "target": "H_F8_hallway_waypoint_49",
+      "type": "room_to_door",
+      "weight": 135,
+      "accessible": true
+    },
+    {
+      "source": "H_F8_room_890",
+      "target": "H_F8_hallway_waypoint_34",
+      "type": "room_to_door",
+      "weight": 147,
+      "accessible": true
+    },
+    {
+      "source": "H_F9_room_933_1",
+      "target": "H_F9_doorway_248",
+      "type": "room_to_door",
+      "weight": 45,
+      "accessible": true
     }
   ]
 }
