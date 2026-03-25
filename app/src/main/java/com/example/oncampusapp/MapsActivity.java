@@ -2372,7 +2372,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             }
 
         } catch (IOException | JSONException e) {
-            Log.e("MapsActivity", "Failed to load indoor rooms for " + buildingId, e);
+            Log.e(TAG, "Failed to load indoor rooms for " + buildingId, e);
         }
     }
 
@@ -2422,7 +2422,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             try (java.io.InputStream is = getResources().openRawResource(resId)) {
                 graph.load(is);
             } catch (IOException | JSONException e) {
-                Log.e("MapsActivity", "Graph load failed", e);
+                Log.e(TAG, "Graph load failed", e);
                 runOnUiThread(() ->
                     Toast.makeText(this, "Error loading building data.", Toast.LENGTH_SHORT).show());
                 return;
