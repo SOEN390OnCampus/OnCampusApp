@@ -42,11 +42,11 @@ jobs:
         run: ./gradlew clean testDebugUnitTest jacocoCombinedTestReport -x connectedDebugAndroidTest -x createDebugCoverageReport
 
       - name: Run SonarCloud Analysis
-          env:
+        env:
             GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
             SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           # Notice the new -Dsonar.organization flag added here!
-          run: ./gradlew sonar -Dsonar.organization=soen390oncampus -Dsonar.host.url=https://sonarcloud.io -Dsonar.coverage.jacoco.xmlReportPaths=app/build/reports/jacoco/jacocoCombinedTestReport/jacocoCombinedTestReport.xml
+        run: ./gradlew sonar -Dsonar.organization=soen390oncampus -Dsonar.host.url=https://sonarcloud.io -Dsonar.coverage.jacoco.xmlReportPaths=app/build/reports/jacoco/jacocoCombinedTestReport/jacocoCombinedTestReport.xml
       - name: Upload JaCoCo HTML Report as Artifact
         uses: actions/upload-artifact@v4
         with:
