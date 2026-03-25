@@ -8,15 +8,13 @@ on:
 
 jobs:
   build:
-    # Using the modern Intel runner tag since macos-13 was retired.
-    # This gives us the hardware-accelerated nested virtualization we need!
-    runs-on: macos-15-intel
+    # We are moving back to Linux to leverage native KVM hardware acceleration!
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          # CRITICAL: SonarCloud requires the full git history to analyze PRs and blame properly
           fetch-depth: 0
 
       - name: Set up JDK 17
@@ -42,17 +40,19 @@ jobs:
       - name: Run Tests and Generate Combined JaCoCo Report
         uses: reactivecircus/android-emulator-runner@v2
         with:
-            api-level: 28
-            target: default
-            arch: x86_64
-            profile: Nexus 6
-            disable-animations: true
-            script: ./gradlew clean testDebugUnitTest connectedDebugAndroidTest jacocoCombinedTestReport
+          api-level: 33 # Modern, stable API
+          target: google_apis # Required for your Maps/Location services
+          arch: x86_64 # Native architecture for Ubuntu runners
+          profile: Nexus 6
+          disable-animations: true
+          # Strips out all unnecessary hardware emulation to prevent hanging
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          script: ./gradlew clean testDebugUnitTest connectedDebugAndroidTest jacocoCombinedTestReport
+
       - name: Run SonarCloud Analysis
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        # This overrides the localhost URL in your build.gradle and passes the merged 74% report
         run: ./gradlew sonar -Dsonar.host.url=https://sonarcloud.io -Dsonar.coverage.jacoco.xmlReportPaths=app/build/reports/jacoco/jacocoCombinedTestReport/jacocoCombinedTestReport.xml
 
       - name: Upload JaCoCo HTML Report as Artifact
@@ -66,5 +66,4 @@ jobs:
         uses: codecov/codecov-action@v4
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          # Explicitly pointing Codecov to the combined file just to be safe
           files: app/build/reports/jacoco/jacocoCombinedTestReport/jacocoCombinedTestReport.xml
