@@ -195,7 +195,6 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginHorizontal="16dp"
-        android:visibility="gone"
         app:cardBackgroundColor="#FFFFFF"
         app:strokeColor="#E0E0E0"
         app:strokeWidth="1dp"

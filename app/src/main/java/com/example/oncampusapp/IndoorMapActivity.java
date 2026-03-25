@@ -526,10 +526,8 @@ public class IndoorMapActivity extends AppCompatActivity {
 
         CardView cardCurrent = findViewById(R.id.card_current_step);
         CardView cardNext    = findViewById(R.id.card_next_step);
-        View     legend      = findViewById(R.id.card_poi_legend);
         if (cardCurrent != null) cardCurrent.setVisibility(View.VISIBLE);
         if (cardNext    != null) cardNext.setVisibility(View.VISIBLE);
-        if (legend      != null) legend.setVisibility(View.VISIBLE);
     }
 
     private void updateRouteTime(int minutes) {
