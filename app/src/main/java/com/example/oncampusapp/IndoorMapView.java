@@ -320,4 +320,34 @@ public class IndoorMapView extends View {
             return true;
         }
     }
+
+    @Override
+    protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
+        super.onMeasure(widthMeasureSpec, heightMeasureSpec);
+
+        if (floorPlan != null) {
+            // Get the width that the layout gave us
+            int width = MeasureSpec.getSize(widthMeasureSpec);
+
+            // Calculate the exact height needed to keep the image's aspect ratio
+            float aspectRatio = (float) floorPlan.getHeight() / (float) floorPlan.getWidth();
+            int desiredHeight = Math.round(width * aspectRatio);
+
+            // Respect any height constraints from the XML (like constrainedHeight="true")
+            int heightMode = MeasureSpec.getMode(heightMeasureSpec);
+            int heightSize = MeasureSpec.getSize(heightMeasureSpec);
+
+            int finalHeight;
+            if (heightMode == MeasureSpec.EXACTLY) {
+                finalHeight = heightSize;
+            } else if (heightMode == MeasureSpec.AT_MOST) {
+                finalHeight = Math.min(desiredHeight, heightSize);
+            } else {
+                finalHeight = desiredHeight;
+            }
+
+            // Lock in the new dimensions
+            setMeasuredDimension(width, finalHeight);
+        }
+    }
 }
