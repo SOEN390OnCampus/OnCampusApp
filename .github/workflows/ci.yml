@@ -8,9 +8,9 @@ on:
 
 jobs:
   build:
-    # Changed from macos-latest to macos-13 to get an Intel runner
-    # which supports hardware-accelerated nested virtualization!
-    runs-on: macos-13
+    # Using the modern Intel runner tag since macos-13 was retired.
+    # This gives us the hardware-accelerated nested virtualization we need!
+    runs-on: macos-15-intel
 
     steps:
       - name: Checkout code
@@ -43,12 +43,11 @@ jobs:
         uses: reactivecircus/android-emulator-runner@v2
         with:
             api-level: 29
-            target: default # Back to default for Intel
-            arch: x86_64    # Back to Intel architecture
+            target: default
+            arch: x86_64
             profile: Nexus 6
             disable-animations: true
             script: ./gradlew clean testDebugUnitTest connectedDebugAndroidTest jacocoCombinedTestReport
-
       - name: Run SonarCloud Analysis
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
