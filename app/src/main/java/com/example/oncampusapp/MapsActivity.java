@@ -94,6 +94,7 @@ import com.google.maps.android.data.geojson.GeoJsonLineStringStyle;
 import com.google.maps.android.data.geojson.GeoJsonPolygon;
 import com.google.maps.android.data.geojson.GeoJsonPolygonStyle;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -126,7 +127,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private boolean isPreviewActive = false;
 
     private boolean pendingNotificationDirections = false;
-
     private final Handler bannerHandler = new Handler();
     private final Runnable bannerRunnable = new Runnable() {
         @Override
@@ -158,8 +158,14 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     private ActivityResultLauncher<String[]> locationPermissionRequest;
     private TextView btnSgwLoy;
+
     private static final String sgw = "SGW";
     private static final String loy = "LOY";
+    private static final String TAG = "MapsActivity";
+    private static final String KEY_NOTIFICATION_ID = "notification_id";
+    private static final String KEY_START = "start";
+    private static final String KEY_DATE_TIME = "dateTime";
+    private static final String DATE_FORMAT = "yyyy-MM-dd'T'HH:mm:ssXXX";
 
     // Navigation Variables
     private List<LatLng> currentRoutePoints;
@@ -234,66 +240,87 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
         WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
         getWindow().setStatusBarColor(Color.TRANSPARENT);
-
         launchPermissionRequest();
 
-        // ViewBinding: inflate, then set content view ONCE
+        initializeBinding();
+        cancelNotificationIfPresent(getIntent());
+        initializeBannerInsets();
+        initializeBottomNavigation();
+        initializeLocationProvider();
+        initializeMap();
+        requestRuntimePermissionsIfNeeded();
+        initializeNotificationSupport();
+        initializeLocationPermissionLauncher();
+        runStartupTasks();
+    }
+
+    // HELPERS for onCreate method
+    private void initializeBinding(){
         binding = ActivityMapsBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
-
-        // Cancels any pending notifications
-        Intent intent = getIntent();
-        if (intent != null && intent.hasExtra("notification_id")) {
-            int notificationId = intent.getIntExtra("notification_id", -1);
-
-            if (notificationId != -1) {
-                NotificationManager manager =
-                        (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-                if (manager != null) {
-                    manager.cancel(notificationId);
-                }
-            }
-        }
-
-        // Preload shuttle route data from bundled JSON
         ShuttleHelper.init(this);
-        View bannerView = findViewById(R.id.included_banner);
-        if (bannerView != null) {
-            ViewCompat.setOnApplyWindowInsetsListener(bannerView, (v, windowInsets) -> {
-                Insets insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars());
-                ViewGroup.MarginLayoutParams mlp = (ViewGroup.MarginLayoutParams) v.getLayoutParams();
-                // Push the banner down by the height of the status bar + 16 pixels for a nice gap
-                mlp.topMargin = insets.top + 16;
-                v.setLayoutParams(mlp);
-                return windowInsets; // Return the original insets untouched
-            });
+        setupRoutePickerUi();
+        buildingClassifier = new BuildingClassifier();
+    }
+
+    private void cancelNotificationIfPresent(Intent intent) {
+        if (intent == null || !intent.hasExtra(KEY_NOTIFICATION_ID)) {
+            return;
         }
 
-        setupRoutePickerUi();
+        int notificationId = intent.getIntExtra(KEY_NOTIFICATION_ID, -1);
+        if (notificationId == -1) {
+            return;
+        }
 
-        binding.bottomNav.setOnItemSelectedListener(item -> {
+        NotificationManager manager =
+                (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+        if (manager != null) {
+            manager.cancel(notificationId);
+        }
+    }
 
-            int id = item.getItemId();
+    private void initializeBannerInsets() {
+        View bannerView = findViewById(R.id.included_banner);
+        if (bannerView == null) {
+            return;
+        }
 
-            if (id == R.id.nav_home) {
-                Toast.makeText(this, "Home clicked", Toast.LENGTH_SHORT).show();
-                return true;
-            } else if (id == R.id.nav_account) {
-                startActivity(new Intent(this, GoogleCalendarAuthActivity.class));
-                return true;
-            } else if (id == R.id.nav_settings) {
-                Toast.makeText(this, "Settings clicked", Toast.LENGTH_SHORT).show();
-                return true;
-            }
-
-            return false;
+        ViewCompat.setOnApplyWindowInsetsListener(bannerView, (v, windowInsets) -> {
+            Insets insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars());
+            ViewGroup.MarginLayoutParams mlp = (ViewGroup.MarginLayoutParams) v.getLayoutParams();
+            mlp.topMargin = insets.top + 16;
+            v.setLayoutParams(mlp);
+            return windowInsets;
         });
+    }
 
-        buildingClassifier = new BuildingClassifier();
+    private void initializeBottomNavigation() {
+        binding.bottomNav.setOnItemSelectedListener(item -> handleBottomNavSelection(item.getItemId()));
+    }
 
+    private boolean handleBottomNavSelection(int id) {
+        if (id == R.id.nav_home) {
+            Toast.makeText(this, "Home clicked", Toast.LENGTH_SHORT).show();
+            return true;
+        }
+
+        if (id == R.id.nav_account) {
+            startActivity(new Intent(this, GoogleCalendarAuthActivity.class));
+            return true;
+        }
+
+        if (id == R.id.nav_settings) {
+            Toast.makeText(this, "Settings clicked", Toast.LENGTH_SHORT).show();
+            return true;
+        }
+
+        return false;
+    }
+
+    private void initializeLocationProvider() {
         OnCampusApplication app = (OnCampusApplication) getApplication();
 
         // If a mock hasn't been injected yet, set the default one
@@ -301,68 +328,86 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             app.setLocationProvider(new FusedLocationProvider(this));
         }
 
-        // Use the provider from the application
         fusedLocationClient = app.getLocationProvider();
-
-        // Initialize our custom Location Source
         myLocationSource = new FusedLocationSource(this, fusedLocationClient);
+    }
 
+    private void initializeMap() {
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
         assert mapFragment != null;
 
-        // Increment before starting the async task
         mapIdlingResource.increment();
         mapFragment.getMapAsync(this);
+    }
 
+    // Permissions
+    private void requestRuntimePermissionsIfNeeded() {
+        requestFineLocationPermissionIfNeeded();
+        requestBackgroundLocationPermissionIfNeeded();
+        requestNotificationPermissionIfNeeded();
+    }
+
+    private void requestFineLocationPermissionIfNeeded() {
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
                 != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(this,
-                    new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
-                    1001);
-        }
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            if (ContextCompat.checkSelfPermission(this,
-                    Manifest.permission.ACCESS_BACKGROUND_LOCATION)
-                    != PackageManager.PERMISSION_GRANTED) {
-
-                ActivityCompat.requestPermissions(this,
-                        new String[]{Manifest.permission.ACCESS_BACKGROUND_LOCATION},
-                        3001);
-            }
-        }
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            if (ActivityCompat.checkSelfPermission(
+            ActivityCompat.requestPermissions(
                     this,
-                    Manifest.permission.POST_NOTIFICATIONS
-            ) != PackageManager.PERMISSION_GRANTED) {
-                ActivityCompat.requestPermissions(
-                        this,
-                        new String[]{Manifest.permission.POST_NOTIFICATIONS},
-                        2001
-                );
-            }
+                    new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
+                    1001
+            );
+        }
+    }
+
+    private void requestBackgroundLocationPermissionIfNeeded() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+            return;
         }
 
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_BACKGROUND_LOCATION)
+                != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(
+                    this,
+                    new String[]{Manifest.permission.ACCESS_BACKGROUND_LOCATION},
+                    3001
+            );
+        }
+    }
+
+    private void requestNotificationPermissionIfNeeded() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+            return;
+        }
+
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
+                != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(
+                    this,
+                    new String[]{Manifest.permission.POST_NOTIFICATIONS},
+                    2001
+            );
+        }
+    }
+
+    private void initializeNotificationSupport() {
         createNotificationChannel();
-        // Initialize the permission launcher
-        locationPermissionRequest = registerForActivityResult(new ActivityResultContracts.RequestMultiplePermissions(), result -> {
-            result.getOrDefault(Manifest.permission.ACCESS_FINE_LOCATION, false);
-            result.getOrDefault(Manifest.permission.ACCESS_COARSE_LOCATION, false);
-        });
+    }
 
-        // Check and Request on Startup
+    private void initializeLocationPermissionLauncher() {
+        locationPermissionRequest = registerForActivityResult(
+                new ActivityResultContracts.RequestMultiplePermissions(),
+                result -> {
+                    result.getOrDefault(Manifest.permission.ACCESS_FINE_LOCATION, false);
+                    result.getOrDefault(Manifest.permission.ACCESS_COARSE_LOCATION, false);
+                }
+        );
+    }
+
+    private void runStartupTasks() {
         checkLocationPermissions();
-
-        // Load building details
         loadBuildingDetails();
-
         checkAndDisplayNextEventBanner();
-
         handleNotificationDirectionsIntent(getIntent());
-
     }
 
     @Override
@@ -1759,12 +1804,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
             try {
                 long now = System.currentTimeMillis();
-                String startStr = nextClass.getJSONObject("start").getString("dateTime");
-                String endStr = nextClass.getJSONObject("end").getString("dateTime");
+                String startStr = nextClass.getJSONObject(KEY_START).getString(KEY_DATE_TIME);
+                String endStr = nextClass.getJSONObject("end").getString(KEY_DATE_TIME);
                 String rawLocation = nextClass.optString("location", "");
                 String description = nextClass.optString("description", "");
 
-                SimpleDateFormat exactTimeFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX", Locale.getDefault());
+                SimpleDateFormat exactTimeFormat = new SimpleDateFormat(DATE_FORMAT, Locale.getDefault());
                 long startTime = exactTimeFormat.parse(startStr).getTime();
                 long endTime = exactTimeFormat.parse(endStr).getTime();
 
@@ -1951,8 +1996,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         setIntent(intent);
 
         // Cancels any existing notifications
-        if (intent != null && intent.hasExtra("notification_id")) {
-            int notificationId = intent.getIntExtra("notification_id", -1);
+        if (intent != null && intent.hasExtra(KEY_NOTIFICATION_ID)) {
+            int notificationId = intent.getIntExtra(KEY_NOTIFICATION_ID, -1);
 
             if (notificationId != -1) {
                 NotificationManager manager =
@@ -2006,115 +2051,157 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             pendingNotificationDirections = false;
 
         } catch (Exception e) {
-            Log.e("MapsActivity", "Direction generation failed");
+            Log.e(TAG, "Direction generation failed");
             Toast.makeText(this, "Failed to generate directions", Toast.LENGTH_SHORT).show();
         }
     }
 
-    private org.json.JSONObject findPreviousClass(String eventsJson, org.json.JSONObject nextClass) {
+    private JSONObject findPreviousClass(String eventsJson, JSONObject nextClass) {
         try {
-            org.json.JSONArray events = new org.json.JSONArray(eventsJson);
+            JSONArray events = new JSONArray(eventsJson);
 
-            java.text.SimpleDateFormat format =
-                    new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX", java.util.Locale.getDefault());
+            SimpleDateFormat format =
+                    new SimpleDateFormat(DATE_FORMAT, Locale.getDefault());
 
             long nextStart = format.parse(
-                    nextClass.getJSONObject("start").getString("dateTime")
+                    nextClass.getJSONObject(KEY_START).getString(KEY_DATE_TIME)
             ).getTime();
 
-            org.json.JSONObject bestPrevious = null;
+            JSONObject bestPrevious = null;
             long latestEnd = Long.MIN_VALUE;
 
             for (int i = 0; i < events.length(); i++) {
-                org.json.JSONObject event = events.getJSONObject(i);
+                JSONObject event = events.getJSONObject(i);
 
-                if (!event.has("start") || !event.has("end")) continue;
-                if (!event.getJSONObject("start").has("dateTime")) continue;
-                if (!event.getJSONObject("end").has("dateTime")) continue;
+                if(hasValidDateTimeRange(event)){
+                    long eventEnd = format.parse(
+                            event.getJSONObject("end").getString(KEY_DATE_TIME)
+                    ).getTime();
 
-                long eventEnd = format.parse(
-                        event.getJSONObject("end").getString("dateTime")
-                ).getTime();
-
-                if (eventEnd <= nextStart && eventEnd > latestEnd) {
-                    bestPrevious = event;
-                    latestEnd = eventEnd;
+                    if (eventEnd <= nextStart && eventEnd > latestEnd) {
+                        bestPrevious = event;
+                        latestEnd = eventEnd;
+                    }
                 }
             }
 
             return bestPrevious;
 
         } catch (Exception e) {
-            Log.e("MapsActivity", "Couldn't find previous class");
+            Log.e(TAG, "Couldn't find previous class");
             return null;
         }
+    }
+
+    private boolean hasValidDateTimeRange(JSONObject event) {
+        if (event == null || !event.has(KEY_START) || !event.has("end")) {
+            return false;
+        }
+
+        JSONObject start = event.optJSONObject(KEY_START);
+        JSONObject end = event.optJSONObject("end");
+
+        return start != null
+                && end != null
+                && start.has(KEY_DATE_TIME)
+                && end.has(KEY_DATE_TIME);
     }
 
     private boolean isPreviousClassWithin15Minutes(org.json.JSONObject previousClass, org.json.JSONObject nextClass) {
         try {
             java.text.SimpleDateFormat format =
-                    new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX", java.util.Locale.getDefault());
+                    new java.text.SimpleDateFormat(DATE_FORMAT, java.util.Locale.getDefault());
 
             long previousEnd = format.parse(
-                    previousClass.getJSONObject("end").getString("dateTime")
+                    previousClass.getJSONObject("end").getString(KEY_DATE_TIME)
             ).getTime();
 
             long nextStart = format.parse(
-                    nextClass.getJSONObject("start").getString("dateTime")
+                    nextClass.getJSONObject(KEY_START).getString(KEY_DATE_TIME)
             ).getTime();
 
             return RouteDecisionHelper.shouldUsePreviousClass(previousEnd, nextStart);
 
         } catch (Exception e) {
-            Log.e("MapsActivity", "Failed to determine if previous class was within 15 mins");
+            Log.e(TAG, "Failed to determine if previous class was within 15 mins");
             return false;
         }
     }
     private String extractBuildingNameFromEvent(org.json.JSONObject event) {
-        if (event == null || geoIdToBuildingDetailsMap == null) return null;
+        if (event == null || geoIdToBuildingDetailsMap == null) {
+            return null;
+        }
 
         String rawLocation = event.optString("location", "").trim();
-        if (rawLocation.isEmpty()) return null;
+        if (rawLocation.isEmpty()) {
+            return null;
+        }
 
         String lower = rawLocation.toLowerCase();
 
-        // 1. Exact match against known building names
-        for (BuildingDetails details : geoIdToBuildingDetailsMap.values()) {
-            if (details.getName() != null) {
-                String buildingName = details.getName().trim();
-                if (!buildingName.isEmpty() && lower.contains(buildingName.toLowerCase())) {
-                    return buildingName;
-                }
-            }
+        String exactMatch = findExactBuildingMatch(lower);
+        if (exactMatch != null) {
+            return exactMatch;
         }
 
-        // 2. Concordia short-code fallback
-        if (lower.startsWith("h") || lower.contains("hall")) {
-            return "Henry F. Hall Building";
-        }
-        if (lower.startsWith("mb") || lower.contains("john molson")) {
-            return "John Molson School of Business";
-        }
-        if (lower.startsWith("ev") || lower.contains("engineering")) {
-            return "Engineering, Computer Science and Visual Arts Integrated Complex";
-        }
-        // Needs fixing
-        if (lower.startsWith("FG") || lower.startsWith("FB") || lower.contains("Faubourg")) {
-            return "Le Faubourg";
+        String fallbackMatch = findFallbackBuildingMatch(lower);
+        if (fallbackMatch != null) {
+            return fallbackMatch;
         }
 
-        // 3. Last fallback: try raw text
         return rawLocation;
     }
 
-    private String getCurrentBuildingName() {
-        Building currentBuilding = buildingManager != null ? buildingManager.getCurrentBuilding() : null;
+    private String findExactBuildingMatch(String lowerLocation) {
+        for (BuildingDetails details : geoIdToBuildingDetailsMap.values()) {
+            if (details == null || details.getName() == null) {
+                continue;
+            }
 
-        if (currentBuilding != null) {
-            return currentBuilding.getName();
+            String buildingName = details.getName().trim();
+            if (!buildingName.isEmpty() && lowerLocation.contains(buildingName.toLowerCase())) {
+                return buildingName;
+            }
+        }
+        return null;
+    }
+
+    private String findFallbackBuildingMatch(String lowerLocation) {
+        if (matchesHall(lowerLocation)) {
+            return "Henry F. Hall Building";
+        }
+
+        if (matchesMolson(lowerLocation)) {
+            return "John Molson School of Business";
+        }
+
+        if (matchesEngineering(lowerLocation)) {
+            return "Engineering, Computer Science and Visual Arts Integrated Complex";
+        }
+
+        if (matchesFaubourg(lowerLocation)) {
+            return "Le Faubourg";
         }
 
         return null;
+    }
+
+    private boolean matchesHall(String lowerLocation) {
+        return lowerLocation.startsWith("h") || lowerLocation.contains("hall");
+    }
+
+    private boolean matchesMolson(String lowerLocation) {
+        return lowerLocation.startsWith("mb") || lowerLocation.contains("john molson");
+    }
+
+    private boolean matchesEngineering(String lowerLocation) {
+        return lowerLocation.startsWith("ev") || lowerLocation.contains("engineering");
+    }
+
+    private boolean matchesFaubourg(String lowerLocation) {
+        return lowerLocation.startsWith("fg")
+                || lowerLocation.startsWith("fb")
+                || lowerLocation.contains("faubourg");
     }
 
     private void openRouteFromBuildings(String startBuilding, String destinationBuilding) {
@@ -2202,7 +2289,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
                                 @Override
                                 public void onError(Exception e) {
-                                    Log.e("MapsActivity", "Failed to open route from current location");
+                                    Log.e(TAG, "Failed to open route from current location");
                                     runOnUiThread(() ->
                                             Toast.makeText(MapsActivity.this, "Failed to load route", Toast.LENGTH_SHORT).show());
                                 }
@@ -2238,7 +2325,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             openRouteFromCurrentLocation(destinationBuilding);
 
         } catch (Exception e) {
-            Log.e("MapsActivity", "Failed to handle banner directions click");
+            Log.e(TAG, "Failed to handle banner directions click");
             Toast.makeText(this, "Failed to open directions", Toast.LENGTH_SHORT).show();
         }
     }
