@@ -41,10 +41,11 @@ jobs:
       - name: Run Tests and Generate Combined JaCoCo Report
         uses: reactivecircus/android-emulator-runner@v2
         with:
-            api-level: 29
-            target: google_apis # Changed to support ARM
-            arch: arm64-v8a     # Changed to match Apple Silicon (M1/M2) host
+            api-level: 33 # Upgraded for native Apple Silicon stability
+            target: google_apis
+            arch: arm64-v8a
             profile: Nexus 6
+            disable-animations: true # Skips the boot screen to speed up startup
             script: ./gradlew clean testDebugUnitTest connectedDebugAndroidTest jacocoCombinedTestReport
 
       - name: Run SonarCloud Analysis
