@@ -42,11 +42,12 @@ public class IndoorMapActivityTest {
         when(mockResources.openRawResource(anyInt())).thenReturn(fakeInputStream);
 
         // Prepare Reflection to call the private loadNodesForFloor method
-        Method loadNodesMethod = IndoorMapActivity.class.getDeclaredMethod("loadNodesForFloor", int.class, String.class);
+        Method loadNodesMethod = IndoorMapActivity.class.getDeclaredMethod("loadNodesForFloor", int.class,String.class);
         loadNodesMethod.setAccessible(true);
 
         // Test Match Hall Floor 8
         List<IndoorNode> resultH8 = (List<IndoorNode>) loadNodesMethod.invoke(mockActivity, 1, "8");
+
         assertEquals(1, resultH8.size());
         assertEquals("H-807", resultH8.get(0).getLabel());
 
@@ -79,7 +80,7 @@ public class IndoorMapActivityTest {
         when(mockActivity.getResources()).thenReturn(mockResources);
         when(mockResources.openRawResource(anyInt())).thenReturn(fakeInputStream);
 
-        Method loadNodesMethod = IndoorMapActivity.class.getDeclaredMethod("loadNodesForFloor", int.class, String.class);
+        Method loadNodesMethod = IndoorMapActivity.class.getDeclaredMethod("loadNodesForFloor", int.class,String.class);
         loadNodesMethod.setAccessible(true);
 
         List<IndoorNode> result = (List<IndoorNode>) loadNodesMethod.invoke(mockActivity, 1, "1");
