@@ -130,29 +130,7 @@ public class AccountPage extends AppCompatActivity {
         };
         timerHandler.post(timerRunnable);
 
-
-        GoogleSignInOptions options = new GoogleSignInOptions.Builder(
-                GoogleSignInOptions.DEFAULT_SIGN_IN)
-                .requestEmail()
-                .requestScopes(new Scope(CALENDAR_SCOPE))
-                .build();
-
-        googleSignInClient = GoogleSignIn.getClient(this, options);
-
-        MaterialButton btnSignOut = findViewById(R.id.btn_sign_out);
-        btnSignOut.setOnClickListener(v -> {
-            new AlertDialog.Builder(this)
-                    .setTitle("Confirm Sign Out")
-                    .setMessage("You will be signed out of your Google account.")
-                    .setPositiveButton("Sign out", (dialog, which) -> {
-                        googleSignInClient.signOut().addOnCompleteListener(this, task -> {
-                            startActivity(new Intent(this, GoogleCalendarAuthActivity.class));
-                            finish();
-                        });
-                    })
-                    .setNegativeButton("Cancel", null)
-                    .show();
-        });
+        configureSignOut();
 
     }
 
@@ -461,5 +439,31 @@ public class AccountPage extends AppCompatActivity {
         } else if (bannerView != null) {
             bannerView.setVisibility(View.GONE);
         }
+    }
+
+    // Alert pop up and signout functionality
+    private void configureSignOut(){
+        GoogleSignInOptions options = new GoogleSignInOptions.Builder(
+                GoogleSignInOptions.DEFAULT_SIGN_IN)
+                .requestEmail()
+                .requestScopes(new Scope(CALENDAR_SCOPE))
+                .build();
+
+        googleSignInClient = GoogleSignIn.getClient(this, options);
+
+        MaterialButton btnSignOut = findViewById(R.id.btn_sign_out);
+        btnSignOut.setOnClickListener(v -> {
+            new AlertDialog.Builder(this)
+                    .setTitle("Confirm Sign Out")
+                    .setMessage("You will be signed out of your Google account.")
+                    .setPositiveButton("Sign out", (dialog, which) -> {
+                        googleSignInClient.signOut().addOnCompleteListener(this, task -> {
+                            startActivity(new Intent(this, GoogleCalendarAuthActivity.class));
+                            finish();
+                        });
+                    })
+                    .setNegativeButton("Cancel", null)
+                    .show();
+        });
     }
 }
