@@ -9,6 +9,7 @@ import static androidx.test.espresso.action.ViewActions.typeText;
 import static androidx.test.espresso.assertion.ViewAssertions.matches;
 import static androidx.test.espresso.matcher.ViewMatchers.hasFocus;
 import static androidx.test.espresso.matcher.ViewMatchers.isDisplayed;
+import static androidx.test.espresso.matcher.ViewMatchers.withEffectiveVisibility;
 import static androidx.test.espresso.matcher.ViewMatchers.withId;
 import static androidx.test.espresso.matcher.ViewMatchers.withText;
 import static androidx.test.espresso.action.ViewActions.closeSoftKeyboard;
@@ -48,6 +49,7 @@ import androidx.test.espresso.NoMatchingRootException;
 import androidx.test.espresso.NoMatchingViewException;
 import androidx.test.espresso.PerformException;
 import androidx.test.espresso.matcher.RootMatchers;
+import androidx.test.espresso.matcher.ViewMatchers;
 import androidx.test.ext.junit.rules.ActivityScenarioRule;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.platform.app.InstrumentationRegistry;
@@ -127,12 +129,6 @@ public class MapsActivityEspressoTest {
             .check(matches(isDisplayed()));
     }
 
-    private void sleep(int ms) {
-        try {
-            Thread.sleep(ms);
-        } catch (InterruptedException ignored) {
-        }
-    }
 
     private void switchToSGWCampus() {
         onView(withId(R.id.btn_campus_switch)).check(matches(withText("SGW")));
@@ -202,22 +198,6 @@ public class MapsActivityEspressoTest {
     }
 
     /**
-     * Tries to select the first dropdown suggestion if the popup is present and has items.
-     * Returns true if a click happened, false if suggestions were not available.
-     */
-    private boolean trySelectFirstSuggestion() {
-        try {
-            onData(anything())
-                    .inRoot(RootMatchers.isPlatformPopup()) // popup root [web:145]
-                    .atPosition(0)
-                    .perform(click()); // common AutoCompleteTextView pattern [web:6]
-            return true;
-        } catch (NoMatchingRootException | NoMatchingViewException | PerformException e) {
-            return false;
-        }
-    }
-
-    /**
      * Creates a click action on the map, on the device, based off a provided lat and long
      *
      * @param map The view map instance
@@ -278,9 +258,7 @@ public class MapsActivityEspressoTest {
     public void testLocationButton_MovesCameraToCurrentPosition() throws InterruptedException {
         CountDownLatch latch = new CountDownLatch(1);
 
-        sleep(5000);
         onView(withId(R.id.btn_location)).perform(click());
-        sleep(1000);
 
         activityRule.getScenario().onActivity(activity -> {
             assertNotNull(activity.getMap());
@@ -339,10 +317,10 @@ public class MapsActivityEspressoTest {
 
         // Check if the text in both et_start and et_destination was cleared after route picker was closed
         onView(withId(R.id.et_start))
-            .check(matches(withText(isEmptyString())));
+            .check(matches(withText("")));
 
         onView(withId(R.id.et_destination))
-            .check(matches(withText(isEmptyString())));
+            .check(matches(withText("")));
 
         // Click on start textview to set focus
         onView(withId(R.id.et_start))
@@ -391,7 +369,8 @@ public class MapsActivityEspressoTest {
         // Test the device back press button click and verify if it closes the route search
         pressBack();
         onView(withId(R.id.search_bar_container)).check(matches(isDisplayed()));
-        onView(withId(R.id.route_picker_container)).check(matches(not(isDisplayed())));
+        onView(withId(R.id.route_picker_container))
+                .check(matches(withEffectiveVisibility(ViewMatchers.Visibility.GONE)));
     }
 
     // ----------------------------------------
@@ -416,7 +395,9 @@ public class MapsActivityEspressoTest {
                     latch.countDown(); // signal that service is connected
                 }
                 @Override
-                public void onServiceDisconnected(ComponentName name) {}
+                public void onServiceDisconnected(ComponentName name) {
+                    // Unused, just required for interface
+                }
             }, Context.BIND_AUTO_CREATE);
         });
 
@@ -442,9 +423,7 @@ public class MapsActivityEspressoTest {
                     });
         });
 
-        sleep(1000);
         onView(withId(R.id.btn_location)).perform(click());
-        sleep(1000);
 
         activityRule.getScenario().onActivity(activity ->
                 ref.set(activity.buildingManager.getCurrentBuilding()));
