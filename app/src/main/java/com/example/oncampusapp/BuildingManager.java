@@ -3,11 +3,7 @@ package com.example.oncampusapp;
 import java.util.HashMap;
 import java.util.Map;
 public class BuildingManager {
-    public static Map<String, Building> buildingsMap;
-
-    public BuildingManager() {
-        buildingsMap = new HashMap<>();
-    }
+    private static final Map<String, Building> buildingsMap = new HashMap<>();
 
     public void addBuilding(Building building1) {
         buildingsMap.put(building1.getId(),building1);
@@ -24,5 +20,8 @@ public class BuildingManager {
             }
         }
         return null;
+    }
+    public static Map<String, Building> getBuildingsMap() {
+        return buildingsMap;
     }
 }
