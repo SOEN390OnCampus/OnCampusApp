@@ -52,4 +52,9 @@
     <string name="sample_direction">SAMPLE DIRECTION</string>
     <string name="select_building">Select Building</string>
     <string name="select_floor">SELECT FLOOR</string>
+    <string name="sign_out">Sign out</string>
+    <string name="confirm_sign_out">Confirm Sign Out</string>
+    <string name="confirm_sign_out_body">You will be signed out of your Google account.</string>
+    <string name="cancel">Cancel</string>
+    <string name="sign_out_failed_body">Sign-out failed. Please try again.</string>
 </resources>
