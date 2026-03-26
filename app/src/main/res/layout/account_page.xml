@@ -172,6 +172,16 @@
                     app:iconSize="30dp"/>
             </LinearLayout>
 
+            <!-- Sign out -->
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_sign_out"
+                android:layout_width="match_parent"
+                android:layout_height="50dp"
+                android:backgroundTint="#7A1C1C"
+                android:text="@string/sign_out"
+                app:iconGravity="textTop"
+                app:iconSize="30dp" />
 
         </LinearLayout>
     </ScrollView>

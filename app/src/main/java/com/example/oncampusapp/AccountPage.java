@@ -1,5 +1,6 @@
 package com.example.oncampusapp;
 
+import android.app.AlertDialog;
 import android.app.Dialog;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -22,7 +23,11 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.google.android.gms.auth.GoogleAuthUtil;
 import com.google.android.gms.auth.api.signin.GoogleSignIn;
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
+import com.google.android.gms.auth.api.signin.GoogleSignInClient;
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
+import com.google.android.gms.common.api.Scope;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
+import com.google.android.material.button.MaterialButton;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -48,6 +53,14 @@ public class AccountPage extends AppCompatActivity {
     // --- Timer Variables for the Live Banner ---
     private android.os.Handler timerHandler = new android.os.Handler();
     private Runnable timerRunnable;
+
+    private static final String CALENDAR_SCOPE =
+            "https://www.googleapis.com/auth/calendar.readonly";
+
+
+
+    private GoogleSignInClient googleSignInClient;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -116,6 +129,31 @@ public class AccountPage extends AppCompatActivity {
             }
         };
         timerHandler.post(timerRunnable);
+
+
+        GoogleSignInOptions options = new GoogleSignInOptions.Builder(
+                GoogleSignInOptions.DEFAULT_SIGN_IN)
+                .requestEmail()
+                .requestScopes(new Scope(CALENDAR_SCOPE))
+                .build();
+
+        googleSignInClient = GoogleSignIn.getClient(this, options);
+
+        MaterialButton btnSignOut = findViewById(R.id.btn_sign_out);
+        btnSignOut.setOnClickListener(v -> {
+            new AlertDialog.Builder(this)
+                    .setTitle("Confirm Sign Out")
+                    .setMessage("You will be signed out of your Google account.")
+                    .setPositiveButton("Sign out", (dialog, which) -> {
+                        googleSignInClient.signOut().addOnCompleteListener(this, task -> {
+                            startActivity(new Intent(this, GoogleCalendarAuthActivity.class));
+                            finish();
+                        });
+                    })
+                    .setNegativeButton("Cancel", null)
+                    .show();
+        });
+
     }
 
     @Override
