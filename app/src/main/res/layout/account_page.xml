@@ -141,37 +141,6 @@
 
             </LinearLayout>
 
-
-            <!-- REVIEW CARD -->
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="20dp"
-                android:background="@drawable/red_card_border"
-                android:orientation="vertical"
-                android:padding="18dp">
-
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginBottom="12dp"
-                    android:text="Leave a review"
-                    android:textColor="#333"
-                    android:textSize="16sp"
-                    android:textStyle="bold"
-                    app:icon="@drawable/ic_feedback"/>
-
-                <com.google.android.material.button.MaterialButton
-                    android:layout_width="70dp"
-                    android:layout_height="50dp"
-                    android:backgroundTint="#7A1C1C"
-                    android:text=""
-                    app:icon="@drawable/ic_feedback"
-                    app:iconGravity="textTop"
-                    app:iconSize="30dp"/>
-            </LinearLayout>
-
             <!-- Sign out -->
 
             <com.google.android.material.button.MaterialButton

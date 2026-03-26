@@ -452,18 +452,20 @@ public class AccountPage extends AppCompatActivity {
         googleSignInClient = GoogleSignIn.getClient(this, options);
 
         MaterialButton btnSignOut = findViewById(R.id.btn_sign_out);
-        btnSignOut.setOnClickListener(v -> {
-            new AlertDialog.Builder(this)
-                    .setTitle("Confirm Sign Out")
-                    .setMessage("You will be signed out of your Google account.")
-                    .setPositiveButton("Sign out", (dialog, which) -> {
-                        googleSignInClient.signOut().addOnCompleteListener(this, task -> {
-                            startActivity(new Intent(this, GoogleCalendarAuthActivity.class));
-                            finish();
-                        });
-                    })
-                    .setNegativeButton("Cancel", null)
-                    .show();
-        });
+        btnSignOut.setOnClickListener(v ->
+                new AlertDialog.Builder(this)
+                        .setTitle(R.string.confirm_sign_out)
+                        .setMessage(R.string.confirm_sign_out_body)
+                        .setPositiveButton(R.string.sign_out, (dialog, which) -> googleSignInClient.signOut().addOnCompleteListener(this, task -> {
+                            if (task.isSuccessful()) {
+                                startActivity(new Intent(this, GoogleCalendarAuthActivity.class));
+                                finish();
+                            } else {
+                                Toast.makeText(this, R.string.sign_out_failed_body, Toast.LENGTH_SHORT).show();
+                            }
+                        }))
+                        .setNegativeButton(R.string.cancel, null)
+                        .show()
+        );
     }
 }
