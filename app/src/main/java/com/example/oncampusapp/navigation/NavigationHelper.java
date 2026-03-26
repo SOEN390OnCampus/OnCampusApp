@@ -16,6 +16,7 @@ import org.json.JSONObject;
 
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
@@ -24,6 +25,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class NavigationHelper {
+    private static final String KEY_LATITUDE = "latitude";
+    private static final String KEY_LONGITUDE = "longitude";
+    private static final String KEY_LOCATION = "location";
+    private static final String KEY_LAT_LNG = "latLng";
     /**
      * Fetches directions from Google API and parses the JSON.
      */
@@ -34,63 +39,64 @@ public class NavigationHelper {
         }
         new Thread(() -> {
             try {
-
-                HttpURLConnection conn = getHttpURLConnection(apiKey);
-
-                String requestJson = buildRequestJson(start, end, mode);
-                Log.d("Request", requestJson);
-
-                // send request
-                OutputStream os = conn.getOutputStream();
-                os.write(requestJson.getBytes());
-                os.flush();
-                os.close();
-
-                int responseCode = conn.getResponseCode();
-
-                // read response
-                BufferedReader br;
-                if (responseCode == HttpURLConnection.HTTP_OK) {
-                    br = new BufferedReader(new InputStreamReader(conn.getInputStream()));
-                } else {
-                    br = new BufferedReader(new InputStreamReader(conn.getErrorStream()));
-                }
-
-                StringBuilder response = new StringBuilder();
-                String line;
-                while ((line = br.readLine()) != null) {
-                    response.append(line);
-                }
-                br.close();
-
-                // Logcat has a 4000 char limit per line, split it
-                String responseStr = response.toString();
-                int chunkSize = 3000;
-                for (int i = 0; i < responseStr.length(); i += chunkSize) {
-                    Log.d("Response", responseStr.substring(i, Math.min(i + chunkSize, responseStr.length())));
-                }
-
-               Route route = convertResponseJsonToRoute(response.toString());
-                new Handler(Looper.getMainLooper()).post(() -> {
-                    callback.onSuccess(route);
-                });
-            } catch (JSONException e) {
-                Log.e("NavigationHelper", "Failed to parse route response", e);
-                callback.onError(e);
-            } catch (IOException e) {
-                Log.e("NavigationHelper", "Network error fetching route", e);
-                callback.onError(e);
-            } catch (NullPointerException e) {
-                Log.e("NavigationHelper", "Null pointer exception", e);
-                callback.onError(e);
-            } catch (Exception e) {
-                Log.e("NavigationHelper", "Exception", e);
+                Route route = executeRouteRequest(start, end, mode, apiKey);
+                new Handler(Looper.getMainLooper()).post(() -> callback.onSuccess(route));
+            } catch (IOException | JSONException e) {
+                Log.e("NavigationHelper", "Error fetching route", e);
                 callback.onError(e);
             }
 
         }).start();
     }
 
+    /**
+     * Executes the route request and returns the response.
+     */
+    private static Route executeRouteRequest(LatLng start, LatLng end, RouteTravelMode mode, String apiKey) throws IOException, JSONException  {
+        HttpURLConnection conn = getHttpURLConnection(apiKey);
+
+        String requestJson = buildRequestJson(start, end, mode);
+        Log.d("Request", requestJson);
+
+        OutputStream os = conn.getOutputStream();
+        os.write(requestJson.getBytes());
+        os.flush();
+        os.close();
+
+        String responseStr = readResponse(conn);
+        logResponseInChunks(responseStr);
+
+        return convertResponseJsonToRoute(responseStr);
+    }
+    /**
+     * Reads the response from the connection and returns it as a string.
+     */
+    private static String readResponse(HttpURLConnection conn) throws IOException {
+        int responseCode = conn.getResponseCode();
+        InputStream stream = responseCode == HttpURLConnection.HTTP_OK
+                ? conn.getInputStream()
+                : conn.getErrorStream();
+
+        BufferedReader br = new BufferedReader(new InputStreamReader(stream));
+        StringBuilder response = new StringBuilder();
+        String line;
+        while ((line = br.readLine()) != null) {
+            response.append(line);
+        }
+        br.close();
+        return response.toString();
+    }
+
+    /**
+     * Logs the response in chunks of 3000 characters.
+     * Helpful in debugging
+     */
+    private static void logResponseInChunks(String responseStr) {
+        int chunkSize = 3000;
+        for (int i = 0; i < responseStr.length(); i += chunkSize) {
+            Log.d("Response", responseStr.substring(i, Math.min(i + chunkSize, responseStr.length())));
+        }
+    }
     /**
      * Creates an HTTP connection to the Google Directions API.
      * Set the request value to only contains the info we needs
@@ -114,26 +120,25 @@ public class NavigationHelper {
      */
     public static String buildRequestJson(LatLng start, LatLng end, RouteTravelMode mode) throws JSONException {
         JSONObject originLatLng = new JSONObject()
-                .put("latitude", start.latitude)
-                .put("longitude", start.longitude);
+                .put(KEY_LATITUDE, start.latitude)
+                .put(KEY_LONGITUDE, start.longitude);
 
         JSONObject destinationLatLng = new JSONObject()
-                .put("latitude", end.latitude)
-                .put("longitude", end.longitude);
+                .put(KEY_LATITUDE, end.latitude)
+                .put(KEY_LONGITUDE, end.longitude);
 
 
         JSONObject requestBody = new JSONObject()
                 .put("origin", new JSONObject()
-                        .put("location", new JSONObject()
-                                .put("latLng", originLatLng)))
+                        .put(KEY_LOCATION, new JSONObject()
+                                .put(KEY_LAT_LNG, originLatLng)))
                 .put("destination", new JSONObject()
-                        .put("location", new JSONObject()
-                                .put("latLng", destinationLatLng)))
+                        .put(KEY_LOCATION, new JSONObject()
+                                .put(KEY_LAT_LNG, destinationLatLng)))
                 .put("travelMode", mode.getValue());
         if (mode == RouteTravelMode.TRANSIT) {
             requestBody.put("transitPreferences", new JSONObject()
-                    // TODO: Change this hardcoded value as a parameter if there are additional types of
-                    // routing preferences that a user may have.
+                    // Set to LESS_WALKING, no plan for user preference
                     .put("routingPreference", "LESS_WALKING"));
         }
         return requestBody.toString();
@@ -144,133 +149,110 @@ public class NavigationHelper {
      * Converts the response JSON to a Route object.
      */
     public static Route convertResponseJsonToRoute(String response) throws JSONException {
-
         JSONObject jsonResponse = new JSONObject(response);
         JSONArray routes = jsonResponse.optJSONArray("routes");
-        if (routes == null || routes.length() == 0) return new Route(); // No response found, return empty route
+        if (routes == null || routes.length() == 0) return new Route();
 
         JSONObject route = routes.optJSONObject(0);
-        JSONArray steps = route
-                .getJSONArray("legs").optJSONObject(0)
-                .getJSONArray("steps");
+        JSONArray steps = route.getJSONArray("legs").optJSONObject(0).getJSONArray("steps");
+
         Route routeObj = new Route();
+        parseLocalizedValues(route.optJSONObject("localizedValues"), routeObj);
+        parsePolyline(route.optJSONObject("polyline"), routeObj);
+
         List<Step> stepList = new ArrayList<>();
-
-
-        // Overall distance and duration
-        JSONObject localizedValues = route.optJSONObject("localizedValues");
-        if (localizedValues!=null){
-            JSONObject distance = localizedValues.optJSONObject("distance");
-            if (distance !=null) {
-                String distanceText = distance.optString("text");
-                routeObj.setDistance(distanceText);
-            }
-            JSONObject duration = localizedValues.optJSONObject("duration");
-            if (duration != null){
-                String durationText = duration.optString("text");
-                routeObj.setDuration(durationText);
-            }
-        }
-
-
-        // Overall Polyline
-        JSONObject polylineObj = route.optJSONObject("polyline");
-        if (polylineObj != null) {
-            String encodedPolyline = polylineObj.optString("encodedPolyline");
-            routeObj.setPoints(PolyUtil.decode(encodedPolyline));
-        }
-
-        routeObj.setSteps(stepList);
         for (int i = 0; i < steps.length(); i++) {
-            Step stepObj = new Step();
-            JSONObject step = steps.optJSONObject(i);
-
-            stepObj.setTravelMode(RouteTravelMode.fromString(step.optString("travelMode")));
-
-            JSONObject polyline = step.optJSONObject("polyline");
-            if (polyline!=null){
-                List<LatLng> decodedPath = PolyUtil.decode(polyline.optString("encodedPolyline"));
-                stepObj.setPoints(decodedPath);
-            }
-
-
-            JSONObject navigationInstruction = step.optJSONObject("navigationInstruction");
-            if (navigationInstruction != null){
-                stepObj.setInstructions(navigationInstruction.optString("instructions"));
-            }
-
-            JSONObject stepLocalizedValues = step.optJSONObject("localizedValues");
-            if (stepLocalizedValues != null) {
-                JSONObject distanceObj = stepLocalizedValues.optJSONObject("distance");
-                if (distanceObj != null) {
-                    stepObj.setDistance(distanceObj.optString("text"));
-                }
-                JSONObject durationObj = stepLocalizedValues.optJSONObject("staticDuration");
-                if (durationObj != null) {
-                    stepObj.setDuration(durationObj.optString("text"));
-                }
-            }
-
-            if (step.has("transitDetails")) {
-                TransitDetails transitDetailsObj = new TransitDetails();
-                stepObj.setTransitDetails(transitDetailsObj);
-                JSONObject transitDetails = step.optJSONObject("transitDetails");
-                if (transitDetails==null) continue;
-
-
-                JSONObject stopDetails = transitDetails.optJSONObject("stopDetails");
-
-                // Departure stop details
-                if (stopDetails == null) continue;
-                JSONObject departureStop = stopDetails.optJSONObject("departureStop");
-                if (departureStop != null){
-
-                    transitDetailsObj.setDepartureStopName(departureStop.optString("name"));
-                    transitDetailsObj.setDepartureTime(stopDetails.optString("departureTime"));
-
-                    // Latitude and longitude of departure stop
-                    JSONObject departureStopLocation = departureStop.optJSONObject("location");
-                    if (departureStopLocation == null) continue;
-                    JSONObject departureStopLocationLatLng = departureStopLocation.optJSONObject("latLng");
-                    if (departureStopLocationLatLng == null) continue;
-                    transitDetailsObj.setDepartureStopLocation(new LatLng(departureStopLocationLatLng.optDouble("latitude"),
-                            departureStopLocationLatLng.optDouble("longitude")));
-
-                }
-
-                // Arrival stop details
-                JSONObject arrivalStop = stopDetails.optJSONObject("arrivalStop");
-                if (arrivalStop != null) {
-                    transitDetailsObj.setArrivalStopName(arrivalStop.optString("name"));
-                    transitDetailsObj.setArrivalTime(stopDetails.optString("arrivalTime"));
-
-                    JSONObject arrivalStopLocation = arrivalStop.optJSONObject("location");
-                    if (arrivalStopLocation == null) continue;
-                    JSONObject arrivalStopLocationLatLng = arrivalStopLocation.optJSONObject("latLng");
-                    if (arrivalStopLocationLatLng == null) continue;
-                    transitDetailsObj.setArrivalStopLocation(new LatLng(arrivalStopLocationLatLng.optDouble("latitude"),
-                            arrivalStopLocationLatLng.optDouble("longitude")));
-                }
-
-                // Vehicle type
-                JSONObject transitLine = transitDetails.optJSONObject("transitLine");
-                if (transitLine ==  null) continue;
-                TransitLine line = new TransitLine();
-                line.setName(transitLine.optString("name"));
-                line.setColor(transitLine.optString("color"));
-                line.setNameShort(transitLine.optString("nameShort"));
-
-                JSONObject vehicle = transitLine.optJSONObject("vehicle");
-                if (vehicle !=null){
-                    transitDetailsObj.setVehicleType(TransitVehicleType.fromString(vehicle.optString("type")));
-                }
-
-                transitDetailsObj.setTransitLine(line);
-
-            }
-            stepList.add(stepObj);
+            stepList.add(parseStep(steps.optJSONObject(i)));
         }
+        routeObj.setSteps(stepList);
         return routeObj;
+    }
+
+    private static void parseLocalizedValues(JSONObject localizedValues, Route routeObj) {
+        if (localizedValues == null) return;
+        JSONObject distance = localizedValues.optJSONObject("distance");
+        if (distance != null) routeObj.setDistance(distance.optString("text"));
+        JSONObject duration = localizedValues.optJSONObject("duration");
+        if (duration != null) routeObj.setDuration(duration.optString("text"));
+    }
+
+    private static void parsePolyline(JSONObject polylineObj, Route routeObj) {
+        if (polylineObj == null) return;
+        routeObj.setPoints(PolyUtil.decode(polylineObj.optString("encodedPolyline")));
+    }
+
+    private static Step parseStep(JSONObject step) {
+        Step stepObj = new Step();
+        stepObj.setTravelMode(RouteTravelMode.fromString(step.optString("travelMode")));
+
+        JSONObject polyline = step.optJSONObject("polyline");
+        if (polyline != null) stepObj.setPoints(PolyUtil.decode(polyline.optString("encodedPolyline")));
+
+        JSONObject navigationInstruction = step.optJSONObject("navigationInstruction");
+        if (navigationInstruction != null) stepObj.setInstructions(navigationInstruction.optString("instructions"));
+
+        JSONObject stepLocalizedValues = step.optJSONObject("localizedValues");
+        if (stepLocalizedValues != null) {
+            JSONObject distanceObj = stepLocalizedValues.optJSONObject("distance");
+            if (distanceObj != null) stepObj.setDistance(distanceObj.optString("text"));
+            JSONObject durationObj = stepLocalizedValues.optJSONObject("staticDuration");
+            if (durationObj != null) stepObj.setDuration(durationObj.optString("text"));
+        }
+
+        if (step.has("transitDetails")) {
+            stepObj.setTransitDetails(parseTransitDetails(step.optJSONObject("transitDetails")));
+        }
+        return stepObj;
+    }
+
+    private static TransitDetails parseTransitDetails(JSONObject transitDetails) {
+        TransitDetails transitDetailsObj = new TransitDetails();
+        if (transitDetails == null) return transitDetailsObj;
+
+        JSONObject stopDetails = transitDetails.optJSONObject("stopDetails");
+        if (stopDetails != null) {
+            parseStopDetails(stopDetails, transitDetailsObj);
+        }
+
+        JSONObject transitLine = transitDetails.optJSONObject("transitLine");
+        if (transitLine != null) {
+            TransitLine line = new TransitLine();
+            line.setName(transitLine.optString("name"));
+            line.setColor(transitLine.optString("color"));
+            line.setNameShort(transitLine.optString("nameShort"));
+            JSONObject vehicle = transitLine.optJSONObject("vehicle");
+            if (vehicle != null) transitDetailsObj.setVehicleType(TransitVehicleType.fromString(vehicle.optString("type")));
+            transitDetailsObj.setTransitLine(line);
+        }
+        return transitDetailsObj;
+    }
+
+    private static void parseStopDetails(JSONObject stopDetails, TransitDetails transitDetailsObj) {
+        JSONObject departureStop = stopDetails.optJSONObject("departureStop");
+        if (departureStop != null) {
+            transitDetailsObj.setDepartureStopName(departureStop.optString("name"));
+            transitDetailsObj.setDepartureTime(stopDetails.optString("departureTime"));
+            JSONObject latLng = getLatLng(departureStop);
+            if (latLng != null) transitDetailsObj.setDepartureStopLocation(toLatLng(latLng));
+        }
+
+        JSONObject arrivalStop = stopDetails.optJSONObject("arrivalStop");
+        if (arrivalStop != null) {
+            transitDetailsObj.setArrivalStopName(arrivalStop.optString("name"));
+            transitDetailsObj.setArrivalTime(stopDetails.optString("arrivalTime"));
+            JSONObject latLng = getLatLng(arrivalStop);
+            if (latLng != null) transitDetailsObj.setArrivalStopLocation(toLatLng(latLng));
+        }
+    }
+
+    private static JSONObject getLatLng(JSONObject stop) {
+        JSONObject location = stop.optJSONObject(KEY_LOCATION);
+        if (location == null) return null;
+        return location.optJSONObject(KEY_LAT_LNG);
+    }
+
+    private static LatLng toLatLng(JSONObject latLng) {
+        return new LatLng(latLng.optDouble(KEY_LATITUDE), latLng.optDouble(KEY_LONGITUDE));
     }
 
     /**
