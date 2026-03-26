@@ -1,4 +1,4 @@
-name: Java CI with Gradle
+name: Java CI with Gradle & SonarCloud
 
 on:
   push:
@@ -8,11 +8,14 @@ on:
 
 jobs:
   build:
+    # Back to the standard Ubuntu runner for fast, reliable unit testing
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Keeps SonarCloud history accurate
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -21,29 +24,38 @@ jobs:
           distribution: 'temurin'
           cache: 'gradle'
 
+      - name: Cache SonarCloud packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.sonar/cache
+          key: ${{ runner.os }}-sonar
+          restore-keys: ${{ runner.os }}-sonar
+
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
       - name: Add Maps API Key to local.properties
         run: echo "MAPS_API_KEY=${{ secrets.MAPS_API_KEY }}" > local.properties
 
-      - name: Build and Generate JaCoCo Report
-        # This one command runs tests AND creates the coverage files
+      - name: Build and Generate JaCoCo Report (Unit Tests Only)
+        # The -x flags are back to intentionally skip the hardware-heavy UI tests
         run: ./gradlew clean testDebugUnitTest jacocoCombinedTestReport -x connectedDebugAndroidTest -x createDebugCoverageReport
 
-      - name: List JaCoCo outputs
-        run: ls -R app/build/reports/jacoco || true
+      - name: Run SonarCloud Analysis
+        env:
+            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: ./gradlew sonar -Dsonar.organization=soen390oncampus -Dsonar.projectKey=SOEN390OnCampus_OnCampusApp -Dsonar.host.url=https://sonarcloud.io -Dsonar.coverage.jacoco.xmlReportPaths=app/build/reports/jacoco/jacocoCombinedTestReport/jacocoCombinedTestReport.xml
 
-      - name: Upload JaCoCo Report as Artifact
+      - name: Upload JaCoCo HTML Report as Artifact
         uses: actions/upload-artifact@v4
         with:
           name: jacoco-coverage-report
           path: app/build/reports/jacoco/jacocoCombinedTestReport/html/
           if-no-files-found: error
 
-
       - name: Upload coverage to Codecov
-        # This will still try to update your dashboard
         uses: codecov/codecov-action@v4
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
+          files: app/build/reports/jacoco/jacocoCombinedTestReport/jacocoCombinedTestReport.xml
