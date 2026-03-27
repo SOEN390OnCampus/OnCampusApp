@@ -36,7 +36,7 @@ public class NotificationReceiver extends BroadcastReceiver {
             notificationManager.createNotificationChannel(channel);
         }
 
-        int notificationId = (int) System.currentTimeMillis();
+        int notificationId = (int) (System.currentTimeMillis() % Integer.MAX_VALUE);
 
         // For generating directions
         Intent directionsIntent = new Intent(context, MapsActivity.class);

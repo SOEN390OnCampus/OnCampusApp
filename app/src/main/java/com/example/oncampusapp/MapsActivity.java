@@ -2056,184 +2056,31 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
 
         try {
-            org.json.JSONObject nextClass = CalendarEventManager.findNextUpcomingEvent(eventsJson);
+            JSONObject nextClass = CalendarEventManager.findNextUpcomingEvent(eventsJson);
             if (nextClass == null) {
                 Toast.makeText(this, "No upcoming class found", Toast.LENGTH_SHORT).show();
                 return;
             }
 
-            String destinationBuilding = extractBuildingNameFromEvent(nextClass);
-            if (destinationBuilding == null || destinationBuilding.isEmpty()) {
+            NotificationRouteHelper.Result result = NotificationRouteHelper.resolveRoute(eventsJson, nextClass, geoIdToBuildingDetailsMap);
+
+            if (result == null || result.getDestinationBuilding() == null || result.getDestinationBuilding().isEmpty()) {
                 Toast.makeText(this, "Could not determine next class location", Toast.LENGTH_SHORT).show();
                 return;
             }
 
-            org.json.JSONObject previousClass = findPreviousClass(eventsJson, nextClass);
-
-            if (previousClass != null && isPreviousClassWithin15Minutes(previousClass, nextClass)) {
-                String previousBuilding = extractBuildingNameFromEvent(previousClass);
-                if (previousBuilding != null && !previousBuilding.isEmpty()) {
-                    openRouteFromBuildings(previousBuilding, destinationBuilding);
-                    pendingNotificationDirections = false;
-                    return;
-                }
+            if (result.shouldStartFromPreviousBuilding()){
+                openRouteFromBuildings(result.getPreviousBuilding(), result.getDestinationBuilding());
+            } else {
+                openRouteFromCurrentLocation(result.getDestinationBuilding());
             }
 
-            openRouteFromCurrentLocation(destinationBuilding);
             pendingNotificationDirections = false;
 
         } catch (Exception e) {
             Log.e(TAG, "Direction generation failed");
             Toast.makeText(this, "Failed to generate directions", Toast.LENGTH_SHORT).show();
         }
-    }
-
-    private JSONObject findPreviousClass(String eventsJson, JSONObject nextClass) {
-        try {
-            JSONArray events = new JSONArray(eventsJson);
-
-            SimpleDateFormat format =
-                    new SimpleDateFormat(DATE_FORMAT, Locale.getDefault());
-
-            long nextStart = format.parse(
-                    nextClass.getJSONObject(KEY_START).getString(KEY_DATE_TIME)
-            ).getTime();
-
-            JSONObject bestPrevious = null;
-            long latestEnd = Long.MIN_VALUE;
-
-            for (int i = 0; i < events.length(); i++) {
-                JSONObject event = events.getJSONObject(i);
-
-                if(hasValidDateTimeRange(event)){
-                    long eventEnd = format.parse(
-                            event.getJSONObject("end").getString(KEY_DATE_TIME)
-                    ).getTime();
-
-                    if (eventEnd <= nextStart && eventEnd > latestEnd) {
-                        bestPrevious = event;
-                        latestEnd = eventEnd;
-                    }
-                }
-            }
-
-            return bestPrevious;
-
-        } catch (Exception e) {
-            Log.e(TAG, "Couldn't find previous class");
-            return null;
-        }
-    }
-
-    private boolean hasValidDateTimeRange(JSONObject event) {
-        if (event == null || !event.has(KEY_START) || !event.has("end")) {
-            return false;
-        }
-
-        JSONObject start = event.optJSONObject(KEY_START);
-        JSONObject end = event.optJSONObject("end");
-
-        return start != null
-                && end != null
-                && start.has(KEY_DATE_TIME)
-                && end.has(KEY_DATE_TIME);
-    }
-
-    private boolean isPreviousClassWithin15Minutes(org.json.JSONObject previousClass, org.json.JSONObject nextClass) {
-        try {
-            java.text.SimpleDateFormat format =
-                    new java.text.SimpleDateFormat(DATE_FORMAT, java.util.Locale.getDefault());
-
-            long previousEnd = format.parse(
-                    previousClass.getJSONObject("end").getString(KEY_DATE_TIME)
-            ).getTime();
-
-            long nextStart = format.parse(
-                    nextClass.getJSONObject(KEY_START).getString(KEY_DATE_TIME)
-            ).getTime();
-
-            return RouteDecisionHelper.shouldUsePreviousClass(previousEnd, nextStart);
-
-        } catch (Exception e) {
-            Log.e(TAG, "Failed to determine if previous class was within 15 mins");
-            return false;
-        }
-    }
-    private String extractBuildingNameFromEvent(org.json.JSONObject event) {
-        if (event == null || geoIdToBuildingDetailsMap == null) {
-            return null;
-        }
-
-        String rawLocation = event.optString("location", "").trim();
-        if (rawLocation.isEmpty()) {
-            return null;
-        }
-
-        String lower = rawLocation.toLowerCase();
-
-        String exactMatch = findExactBuildingMatch(lower);
-        if (exactMatch != null) {
-            return exactMatch;
-        }
-
-        String fallbackMatch = findFallbackBuildingMatch(lower);
-        if (fallbackMatch != null) {
-            return fallbackMatch;
-        }
-
-        return rawLocation;
-    }
-
-    private String findExactBuildingMatch(String lowerLocation) {
-        for (BuildingDetails details : geoIdToBuildingDetailsMap.values()) {
-            if (details == null || details.getName() == null) {
-                continue;
-            }
-
-            String buildingName = details.getName().trim();
-            if (!buildingName.isEmpty() && lowerLocation.contains(buildingName.toLowerCase())) {
-                return buildingName;
-            }
-        }
-        return null;
-    }
-
-    private String findFallbackBuildingMatch(String lowerLocation) {
-        if (matchesHall(lowerLocation)) {
-            return "Henry F. Hall Building";
-        }
-
-        if (matchesMolson(lowerLocation)) {
-            return "John Molson School of Business";
-        }
-
-        if (matchesEngineering(lowerLocation)) {
-            return "Engineering, Computer Science and Visual Arts Integrated Complex";
-        }
-
-        if (matchesFaubourg(lowerLocation)) {
-            return "Le Faubourg";
-        }
-
-        return null;
-    }
-
-    private boolean matchesHall(String lowerLocation) {
-        return lowerLocation.startsWith("h") || lowerLocation.contains("hall");
-    }
-
-    private boolean matchesMolson(String lowerLocation) {
-        return lowerLocation.startsWith("mb") || lowerLocation.contains("john molson");
-    }
-
-    private boolean matchesEngineering(String lowerLocation) {
-        return lowerLocation.startsWith("ev") || lowerLocation.contains("engineering");
-    }
-
-    private boolean matchesFaubourg(String lowerLocation) {
-        return lowerLocation.startsWith("fg")
-                || lowerLocation.startsWith("fb")
-                || lowerLocation.contains("faubourg");
     }
 
     private void openRouteFromBuildings(String startBuilding, String destinationBuilding) {
@@ -2455,25 +2302,20 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             bannerView.setVisibility(View.GONE);
         }
         try {
-            String destinationBuilding = extractBuildingNameFromEvent(nextClass);
+            String eventsJson = CalendarEventManager.globalEventsJson;
 
-            if (destinationBuilding == null || destinationBuilding.isEmpty()) {
+            NotificationRouteHelper.Result result = NotificationRouteHelper.resolveRoute(eventsJson, nextClass, geoIdToBuildingDetailsMap);
+
+            if (result == null || result.getDestinationBuilding() == null || result.getDestinationBuilding().isEmpty()) {
                 Toast.makeText(this, "No location found for this class", Toast.LENGTH_SHORT).show();
                 return;
             }
 
-            String eventsJson = CalendarEventManager.globalEventsJson;
-            org.json.JSONObject previousClass = findPreviousClass(eventsJson, nextClass);
-
-            if (previousClass != null && isPreviousClassWithin15Minutes(previousClass, nextClass)) {
-                String previousBuilding = extractBuildingNameFromEvent(previousClass);
-                if (previousBuilding != null && !previousBuilding.isEmpty()) {
-                    openRouteFromBuildings(previousBuilding, destinationBuilding);
-                    return;
-                }
+            if (result.shouldStartFromPreviousBuilding()){
+                openRouteFromBuildings(result.getPreviousBuilding(), result.getDestinationBuilding());
+            } else {
+                openRouteFromCurrentLocation(result.getDestinationBuilding());
             }
-
-            openRouteFromCurrentLocation(destinationBuilding);
 
         } catch (Exception e) {
             Log.e(TAG, "Failed to handle banner directions click");

@@ -52,4 +52,8 @@
     <string name="sample_direction">SAMPLE DIRECTION</string>
     <string name="select_building">Select Building</string>
     <string name="select_floor">SELECT FLOOR</string>
+
+    <!-- Notification Banner -->
+    <string name="tag_online">ONLINE</string>
+    <string name="action_directions">Directions</string>
 </resources>

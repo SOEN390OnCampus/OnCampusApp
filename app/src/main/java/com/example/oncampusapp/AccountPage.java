@@ -7,6 +7,7 @@ import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
@@ -48,6 +49,7 @@ public class AccountPage extends AppCompatActivity {
     // --- Timer Variables for the Live Banner ---
     private android.os.Handler timerHandler = new android.os.Handler();
     private Runnable timerRunnable;
+    private static final String TAG = "AccountPage";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -61,7 +63,6 @@ public class AccountPage extends AppCompatActivity {
 
         // Pull from global variables instead of Intent to avoid TransactionTooLargeException/DeadObjectException
         eventsJson = CalendarEventManager.globalEventsJson;
-        CalendarEventManager.setGlobalCalendarListJson(eventsJson);
 
         repository = CalendarRepository.getInstance();
 
@@ -75,7 +76,7 @@ public class AccountPage extends AppCompatActivity {
                     NotificationScheduler.scheduleClassNotification(this, nextClass);
                 }
             } catch (Exception e) {
-                e.printStackTrace();
+                Log.e(TAG, "Calendar creation failed");
             }
         }
 
@@ -120,7 +121,6 @@ public class AccountPage extends AppCompatActivity {
         super.onResume();
         // Refresh data from global variables in case they changed
         eventsJson = CalendarEventManager.globalEventsJson;
-        CalendarEventManager.setGlobalCalendarListJson(eventsJson);
         populateCalendarList();
     }
 
@@ -203,7 +203,7 @@ public class AccountPage extends AppCompatActivity {
 
                 } catch (Exception e) {
 
-                    e.printStackTrace();
+                    Log.e(TAG, "Refresh button failed");
 
                     runOnUiThread(() -> {
                         btnRefresh.setEnabled(true);
@@ -327,7 +327,7 @@ public class AccountPage extends AppCompatActivity {
                 calendarContainer.addView(itemView);
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            Log.e(TAG, "Calendar population failed");
             Toast.makeText(this, "Error loading calendars", Toast.LENGTH_SHORT).show();
         }
     }

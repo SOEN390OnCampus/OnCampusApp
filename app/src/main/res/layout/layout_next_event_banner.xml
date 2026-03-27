@@ -62,8 +62,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="6dp"
-                        android:text="ONLINE"
-                        android:textColor="@android:color/black"
+                        android:text="@string/tag_online"                        android:textColor="@android:color/black"
                         android:textSize="14sp"
                         android:textStyle="bold"
                         android:visibility="gone" />
@@ -96,7 +95,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="6dp"
-                        android:text="Directions"
+                        android:text="@string/action_directions"
                         android:textColor="#8B1E2D"
                         android:textSize="12sp"
                         android:textStyle="bold" />
