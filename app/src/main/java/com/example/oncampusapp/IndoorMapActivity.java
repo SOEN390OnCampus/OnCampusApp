@@ -1,10 +1,9 @@
 package com.example.oncampusapp;
 
 import android.content.Context;
+import android.content.Intent;
 import android.content.res.ColorStateList;
-import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.graphics.Color;
 import android.graphics.PointF;
 import android.os.Bundle;
 import android.util.Log;
@@ -16,6 +15,7 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
+import com.google.android.material.bottomnavigation.BottomNavigationView;
 
 import androidx.cardview.widget.CardView;
 import androidx.appcompat.app.AppCompatActivity;
@@ -109,6 +109,33 @@ public class IndoorMapActivity extends AppCompatActivity {
         displayedFloorId = floorId;
 
         setupBanner();
+
+        // --- Bottom Navigation Setup ---
+        BottomNavigationView bottomNav = findViewById(R.id.bottom_nav);
+        if (bottomNav != null) {
+            bottomNav.setOnItemSelectedListener(item -> {
+                int itemId = item.getItemId();
+
+                if (itemId == R.id.nav_home) {
+                    Intent homeIntent = new Intent(IndoorMapActivity.this, MapsActivity.class);
+                    // clear the back stack so pressing back doesn't return to the indoor map
+                    homeIntent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+                    startActivity(homeIntent);
+                    return true;
+
+                } else if (itemId == R.id.nav_account) {
+                    Intent accountIntent = new Intent(IndoorMapActivity.this, GoogleCalendarAuthActivity.class);
+                    startActivity(accountIntent);
+                    return true;
+
+                } else if (itemId == R.id.nav_settings) {
+                    // Add logic for settings page here later
+                    return true;
+                }
+                return false;
+            });
+        }
+        // ---------------------------------
 
         int jsonResId = getResources().getIdentifier(
                 buildingId.toLowerCase(), "raw", getPackageName());
