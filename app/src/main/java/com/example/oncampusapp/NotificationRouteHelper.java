@@ -1,5 +1,7 @@
 package com.example.oncampusapp;
 
+import android.util.Log;
+
 import org.json.JSONObject;
 
 import java.text.SimpleDateFormat;
@@ -37,7 +39,7 @@ public class NotificationRouteHelper {
             return new Result(destinationBuilding, previousBuilding);
 
         } catch (Exception e) {
-            e.printStackTrace();
+            Log.e("NotificationRouteHelper", "Error resolving route");
             return null;
         }
     }
