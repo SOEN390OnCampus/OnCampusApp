@@ -10,6 +10,7 @@ import java.util.Locale;
 public class CalendarEventManager {
 
     public static String globalEventsJson = "";
+    public static String globalCalendarListJson = "";
 
     /**
      * Parses the JSON array of events and returns the current OR next upcoming event.

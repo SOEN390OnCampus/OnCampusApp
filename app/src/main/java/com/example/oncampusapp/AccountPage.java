@@ -76,6 +76,7 @@ public class AccountPage extends AppCompatActivity {
 
         // Pull from global variables instead of Intent to avoid TransactionTooLargeException/DeadObjectException
         eventsJson = CalendarEventManager.globalEventsJson;
+        calendarListJson = CalendarEventManager.globalCalendarListJson;
 
         repository = CalendarRepository.getInstance();
 
@@ -137,6 +138,7 @@ public class AccountPage extends AppCompatActivity {
         super.onResume();
         // Refresh data from global variables in case they changed
         eventsJson = CalendarEventManager.globalEventsJson;
+        calendarListJson = CalendarEventManager.globalCalendarListJson;
         populateCalendarList();
     }
 
