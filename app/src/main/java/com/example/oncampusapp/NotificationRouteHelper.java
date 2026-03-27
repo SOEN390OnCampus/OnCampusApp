@@ -57,8 +57,7 @@ public class NotificationRouteHelper {
                     nextClass.getJSONObject("start").getString("dateTime")
             ).getTime();
 
-            long diffMinutes = (nextStart - previousEnd) / (60 * 1000);
-            return diffMinutes <= 15;
+            return RouteDecisionHelper.shouldUsePreviousClass(previousEnd, nextStart);
 
         } catch (Exception e) {
             return false;
