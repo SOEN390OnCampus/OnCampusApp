@@ -103,12 +103,12 @@ public class BuildingManagementUnitTest {
 
     @Test
     public void lookup_returnsNull_whenNameIsNull() {
-        assertNull(BuildingLookup.getLatLngFromBuildingName(null, BuildingManager.buildingsMap));
+        assertNull(BuildingLookup.getLatLngFromBuildingName(null, BuildingManager.getBuildingsMap()));
     }
 
     @Test
     public void lookup_returnsNull_whenNameIsEmpty() {
-        assertNull(BuildingLookup.getLatLngFromBuildingName("", BuildingManager.buildingsMap));
+        assertNull(BuildingLookup.getLatLngFromBuildingName("", BuildingManager.getBuildingsMap()));
     }
 
     @Test
@@ -123,7 +123,7 @@ public class BuildingManagementUnitTest {
         // Utilizing the BuildingManager just like the reviewer requested
         buildingManager.addBuilding(b);
 
-        LatLng result = BuildingLookup.getLatLngFromBuildingName("sgw", BuildingManager.buildingsMap);
+        LatLng result = BuildingLookup.getLatLngFromBuildingName("sgw", BuildingManager.getBuildingsMap());
 
         assertNotNull(result);
         assertEquals(1.0, result.latitude, 0.0001);
@@ -135,10 +135,10 @@ public class BuildingManagementUnitTest {
         Building match = makeBuildingWithCenter("2", "Loyola", new LatLng(10, 10), new LatLng(14, 14));
 
         // Simulating a corrupt/null entry in the map
-        BuildingManager.buildingsMap.put("nullBuilding", null);
+        BuildingManager.getBuildingsMap().put("nullBuilding", null);
         buildingManager.addBuilding(match);
 
-        LatLng result = BuildingLookup.getLatLngFromBuildingName("LOYOLA", BuildingManager.buildingsMap);
+        LatLng result = BuildingLookup.getLatLngFromBuildingName("LOYOLA", BuildingManager.getBuildingsMap());
 
         assertNotNull(result);
         assertEquals(12.0, result.latitude, 0.0001);
@@ -153,7 +153,7 @@ public class BuildingManagementUnitTest {
         buildingManager.addBuilding(nullName);
         buildingManager.addBuilding(match);
 
-        LatLng result = BuildingLookup.getLatLngFromBuildingName("hall", BuildingManager.buildingsMap);
+        LatLng result = BuildingLookup.getLatLngFromBuildingName("hall", BuildingManager.getBuildingsMap());
 
         assertNotNull(result);
         assertEquals(7.0, result.latitude, 0.0001);
@@ -165,7 +165,7 @@ public class BuildingManagementUnitTest {
         Building b = makeBuildingWithCenter("5", "SGW", new LatLng(0, 0), new LatLng(2, 2));
         buildingManager.addBuilding(b);
 
-        LatLng result = BuildingLookup.getLatLngFromBuildingName("NotARealBuilding", BuildingManager.buildingsMap);
+        LatLng result = BuildingLookup.getLatLngFromBuildingName("NotARealBuilding", BuildingManager.getBuildingsMap());
         assertNull(result);
     }
 }

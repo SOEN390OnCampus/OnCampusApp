@@ -40,7 +40,7 @@ public class NotificationE2ETest {
     }
 
     @Test
-    public void testNotificationAppearsBothHeadsUpAndInTray() throws InterruptedException {
+    public void testNotificationAppearsBothHeadsUpAndInTray(){
         // Manually fire the BroadcastReceiver (simulating the AlarmManager going off)
         Intent intent = new Intent(context, NotificationReceiver.class);
         intent.putExtra("event_title", "COMP 346");
@@ -68,9 +68,6 @@ public class NotificationE2ETest {
         // Wait for the shade to fully pull down and find the text
         UiObject2 trayTitle = device.wait(Until.findObject(By.text(expectedTitle)), 3000);
         assertNotNull("The notification should be waiting in the pulled-down system tray", trayTitle);
-
-        // Hold the shade open for 2 seconds so we can see it
-        Thread.sleep(2000);
 
         // Clean up by closing the notification shade
         device.pressBack();

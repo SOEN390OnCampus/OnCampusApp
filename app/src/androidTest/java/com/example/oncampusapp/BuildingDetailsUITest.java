@@ -1,19 +1,14 @@
 package com.example.oncampusapp;
 
-import static androidx.test.espresso.action.ViewActions.click;
-import static androidx.test.espresso.matcher.ViewMatchers.withId;
-
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import android.app.Dialog;
-import android.util.Log;
 
 import androidx.test.ext.junit.rules.ActivityScenarioRule;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 
-import com.google.android.gms.maps.model.Polyline;
 import com.google.maps.android.data.Feature;
 import com.google.maps.android.data.Layer;
 import com.google.maps.android.data.geojson.GeoJsonPolygon;
@@ -31,10 +26,9 @@ public class BuildingDetailsUITest {
     public ActivityScenarioRule<MapsActivity> activityRule =
             new ActivityScenarioRule<>(MapsActivity.class);
     @Test
-    public void testBuildingDetailsButton_verifyDialogIsUpdated() throws InterruptedException {
+    public void testBuildingDetailsButton_verifyDialogIsUpdated() {
 
         AtomicReference<Dialog> buildingDialog = new AtomicReference<>();
-        Thread.sleep(4000);
 
         activityRule.getScenario().onActivity(activity -> {
             activity.handleBuildingDetailsButtonClick("way/103248064");
@@ -56,26 +50,23 @@ public class BuildingDetailsUITest {
              }
         });
 
-        Thread.sleep(4000);
     }
+
     @Test
-    public void testBuildingDetailsButton_demo() throws InterruptedException {
-        Thread.sleep(5000);
+    public void testBuildingDetailsButton_demo() {
 
         // First dialog
         activityRule.getScenario().onActivity(activity -> activity.handleBuildingDetailsButtonClick("way/103248064"));
-        Thread.sleep(5000);
+
         activityRule.getScenario().onActivity(activity -> {
             assertNotNull(activity.getCurrentBuildingDialog());
             assertTrue(activity.getCurrentBuildingDialog().isShowing());
         });
 
         activityRule.getScenario().onActivity(activity -> activity.getCurrentBuildingDialog().dismiss());
-        Thread.sleep(2000); // wait for dismiss animation to finish
 
         // Second dialog
         activityRule.getScenario().onActivity(activity -> activity.handleBuildingDetailsButtonClick("way/103248058"));
-        Thread.sleep(5000);
 
         activityRule.getScenario().onActivity(activity -> {
             assertNotNull(activity.getCurrentBuildingDialog());

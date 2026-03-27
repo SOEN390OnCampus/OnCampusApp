@@ -14,7 +14,6 @@ import com.example.oncampusapp.navigation.RouteTravelMode;
 import com.example.oncampusapp.navigation.Step;
 import com.example.oncampusapp.navigation.TransitDetails;
 import com.example.oncampusapp.navigation.TransitVehicleType;
-import com.google.android.gms.common.api.ApiException;
 import com.google.android.gms.maps.model.LatLng;
 
 import org.json.JSONException;
@@ -33,39 +32,39 @@ import java.util.concurrent.TimeUnit;
 
 @RunWith(AndroidJUnit4.class)
 public class NavigationHelperTest {
-    private static String MOCK_RESPONSE;
+    private static String mockResponse;
     private static final LatLng start = new LatLng(45.496, -73.577);
     private static final LatLng end = new LatLng(45.457, -73.641);
 
 
     @BeforeClass
     public static void setup() throws IOException {
-        MOCK_RESPONSE = loadMockResponse();
+        mockResponse = loadMockResponse();
     }
 
     @Test
     public void testResponseConvert_RouteDistanceAndDuration() throws JSONException {
-        Route route = NavigationHelper.convertResponseJsonToRoute(MOCK_RESPONSE);
+        Route route = NavigationHelper.convertResponseJsonToRoute(mockResponse);
         assertEquals("8.0 km", route.getDistance());
         assertEquals("37 mins", route.getDuration());
     }
 
     @Test
     public void testResponseConvert_RoutePointsNotNull() throws JSONException {
-        Route route = NavigationHelper.convertResponseJsonToRoute(MOCK_RESPONSE);
+        Route route = NavigationHelper.convertResponseJsonToRoute(mockResponse);
         assertNotNull(route.getPoints());
         assertFalse(route.getPoints().isEmpty());
     }
 
     @Test
     public void testResponseConvert_StepCount() throws JSONException {
-        Route route = NavigationHelper.convertResponseJsonToRoute(MOCK_RESPONSE);
+        Route route = NavigationHelper.convertResponseJsonToRoute(mockResponse);
         assertEquals(3, route.getSteps().size());
     }
 
     @Test
     public void testResponseConvert_WalkStep() throws JSONException {
-        Route route = NavigationHelper.convertResponseJsonToRoute(MOCK_RESPONSE);
+        Route route = NavigationHelper.convertResponseJsonToRoute(mockResponse);
         Step firstStep = route.getSteps().get(0);
         assertEquals(RouteTravelMode.WALK, firstStep.getTravelMode());
         assertNotNull(firstStep.getPoints());
@@ -74,7 +73,7 @@ public class NavigationHelperTest {
 
     @Test
     public void testResponseConvert_TransitStep() throws JSONException {
-        Route route = NavigationHelper.convertResponseJsonToRoute(MOCK_RESPONSE);
+        Route route = NavigationHelper.convertResponseJsonToRoute(mockResponse);
         Step transitStep = route.getSteps().get(1);
 
         assertEquals(RouteTravelMode.TRANSIT, transitStep.getTravelMode());
