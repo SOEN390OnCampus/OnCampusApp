@@ -37,6 +37,9 @@ import java.util.Map;
 
 public class IndoorMapActivity extends AppCompatActivity {
 
+    private String crossBuildingStage = "";
+    private String displayDestLabel = "";
+
     private enum StepType {
         GO_STRAIGHT, TURN_LEFT, TURN_RIGHT,
         TAKE_ELEVATOR, TAKE_STAIRS, TAKE_ESCALATOR,
@@ -88,6 +91,11 @@ public class IndoorMapActivity extends AppCompatActivity {
         fromNodeId        = getIntent().getStringExtra("FROM_NODE_ID");
         toNodeId          = getIntent().getStringExtra("TO_NODE_ID");
         String pathString = getIntent().getStringExtra("PATH_NODE_IDS");
+        crossBuildingStage = getIntent().getStringExtra("CROSS_BUILDING_STAGE");
+        if (crossBuildingStage == null) crossBuildingStage = "";
+
+        displayDestLabel = getIntent().getStringExtra("DISPLAY_DEST_LABEL");
+        if (displayDestLabel == null) displayDestLabel = "";
 
         if (pathString != null && !pathString.isEmpty()) {
             pathNodeIds = pathString.split(",");
@@ -165,6 +173,9 @@ public class IndoorMapActivity extends AppCompatActivity {
                 int    minutes        = Math.max(1,
                         (int) Math.ceil((totalPixels * 0.05 / 1.4 + transitSecs) / 60));
 
+                /*
+                Steps w/ in-door instructions created.
+                 */
                 List<NavigationStep> steps = generateAllSteps();
 
                 runOnUiThread(() -> {
@@ -242,14 +253,34 @@ public class IndoorMapActivity extends AppCompatActivity {
         if (steps.isEmpty()) return;
 
         IndoorNode destNode  = graph.getNode(pathNodeIds[pathNodeIds.length - 1].trim());
-        String lastFloor = floorSequence.get(floorSequence.size()-1);
-        String destLabel = (destNode != null && destNode.getLabel() != null)
-                ? destNode.getLabel() : "destination";
+        String lastFloor = floorSequence.get(floorSequence.size() - 1);
+
+        String destLabel;
+        if (!displayDestLabel.isEmpty()) {
+            destLabel = displayDestLabel;
+        } else {
+            destLabel = (destNode != null && destNode.getLabel() != null)
+                    ? destNode.getLabel() : "destination";
+        }
+
+        String title;
+        String subtitle;
+
+        if ("FIRST_INDOOR".equals(crossBuildingStage)) {
+            title = "Continue outside";
+            subtitle = "Press ✓ or Back to start outdoor directions";
+        } else if ("FINAL_INDOOR".equals(crossBuildingStage)) {
+            title = "Arrived";
+            subtitle = "At " + destLabel;
+        } else {
+            title = "You have arrived!";
+            subtitle = "At " + destLabel;
+        }
 
         steps.add(new NavigationStep(
                 StepType.ARRIVE,
-                "You have arrived!",
-                "At " + destLabel,
+                title,
+                subtitle,
                 lastFloor
         ));
     }
@@ -523,8 +554,8 @@ public class IndoorMapActivity extends AppCompatActivity {
 
         if (step.type == StepType.ARRIVE) {
             btn.setBackgroundTintList(ColorStateList.valueOf(activeColor));
-            btn.setOnClickListener(null);
-            btn.setClickable(false);
+            btn.setClickable(true);
+            btn.setOnClickListener(v -> finish());
         } else {
             btn.setBackgroundTintList(ColorStateList.valueOf(inactiveColor));
             btn.setOnClickListener(v -> {
