@@ -8,6 +8,7 @@ import java.util.Locale;
 public class CalendarEventManager {
 
     public static String globalEventsJson = "";
+    private static final String DATE_TIME_KEY = "dateTime";
 
     public static synchronized void setGlobalEventsJson(String json) {
         globalEventsJson = json;
@@ -30,10 +31,8 @@ public class CalendarEventManager {
             JSONArray eventsArray = new JSONArray(eventsJsonString);
             for (int i = 0; i < eventsArray.length(); i++) {
                 JSONObject event = eventsArray.getJSONObject(i);
-                if (!event.has("start") || !event.has("end")) continue;
-
                 long[] times = parseEventTimes(event, fmt);
-                if (times == null) continue;
+                if (times.length == 0) continue;
 
                 long startTime = times[0];
                 long endTime = times[1];
@@ -53,13 +52,14 @@ public class CalendarEventManager {
         return nextEvent;
     }
 
-    // Returns {startTime, endTime} in millis, or null if the event is an all-day event (no dateTime field)
+    // Returns {startTime, endTime} in millis, or empty array if missing start/end or is an all-day event
     private static long[] parseEventTimes(JSONObject event, SimpleDateFormat fmt) throws Exception {
+        if (!event.has("start") || !event.has("end")) return new long[0];
         JSONObject startObj = event.getJSONObject("start");
         JSONObject endObj = event.getJSONObject("end");
-        if (!startObj.has("dateTime") || !endObj.has("dateTime")) return null;
-        long startTime = fmt.parse(startObj.getString("dateTime")).getTime();
-        long endTime = fmt.parse(endObj.getString("dateTime")).getTime();
+        if (!startObj.has(DATE_TIME_KEY) || !endObj.has(DATE_TIME_KEY)) return new long[0];
+        long startTime = fmt.parse(startObj.getString(DATE_TIME_KEY)).getTime();
+        long endTime = fmt.parse(endObj.getString(DATE_TIME_KEY)).getTime();
         return new long[]{startTime, endTime};
     }
 }
