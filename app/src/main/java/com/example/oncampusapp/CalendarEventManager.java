@@ -9,6 +9,10 @@ public class CalendarEventManager {
 
     public static String globalEventsJson = "";
 
+    public static synchronized void setGlobalEventsJson(String json) {
+        globalEventsJson = json;
+    }
+
     /**
      * Parses the JSON array of events and returns the current OR next upcoming event.
      * Priority 1: An event happening right now.

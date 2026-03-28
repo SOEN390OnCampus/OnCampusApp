@@ -208,7 +208,7 @@ public class AccountPage extends AppCompatActivity {
                     eventsJson = events.toString();
 
                     // Update global events JSON so the banner hydrates dynamically
-                    CalendarEventManager.globalEventsJson = eventsJson;
+                    CalendarEventManager.setGlobalEventsJson(eventsJson);
 
                     runOnUiThread(() -> {
                         btnRefresh.setEnabled(true);
