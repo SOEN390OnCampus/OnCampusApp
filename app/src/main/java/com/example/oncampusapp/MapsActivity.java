@@ -2229,41 +2229,28 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         return result;
     }
 
-    private IndoorNode findExitDoorway(String buildingId, IndoorNode referenceNode) {
+    private IndoorNode findExitDoorway(String buildingId) {
         List<IndoorNode> doorways = getDoorwayNodesForBuilding(buildingId);
 
-        IndoorNode best = null;
-        double bestDistance = Double.MAX_VALUE;
+        IndoorNode secondFloorAlternative = null;
 
-        // First pass: prefer floor 1
         for (IndoorNode doorway : doorways) {
-            if (!"1".equals(doorway.getFloor())) continue;
+            String floor = doorway.getFloor();
 
-            double dx = doorway.getX() - referenceNode.getX();
-            double dy = doorway.getY() - referenceNode.getY();
-            double dist = Math.sqrt(dx * dx + dy * dy);
+            if ("1".equals(floor)) {
+                return doorway;
+            }
 
-            if (dist < bestDistance) {
-                bestDistance = dist;
-                best = doorway;
+            if ("2".equals(floor) && secondFloorAlternative == null) {
+                secondFloorAlternative = doorway;
             }
         }
 
-        // Fallback: if no floor 1 doorway exists, use any doorway
-        if (best == null) {
-            for (IndoorNode doorway : doorways) {
-                double dx = doorway.getX() - referenceNode.getX();
-                double dy = doorway.getY() - referenceNode.getY();
-                double dist = Math.sqrt(dx * dx + dy * dy);
-
-                if (dist < bestDistance) {
-                    bestDistance = dist;
-                    best = doorway;
-                }
-            }
+        if (secondFloorAlternative != null) {
+            return secondFloorAlternative;
         }
 
-        return best;
+        return doorways.isEmpty() ? null : doorways.get(0);
     }
 
     private IndoorNode findEntranceDoorway(String buildingId) {
@@ -2301,8 +2288,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         if (!fromBuilding.equalsIgnoreCase(toBuilding)) {
 
-            // THESE ARE NOT EXACT! MUST FIND WAY TO GET SPECIFIC ENTRANCE FOR EACH BUILDING!
-            IndoorNode fromDoor = findExitDoorway(fromBuilding, fromRoom);
+            IndoorNode fromDoor = findExitDoorway(fromBuilding);
             IndoorNode toDoor   = findEntranceDoorway(toBuilding);
 
             int resId = getResources().getIdentifier(
