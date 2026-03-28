@@ -2221,7 +2221,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             if (node == null) continue;
             if (!buildingId.equalsIgnoreCase(node.getRootBuildingId())) continue;
 
-            if (node.getId() != null && node.getId().toLowerCase().contains("doorway")) {
+            if (node.getId() != null && node.getId().toLowerCase().contains("building_entry_exit")) {
                 result.add(node);
             }
         }
@@ -2269,10 +2269,23 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private IndoorNode findEntranceDoorway(String buildingId) {
         List<IndoorNode> doorways = getDoorwayNodesForBuilding(buildingId);
 
+        IndoorNode secondFloorAlternative = null;
+
         for (IndoorNode doorway : doorways) {
-            if ("1".equals(doorway.getFloor())) {
+            String floor = doorway.getFloor();
+
+            if ("1".equals(floor)) {
                 return doorway;
             }
+
+            if ("2".equals(floor) && secondFloorAlternative == null) {
+                secondFloorAlternative = doorway;
+            }
+        }
+
+        // if no floor 1, use floor 2 if available
+        if (secondFloorAlternative != null) {
+            return secondFloorAlternative;
         }
 
         return doorways.isEmpty() ? null : doorways.get(0);
