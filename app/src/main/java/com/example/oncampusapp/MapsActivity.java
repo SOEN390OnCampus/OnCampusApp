@@ -2288,6 +2288,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         if (!fromBuilding.equalsIgnoreCase(toBuilding)) {
 
+            // THESE ARE NOT EXACT! MUST FIND WAY TO GET SPECIFIC ENTRANCE FOR EACH BUILDING!
             IndoorNode fromDoor = findExitDoorway(fromBuilding, fromRoom);
             IndoorNode toDoor   = findEntranceDoorway(toBuilding);
 
