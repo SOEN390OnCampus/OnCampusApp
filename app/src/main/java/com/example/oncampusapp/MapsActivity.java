@@ -2205,7 +2205,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             allIndoorNodesById.put(id, node);
         }
 
-        // keep your existing search-label behavior
         if (label.isEmpty() || indoorRoomMap.containsKey(label)) return;
 
         indoorRoomMap.put(label, node);
