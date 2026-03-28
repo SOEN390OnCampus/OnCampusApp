@@ -24,36 +24,26 @@ public class CalendarEventManager {
         JSONObject nextEvent = null;
         long closestFutureTime = Long.MAX_VALUE;
         long currentTime = System.currentTimeMillis();
-
-        SimpleDateFormat exactTimeFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX", Locale.getDefault());
+        SimpleDateFormat fmt = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX", Locale.getDefault());
 
         try {
             JSONArray eventsArray = new JSONArray(eventsJsonString);
-
             for (int i = 0; i < eventsArray.length(); i++) {
                 JSONObject event = eventsArray.getJSONObject(i);
-
                 if (!event.has("start") || !event.has("end")) continue;
 
-                JSONObject startObj = event.getJSONObject("start");
-                JSONObject endObj = event.getJSONObject("end");
+                long[] times = parseEventTimes(event, fmt);
+                if (times == null) continue;
 
-                // We only want events with specific times (ignoring all-day events)
-                if (startObj.has("dateTime") && endObj.has("dateTime")) {
+                long startTime = times[0];
+                long endTime = times[1];
 
-                    long startTime = exactTimeFormat.parse(startObj.getString("dateTime")).getTime();
-                    long endTime = exactTimeFormat.parse(endObj.getString("dateTime")).getTime();
-
-                    // --- NEW LOGIC: Check if class is currently IN PROGRESS ---
-                    if (currentTime >= startTime && currentTime <= endTime) {
-                        return event; // Exit immediately and return the active class
-                    }
-
-                    // --- EXISTING LOGIC: Find the closest FUTURE class ---
-                    if (startTime > currentTime && startTime < closestFutureTime) {
-                        closestFutureTime = startTime;
-                        nextEvent = event;
-                    }
+                if (currentTime >= startTime && currentTime <= endTime) {
+                    return event;
+                }
+                if (startTime > currentTime && startTime < closestFutureTime) {
+                    closestFutureTime = startTime;
+                    nextEvent = event;
                 }
             }
         } catch (Exception e) {
@@ -61,5 +51,15 @@ public class CalendarEventManager {
         }
 
         return nextEvent;
+    }
+
+    // Returns {startTime, endTime} in millis, or null if the event is an all-day event (no dateTime field)
+    private static long[] parseEventTimes(JSONObject event, SimpleDateFormat fmt) throws Exception {
+        JSONObject startObj = event.getJSONObject("start");
+        JSONObject endObj = event.getJSONObject("end");
+        if (!startObj.has("dateTime") || !endObj.has("dateTime")) return null;
+        long startTime = fmt.parse(startObj.getString("dateTime")).getTime();
+        long endTime = fmt.parse(endObj.getString("dateTime")).getTime();
+        return new long[]{startTime, endTime};
     }
 }
