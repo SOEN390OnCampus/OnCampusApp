@@ -39,7 +39,7 @@ jobs:
 
       - name: Build and Generate JaCoCo Report (Unit Tests Only)
         # The -x flags are back to intentionally skip the hardware-heavy UI tests
-        run: ./gradlew clean testDebugUnitTest jacocoCombinedTestReport -x connectedDebugAndroidTest -x createDebugCoverageReport
+        run: ./gradlew clean testDebugUnitTest jacocoCombinedTestReport -x connectedDebugAndroidTest
 
       - name: Run SonarCloud Analysis
         env:
