@@ -184,6 +184,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private final java.util.Map<String, IndoorNode> indoorRoomMap = new java.util.LinkedHashMap<>();
     private ArrayAdapter<String> searchSuggestionsAdapter;
 
+// Cross-building data
     private final Map<String, IndoorNode> allIndoorNodesById = new HashMap<>();
     private boolean pendingCrossBuildingOutdoor = false;
     private IndoorNode pendingCrossFromDoor;
@@ -2262,13 +2263,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             }
         }
 
-        // debug only
-//        if (best != null) {
-//            System.out.println("Chosen doorway: " + best.getId());
-//        } else {
-//            System.out.println("No doorway found for building " + buildingId);
-//        }
-
         return best;
     }
 
@@ -2292,9 +2286,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         String fromBuilding = fromRoom.getRootBuildingId();
         String toBuilding   = toRoom.getRootBuildingId();
 
-        /*
-        This is where we add the functionality of cross-building (room2room) navigation.
-         */
         if (!fromBuilding.equalsIgnoreCase(toBuilding)) {
 
             IndoorNode fromDoor = findExitDoorway(fromBuilding, fromRoom);
@@ -2318,7 +2309,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
                 runOnUiThread(() -> {
                     if (isDestroyed() || isFinishing()) return;
-
 
                     Intent intent = new Intent(this, IndoorMapActivity.class);
                     intent.putExtra("BUILDING_ID", fromBuilding);
