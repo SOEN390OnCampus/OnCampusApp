@@ -1,12 +1,15 @@
 package com.example.oncampusapp;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertSame;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.verify;
 
+import org.json.JSONArray;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -135,5 +138,102 @@ public class CalendarRepositoryTest {
 
         String result = activity.fetchCalendarEvents("encs_student_token", "concordia_course_calendar");
         assertEquals("concordia_mocked_events_json", result);
+    }
+
+    // ── getInstance ───────────────────────────────────────────────────────────
+
+    @Test
+    public void getInstance_returnsNonNull() {
+        assertNotNull(CalendarRepository.getInstance());
+    }
+
+    @Test
+    public void getInstance_returnsSameInstanceOnSubsequentCalls() {
+        CalendarRepository first  = CalendarRepository.getInstance();
+        CalendarRepository second = CalendarRepository.getInstance();
+        assertSame(first, second);
+    }
+
+    // ── fetchAllEvents ────────────────────────────────────────────────────────
+
+    @Test
+    public void fetchAllEvents_emptyCalendarList_returnsEmptyArray() throws Exception {
+        doReturn("{\"items\":[]}").when(activity).fetchCalendarList(anyString());
+
+        JSONArray result = activity.fetchAllEvents("token");
+        assertNotNull(result);
+        assertEquals(0, result.length());
+    }
+
+    @Test
+    public void fetchAllEvents_nullItemsInCalendarList_returnsEmptyArray() throws Exception {
+        doReturn("{}").when(activity).fetchCalendarList(anyString());
+
+        JSONArray result = activity.fetchAllEvents("token");
+        assertNotNull(result);
+        assertEquals(0, result.length());
+    }
+
+    @Test
+    public void fetchAllEvents_calendarWithNoEvents_returnsEmptyArray() throws Exception {
+        doReturn("{\"items\":[{\"id\":\"cal1\"}]}").when(activity).fetchCalendarList(anyString());
+        doReturn("{\"items\":[]}").when(activity).fetchCalendarEvents(anyString(), eq("cal1"));
+
+        JSONArray result = activity.fetchAllEvents("token");
+        assertNotNull(result);
+        assertEquals(0, result.length());
+    }
+
+    @Test
+    public void fetchAllEvents_calendarWithEvents_returnsAllEvents() throws Exception {
+        doReturn("{\"items\":[{\"id\":\"cal1\"}]}").when(activity).fetchCalendarList(anyString());
+        doReturn("{\"items\":[{\"summary\":\"Lecture\"},{\"summary\":\"Lab\"}]}")
+                .when(activity).fetchCalendarEvents(anyString(), eq("cal1"));
+
+        JSONArray result = activity.fetchAllEvents("token");
+        assertEquals(2, result.length());
+    }
+
+    @Test
+    public void fetchAllEvents_multipleCalendars_aggregatesAllEvents() throws Exception {
+        doReturn("{\"items\":[{\"id\":\"cal1\"},{\"id\":\"cal2\"}]}")
+                .when(activity).fetchCalendarList(anyString());
+        doReturn("{\"items\":[{\"summary\":\"Event A\"}]}")
+                .when(activity).fetchCalendarEvents(anyString(), eq("cal1"));
+        doReturn("{\"items\":[{\"summary\":\"Event B\"}]}")
+                .when(activity).fetchCalendarEvents(anyString(), eq("cal2"));
+
+        JSONArray result = activity.fetchAllEvents("token");
+        assertEquals(2, result.length());
+    }
+
+    @Test
+    public void fetchAllEvents_calendarWithNullItems_skipsNullItems() throws Exception {
+        doReturn("{\"items\":[{\"id\":\"cal1\"}]}").when(activity).fetchCalendarList(anyString());
+        doReturn("{}").when(activity).fetchCalendarEvents(anyString(), anyString());
+
+        JSONArray result = activity.fetchAllEvents("token");
+        assertEquals(0, result.length());
+    }
+
+    // ── refreshEvents ─────────────────────────────────────────────────────────
+
+    @Test
+    public void refreshEvents_delegatesToFetchAllEvents() throws Exception {
+        doReturn("{\"items\":[]}").when(activity).fetchCalendarList(anyString());
+
+        JSONArray result = activity.refreshEvents("token");
+        assertNotNull(result);
+        assertEquals(0, result.length());
+    }
+
+    @Test
+    public void refreshEvents_withEvents_returnsEvents() throws Exception {
+        doReturn("{\"items\":[{\"id\":\"cal1\"}]}").when(activity).fetchCalendarList(anyString());
+        doReturn("{\"items\":[{\"summary\":\"SOEN 390\"}]}")
+                .when(activity).fetchCalendarEvents(anyString(), anyString());
+
+        JSONArray result = activity.refreshEvents("token");
+        assertEquals(1, result.length());
     }
 }
