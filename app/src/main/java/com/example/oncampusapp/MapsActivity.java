@@ -187,7 +187,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 // Cross-building data
     private final Map<String, IndoorNode> allIndoorNodesById = new HashMap<>();
     private boolean pendingCrossBuildingOutdoor = false;
-    private IndoorNode pendingCrossFromDoor;
     private IndoorNode pendingCrossToDoor;
     private IndoorNode pendingCrossToRoom;
     private String pendingCrossFromBuilding;
@@ -410,7 +409,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
                         @Override
                         public void onError(Exception e) {
-                            e.printStackTrace();
                             runOnUiThread(() ->
                                     Toast.makeText(MapsActivity.this,
                                             "Failed to load outdoor route",
@@ -1759,7 +1757,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         pendingFinalIndoorAfterOutdoor = false;
         shouldStartOutdoorAfterIndoor = false;
 
-        pendingCrossFromDoor = null;
         pendingCrossToDoor = null;
         pendingCrossToRoom = null;
 
@@ -2320,7 +2317,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     intent.putExtra("DISPLAY_DEST_LABEL", fromDoor.getLabel());
 
                     pendingCrossBuildingOutdoor = true;
-                    pendingCrossFromDoor = fromDoor;
                     pendingCrossToDoor = toDoor;
                     pendingCrossToRoom = toRoom;
                     pendingCrossFromBuilding = fromBuilding;
