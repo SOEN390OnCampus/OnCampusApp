@@ -9,7 +9,9 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static org.junit.Assert.*;
@@ -196,5 +198,147 @@ public class RouteManagerTest {
     @Test
     public void checkForInsideRooms_vlRoom_returnsFalse() {
         assertFalse(RouteManager.checkForInsideRooms("VL-105"));
+    }
+
+    // ── Null-safe setters ─────────────────────────────────────────────────────
+
+    @Test
+    public void setMap_null_doesNotThrow() {
+        routeManager.setMap(null);
+    }
+
+    @Test
+    public void setLocationClient_null_doesNotThrow() {
+        routeManager.setLocationClient(null);
+    }
+
+    // ── removeStartDot ────────────────────────────────────────────────────────
+
+    @Test
+    public void removeStartDot_nullStartDot_doesNotThrow() {
+        // startDot is null by default — null check inside the method guards it
+        routeManager.removeStartDot();
+    }
+
+    // ── stopNavigation ────────────────────────────────────────────────────────
+
+    @Test
+    public void stopNavigation_nullCallback_doesNotThrow() {
+        // navigationLocationCallback is null by default — null check guards it
+        routeManager.stopNavigation();
+    }
+
+    // ── clearNormalRoute ──────────────────────────────────────────────────────
+
+    @Test
+    public void clearNormalRoute_emptyState_doesNotThrow() {
+        // routePolylines is empty, all markers null — all null-checks in place
+        routeManager.clearNormalRoute();
+    }
+
+    @Test
+    public void clearNormalRoute_doesNotLeaveStalePolylines() {
+        routeManager.clearNormalRoute();
+        assertTrue(routeManager.getRoutePolylines().isEmpty());
+    }
+
+    // ── clearShuttleRoute ─────────────────────────────────────────────────────
+
+    @Test
+    public void clearShuttleRoute_emptyState_doesNotThrow() {
+        // all polylines null, activity.findViewById returns null — guarded by null check
+        routeManager.clearShuttleRoute();
+    }
+
+    // ── resetRouteState ───────────────────────────────────────────────────────
+
+    @Test
+    public void resetRouteState_doesNotThrow() {
+        routeManager.resetRouteState();
+    }
+
+    @Test
+    public void resetRouteState_previewRemainsInactive() {
+        routeManager.resetRouteState();
+        assertFalse(routeManager.isPreviewActive());
+    }
+
+    // ── drawSegmentPolyline (null/empty guards) ───────────────────────────────
+
+    @Test
+    public void drawSegmentPolyline_nullMap_returnsNull() {
+        // mMap is never set → null → method returns null immediately
+        assertNull(routeManager.drawSegmentPolyline(new ArrayList<>(), false));
+    }
+
+    @Test
+    public void drawSegmentPolyline_nullPath_returnsNull() {
+        assertNull(routeManager.drawSegmentPolyline(null, false));
+    }
+
+    @Test
+    public void drawSegmentPolyline_emptyPath_returnsNull() {
+        List<LatLng> empty = new ArrayList<>();
+        assertNull(routeManager.drawSegmentPolyline(empty, true));
+    }
+
+    // ── drawRouteOnMap (null/empty guards) ────────────────────────────────────
+
+    @Test
+    public void drawRouteOnMap_nullMap_returnsImmediately() {
+        // mMap is null → first guard returns early, no crash
+        routeManager.drawRouteOnMap(new ArrayList<>(), "5 mins", new ArrayList<>());
+    }
+
+    @Test
+    public void drawRouteOnMap_nullPath_returnsImmediately() {
+        routeManager.drawRouteOnMap(null, "5 mins", new ArrayList<>());
+    }
+
+    // ── updateRouteProgress (null guard) ─────────────────────────────────────
+
+    @Test
+    public void updateRouteProgress_nullRoutePoints_doesNotThrow() {
+        // currentRoutePoints is null by default → first guard returns early
+        routeManager.updateRouteProgress(new LatLng(45.4972, -73.5790));
+    }
+
+    // ── showCurrentDirection (empty guard) ───────────────────────────────────
+
+    @Test
+    public void showCurrentDirection_emptyDirections_doesNotThrow() {
+        // directionsList is empty → guard returns early before any Android call
+        routeManager.showCurrentDirection();
+    }
+
+    // ── applySameCampusCheck — non-shuttle modes return false immediately ─────
+
+    @Test
+    public void applySameCampusCheck_walkMode_returnsFalse() {
+        routeManager.setSelectedMode(RouteTravelMode.WALK);
+        LatLng sgw = new LatLng(45.4972, -73.5790);
+        assertFalse(routeManager.applySameCampusCheck(sgw, sgw));
+    }
+
+    @Test
+    public void applySameCampusCheck_driveMode_returnsFalse() {
+        routeManager.setSelectedMode(RouteTravelMode.DRIVE);
+        LatLng loy = new LatLng(45.4582, -73.6405);
+        assertFalse(routeManager.applySameCampusCheck(loy, loy));
+    }
+
+    @Test
+    public void applySameCampusCheck_transitMode_returnsFalse() {
+        routeManager.setSelectedMode(RouteTravelMode.TRANSIT);
+        LatLng sgw = new LatLng(45.4972, -73.5790);
+        assertFalse(routeManager.applySameCampusCheck(sgw, sgw));
+    }
+
+    // ── getFirstRoutePoint after clear ────────────────────────────────────────
+
+    @Test
+    public void getFirstRoutePoint_afterClearNormalRoute_remainsNull() {
+        routeManager.clearNormalRoute();
+        assertNull(routeManager.getFirstRoutePoint());
     }
 }
