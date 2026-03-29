@@ -188,7 +188,7 @@ public class RouteManager {
                         updateTotal.run();
                     }
                     @Override public void onError(Exception e) {
-                        e.printStackTrace(); walkToDone[0] = true; updateTotal.run();
+                        Log.e("RouteManager", "Walk-to-stop route error", e); walkToDone[0] = true; updateTotal.run();
                     }
                 });
 
@@ -202,7 +202,7 @@ public class RouteManager {
                         updateTotal.run();
                     }
                     @Override public void onError(Exception e) {
-                        e.printStackTrace(); walkFromDone[0] = true; updateTotal.run();
+                        Log.e("RouteManager", "Walk-from-stop route error", e); walkFromDone[0] = true; updateTotal.run();
                     }
                 });
 
@@ -213,7 +213,7 @@ public class RouteManager {
                         shuttleDone[0] = true; updateTotal.run();
                     }
                     @Override public void onError(Exception e) {
-                        e.printStackTrace();
+                        Log.e("RouteManager", "Shuttle duration fetch error", e);
                         shuttleMinutes[0] = parseDurationToMinutes(ShuttleHelper.SHUTTLE_DURATION_FALLBACK);
                         shuttleDone[0] = true; updateTotal.run();
                     }
@@ -228,7 +228,7 @@ public class RouteManager {
                                 drawRouteOnMap(route.getPoints(), route.getDuration(), route.getSteps()));
                     }
                     @Override public void onError(Exception e) {
-                        e.printStackTrace();
+                        Log.e("RouteManager", "Standard route fetch error", e);
                         activity.runOnUiThread(() ->
                                 Toast.makeText(activity, "Failed to load route", Toast.LENGTH_SHORT).show());
                     }
