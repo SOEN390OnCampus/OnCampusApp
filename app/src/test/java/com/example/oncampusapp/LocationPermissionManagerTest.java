@@ -2,6 +2,8 @@ package com.example.oncampusapp;
 
 import androidx.activity.result.ActivityResultLauncher;
 
+import com.google.android.gms.maps.GoogleMap;
+
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -9,6 +11,8 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import static org.junit.Assert.*;
+import static org.mockito.Mockito.*;
+import static org.mockito.ArgumentMatchers.any;
 
 @RunWith(MockitoJUnitRunner.class)
 public class LocationPermissionManagerTest {
@@ -66,5 +70,41 @@ public class LocationPermissionManagerTest {
     @Test
     public void logPermissionResult_coarseLocation_doesNotThrow() {
         LocationPermissionManager.logPermissionResult("ACCESS_COARSE_LOCATION", false);
+    }
+
+    // ── enableMyLocation ──────────────────────────────────────────────────────
+    // returnDefaultValues=true → checkSelfPermission returns 0 == PERMISSION_GRANTED
+    // so the "if granted" branch is always taken in unit tests
+
+    @Mock GoogleMap mockMap;
+
+    @Test
+    public void enableMyLocation_permissionGranted_callsSetMyLocationEnabled() {
+        manager.setMap(mockMap);
+        manager.enableMyLocation();
+        verify(mockMap).setMyLocationEnabled(true);
+    }
+
+    @Test
+    public void enableMyLocation_calledTwice_doesNotThrow() {
+        manager.setMap(mockMap);
+        manager.enableMyLocation();
+        manager.enableMyLocation();
+    }
+
+    // ── launchPermissionRequest ───────────────────────────────────────────────
+    // returnDefaultValues=true → checkSelfPermission returns 0 (GRANTED) for every permission
+    // → permissionsToRequest stays empty → launcher.launch() is never called
+
+    @Test
+    public void launchPermissionRequest_allPermissionsGranted_doesNotCallLaunch() {
+        manager.launchPermissionRequest();
+        verify(mockLauncher, never()).launch(any());
+    }
+
+    @Test
+    public void launchPermissionRequest_multipleTimes_doesNotThrow() {
+        manager.launchPermissionRequest();
+        manager.launchPermissionRequest();
     }
 }
