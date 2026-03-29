@@ -1726,7 +1726,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 @Override
                 public void onSuccess(Route route) {
                         runOnUiThread(() -> drawRouteOnMap(route.getPoints(), route.getDuration(), route.getSteps()));
-                        runOnUiThread(() -> drawRouteOnMap(route.getPoints(), route.getDuration(), route.getSteps()));
                 }
 
                 @Override
@@ -1745,6 +1744,30 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 }
             }
         }
+    }
+
+    private void loadIndoorPath(String buildingId,
+                                String fromNodeId,
+                                String toNodeId,
+                                java.util.function.Consumer<List<String>> onSuccess,
+                                String errorMessage) {
+        int resId = getResources().getIdentifier(buildingId.toLowerCase(), "raw", getPackageName());
+        if (resId == 0) {
+            Toast.makeText(this, errorMessage, Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        new Thread(() -> {
+            IndoorGraph graph = new IndoorGraph();
+            try (InputStream is = getResources().openRawResource(resId)) {
+                graph.load(is);
+                List<String> path = graph.shortestPath(fromNodeId, toNodeId);
+                runOnUiThread(() -> onSuccess.accept(path));
+            } catch (Exception e) {
+                runOnUiThread(() ->
+                        Toast.makeText(this, errorMessage, Toast.LENGTH_SHORT).show());
+            }
+        }).start();
     }
 
     private static boolean checkForInsideRooms(String startName ) {
@@ -1810,46 +1833,30 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 toggleNavigationUI(false);
                 clearNormalRoute();
 
-                int resId = getResources().getIdentifier(
-                        pendingCrossToBuilding.toLowerCase(), "raw", getPackageName());
+                loadIndoorPath(
+                        pendingCrossToBuilding,
+                        pendingCrossToDoor.getId(),
+                        pendingCrossToRoom.getId(),
+                        path -> {
+                            if (isDestroyed() || isFinishing()) return;
 
-                new Thread(() -> {
-                    IndoorGraph graph = new IndoorGraph();
+                            if (path.isEmpty()) {
+                                Toast.makeText(this, "No indoor path found to destination room.",
+                                        Toast.LENGTH_LONG).show();
+                                return;
+                            }
 
-                    try (java.io.InputStream is = getResources().openRawResource(resId)) {
-                        graph.load(is);
-                    } catch (Exception e) {
-                        runOnUiThread(() ->
-                                Toast.makeText(this, "Error loading destination building graph.", Toast.LENGTH_SHORT).show());
-                        return;
-                    }
-
-                    List<String> path = graph.shortestPath(
-                            pendingCrossToDoor.getId(),
-                            pendingCrossToRoom.getId()
-                    );
-
-                    runOnUiThread(() -> {
-                        if (isDestroyed() || isFinishing()) return;
-
-                        if (path.isEmpty()) {
-                            Toast.makeText(this, "No indoor path found to destination room.",
-                                    Toast.LENGTH_LONG).show();
-                            return;
-                        }
-
-                        Intent intent = new Intent(this, IndoorMapActivity.class);
-                        intent.putExtra("BUILDING_ID", pendingCrossToBuilding);
-                        intent.putExtra("FLOOR_ID", pendingCrossToDoor.getFloorMenuId());
-                        intent.putExtra("FROM_NODE_ID", pendingCrossToDoor.getId());
-                        intent.putExtra("TO_NODE_ID", pendingCrossToRoom.getId());
-                        intent.putExtra("PATH_NODE_IDS", String.join(",", path));
-                        startActivity(intent);
-                        clearPendingCrossBuildingData();
-
-
-                    });
-                }).start();
+                            Intent intent = new Intent(this, IndoorMapActivity.class);
+                            intent.putExtra("BUILDING_ID", pendingCrossToBuilding);
+                            intent.putExtra("FLOOR_ID", pendingCrossToDoor.getFloorMenuId());
+                            intent.putExtra("FROM_NODE_ID", pendingCrossToDoor.getId());
+                            intent.putExtra("TO_NODE_ID", pendingCrossToRoom.getId());
+                            intent.putExtra("PATH_NODE_IDS", String.join(",", path));
+                            startActivity(intent);
+                            clearPendingCrossBuildingData();
+                        },
+                        "Error loading destination building graph."
+                );
 
                 return;
             }
@@ -2226,7 +2233,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         return result;
     }
 
-    private IndoorNode findExitDoorway(String buildingId) {
+    private IndoorNode findPreferredDoorway(String buildingId) {
         List<IndoorNode> doorways = getDoorwayNodesForBuilding(buildingId);
 
         IndoorNode secondFloorAlternative = null;
@@ -2243,31 +2250,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             }
         }
 
-        if (secondFloorAlternative != null) {
-            return secondFloorAlternative;
-        }
-
-        return doorways.isEmpty() ? null : doorways.get(0);
-    }
-
-    private IndoorNode findEntranceDoorway(String buildingId) {
-        List<IndoorNode> doorways = getDoorwayNodesForBuilding(buildingId);
-
-        IndoorNode secondFloorAlternative = null;
-
-        for (IndoorNode doorway : doorways) {
-            String floor = doorway.getFloor();
-
-            if ("1".equals(floor)) {
-                return doorway;
-            }
-
-            if ("2".equals(floor) && secondFloorAlternative == null) {
-                secondFloorAlternative = doorway;
-            }
-        }
-
-        // if no floor 1, use floor 2 if available
         if (secondFloorAlternative != null) {
             return secondFloorAlternative;
         }
@@ -2285,93 +2267,64 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         if (!fromBuilding.equalsIgnoreCase(toBuilding)) {
 
-            IndoorNode fromDoor = findExitDoorway(fromBuilding);
-            IndoorNode toDoor   = findEntranceDoorway(toBuilding);
+            IndoorNode fromDoor = findPreferredDoorway(fromBuilding);
+            IndoorNode toDoor   = findPreferredDoorway(toBuilding);
 
-            int resId = getResources().getIdentifier(
-                    fromBuilding.toLowerCase(), "raw", getPackageName());
+            loadIndoorPath(
+                    fromBuilding,
+                    fromRoom.getId(),
+                    fromDoor.getId(),
+                    path -> {
+                        if (isDestroyed() || isFinishing()) return;
 
-            new Thread(() -> {
-                IndoorGraph graph = new IndoorGraph();
+                        Intent intent = new Intent(this, IndoorMapActivity.class);
+                        intent.putExtra("BUILDING_ID", fromBuilding);
+                        intent.putExtra("FLOOR_ID", fromRoom.getFloorMenuId());
+                        intent.putExtra("FROM_NODE_ID", fromRoom.getId());
+                        intent.putExtra("TO_NODE_ID", fromDoor.getId());
+                        intent.putExtra("PATH_NODE_IDS", String.join(",", path));
+                        intent.putExtra("CROSS_BUILDING_STAGE", "FIRST_INDOOR");
+                        intent.putExtra("DISPLAY_DEST_LABEL", fromDoor.getLabel());
 
-                try (java.io.InputStream is = getResources().openRawResource(resId)) {
-                    graph.load(is);
-                } catch (Exception e) {
-                    runOnUiThread(() ->
-                            Toast.makeText(this, "Error loading source building graph.", Toast.LENGTH_SHORT).show());
-                    return;
-                }
+                        pendingCrossBuildingOutdoor = true;
+                        pendingCrossToDoor = toDoor;
+                        pendingCrossToRoom = toRoom;
+                        pendingCrossFromBuilding = fromBuilding;
+                        pendingCrossToBuilding = toBuilding;
+                        shouldStartOutdoorAfterIndoor = true;
 
-                List<String> path = graph.shortestPath(fromRoom.getId(), fromDoor.getId());
+                        startActivity(intent);
+                    },
+                    "Error loading source building graph."
+            );
 
-                runOnUiThread(() -> {
+            return;
+        }
+
+
+        loadIndoorPath(
+                fromBuilding,
+                fromRoom.getId(),
+                toRoom.getId(),
+                path -> {
                     if (isDestroyed() || isFinishing()) return;
+
+                    if (path.isEmpty()) {
+                        Toast.makeText(this, "No indoor path found between these rooms.",
+                                Toast.LENGTH_LONG).show();
+                        return;
+                    }
 
                     Intent intent = new Intent(this, IndoorMapActivity.class);
                     intent.putExtra("BUILDING_ID", fromBuilding);
                     intent.putExtra("FLOOR_ID", fromRoom.getFloorMenuId());
                     intent.putExtra("FROM_NODE_ID", fromRoom.getId());
-                    intent.putExtra("TO_NODE_ID", fromDoor.getId());
+                    intent.putExtra("TO_NODE_ID", toRoom.getId());
                     intent.putExtra("PATH_NODE_IDS", String.join(",", path));
-                    intent.putExtra("CROSS_BUILDING_STAGE", "FIRST_INDOOR");
-                    intent.putExtra("DISPLAY_DEST_LABEL", fromDoor.getLabel());
-
-                    pendingCrossBuildingOutdoor = true;
-                    pendingCrossToDoor = toDoor;
-                    pendingCrossToRoom = toRoom;
-                    pendingCrossFromBuilding = fromBuilding;
-                    pendingCrossToBuilding = toBuilding;
-                    shouldStartOutdoorAfterIndoor = true;
-
                     startActivity(intent);
-
-                });
-
-            }).start();
-
-            return;
-        }
-
-
-        int resId = getResources().getIdentifier(
-                fromBuilding.toLowerCase(), "raw", getPackageName());
-        if (resId == 0) {
-            Toast.makeText(this, "Building data not found.", Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        new Thread(() -> {
-            IndoorGraph graph = new IndoorGraph();
-            try (InputStream is = getResources().openRawResource(resId)) {
-                graph.load(is);
-            } catch (IOException | JSONException e) {
-                Log.e("MapsActivity", "Graph load failed", e);
-                runOnUiThread(() ->
-                    Toast.makeText(this, "Error loading building data.", Toast.LENGTH_SHORT).show());
-                return;
-            }
-
-            /*
-            Indoor route list w/o instructions
-             */
-            List<String> path = graph.shortestPath(fromRoom.getId(), toRoom.getId());
-            runOnUiThread(() -> {
-                if (isDestroyed() || isFinishing()) return;
-
-                if (path.isEmpty()) {
-                    Toast.makeText(this, "No indoor path found between these rooms.",
-                            Toast.LENGTH_LONG).show();
-                    return;
-                }
-                Intent intent = new Intent(this, IndoorMapActivity.class);
-                intent.putExtra("BUILDING_ID",   fromBuilding);
-                intent.putExtra("FLOOR_ID",      fromRoom.getFloorMenuId());
-                intent.putExtra("FROM_NODE_ID",  fromRoom.getId());
-                intent.putExtra("TO_NODE_ID",    toRoom.getId());
-                intent.putExtra("PATH_NODE_IDS", String.join(",", path));
-                startActivity(intent);
-            });
-        }).start();
+                },
+                "Error loading building data."
+        );
     }
 
 }
