@@ -1789,13 +1789,13 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         // Check if user has arrived at destination
         double arrivalThreshold = pendingFinalIndoorAfterOutdoor ? 40.0 : 10.0;
 
-        System.out.println("pendingFinalIndoorAfterOutdoor = " + pendingFinalIndoorAfterOutdoor);
-        System.out.println("currentRoutePoints size = " + (currentRoutePoints == null ? 0 : currentRoutePoints.size()));
+        Log.d("ROUTE","pendingFinalIndoorAfterOutdoor = " + pendingFinalIndoorAfterOutdoor);
+        Log.d("ROUTE","currentRoutePoints size = " + (currentRoutePoints == null ? 0 : currentRoutePoints.size()));
 
         if (currentRoutePoints != null && !currentRoutePoints.isEmpty()) {
             LatLng end = currentRoutePoints.get(currentRoutePoints.size() - 1);
-            System.out.println("Outdoor route end: " + end.latitude + ", " + end.longitude);
-            System.out.println("User location: " + userLocation.latitude + ", " + userLocation.longitude);
+            Log.d("ROUTE","Outdoor route end: " + end.latitude + ", " + end.longitude);
+            Log.d("ROUTE","User location: " + userLocation.latitude + ", " + userLocation.longitude);
         }
 
         if (NavigationHelper.hasArrived(userLocation, currentRoutePoints, arrivalThreshold)) {
@@ -2355,7 +2355,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             Indoor route list w/o instructions
              */
             List<String> path = graph.shortestPath(fromRoom.getId(), toRoom.getId());
-            System.out.println(path);
             runOnUiThread(() -> {
                 if (isDestroyed() || isFinishing()) return;
 
