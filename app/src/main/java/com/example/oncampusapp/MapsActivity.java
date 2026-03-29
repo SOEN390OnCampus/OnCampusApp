@@ -184,6 +184,17 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private final java.util.Map<String, IndoorNode> indoorRoomMap = new java.util.LinkedHashMap<>();
     private ArrayAdapter<String> searchSuggestionsAdapter;
 
+// Cross-building data
+    private final Map<String, IndoorNode> allIndoorNodesById = new HashMap<>();
+    private boolean pendingCrossBuildingOutdoor = false;
+    private IndoorNode pendingCrossToDoor;
+    private IndoorNode pendingCrossToRoom;
+    private String pendingCrossFromBuilding;
+    private String pendingCrossToBuilding;
+    private boolean shouldStartOutdoorAfterIndoor = false;
+    private boolean pendingFinalIndoorAfterOutdoor = false;
+
+
 
 
 
@@ -353,6 +364,61 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     protected void onResume() {
         super.onResume();
         bannerHandler.post(bannerRunnable);// Start the timer
+
+        if (shouldStartOutdoorAfterIndoor && pendingCrossBuildingOutdoor) {
+            shouldStartOutdoorAfterIndoor = false;
+
+            LatLng startCoords = BuildingLookup.getLatLngFromBuildingName(pendingCrossFromBuilding, buildingsMap);
+            LatLng destCoords = BuildingLookup.getLatLngFromBuildingName(pendingCrossToBuilding, buildingsMap);
+
+            if (startCoords == null || destCoords == null) {
+                Toast.makeText(this, "Could not find outdoor building coordinates.", Toast.LENGTH_LONG).show();
+                return;
+            }
+
+            NavigationHelper.fetchRoute(
+                    startCoords,
+                    destCoords,
+                    RouteTravelMode.WALK,
+                    BuildConfig.MAPS_API_KEY,
+                    new NavigationHelper.RoutesCallback() {
+                        @Override
+                        public void onSuccess(Route route) {
+                            runOnUiThread(() -> {
+                                directionsList.clear();
+                                currentDirectionIndex = 0;
+
+                                drawRouteOnMap(route.getPoints(), route.getDuration(), route.getSteps());
+
+                                currentRoutePoints = route.getPoints();
+
+                                if (startDot != null) {
+                                    startDot.remove();
+                                    startDot = null;
+                                }
+
+                                startNavigationUpdates();
+                                toggleNavigationUI(true);
+                                pendingFinalIndoorAfterOutdoor = true;
+
+                                Toast.makeText(MapsActivity.this,
+                                        "Outdoor navigation started",
+                                        Toast.LENGTH_SHORT).show();
+                            });
+                        }
+
+                        @Override
+                        public void onError(Exception e) {
+                            runOnUiThread(() ->
+                                    Toast.makeText(MapsActivity.this,
+                                            "Failed to load outdoor route",
+                                            Toast.LENGTH_SHORT).show());
+                        }
+                    }
+            );
+
+            pendingCrossBuildingOutdoor = false;
+        }
     }
 
     @Override
@@ -549,6 +615,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         //GO BUTTON (Start Navigation Mode)
         btnGo.setOnClickListener(v -> {
+
+
             String startText = startDestinationText.getText().toString().trim();
             String destText = endDestinationText.getText().toString().trim();
 
@@ -635,7 +703,59 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 currentDirectionIndex++;
                 showCurrentDirection();
             } else {
-                Toast.makeText(this, "You are at the last step", Toast.LENGTH_SHORT).show();
+                if (pendingFinalIndoorAfterOutdoor && pendingCrossToDoor != null && pendingCrossToRoom != null) {
+                    pendingFinalIndoorAfterOutdoor = false;
+
+                    if (navigationLocationCallback != null) {
+                        fusedLocationClient.removeLocationUpdates(navigationLocationCallback);
+                    }
+
+                    toggleNavigationUI(false);
+                    clearNormalRoute();
+
+                    int resId = getResources().getIdentifier(
+                            pendingCrossToBuilding.toLowerCase(), "raw", getPackageName());
+
+                    new Thread(() -> {
+                        IndoorGraph graph = new IndoorGraph();
+
+                        try (java.io.InputStream is = getResources().openRawResource(resId)) {
+                            graph.load(is);
+                        } catch (Exception e) {
+                            runOnUiThread(() ->
+                                    Toast.makeText(this, "Error loading destination building graph.", Toast.LENGTH_SHORT).show());
+                            return;
+                        }
+
+                        List<String> path = graph.shortestPath(
+                                pendingCrossToDoor.getId(),
+                                pendingCrossToRoom.getId()
+                        );
+
+                        runOnUiThread(() -> {
+                            if (isDestroyed() || isFinishing()) return;
+
+                            if (path.isEmpty()) {
+                                Toast.makeText(this, "No indoor path found to destination room.",
+                                        Toast.LENGTH_LONG).show();
+                                return;
+                            }
+
+                            Intent intent = new Intent(this, IndoorMapActivity.class);
+                            intent.putExtra("BUILDING_ID", pendingCrossToBuilding);
+                            intent.putExtra("FLOOR_ID", pendingCrossToDoor.getFloorMenuId());
+                            intent.putExtra("FROM_NODE_ID", pendingCrossToDoor.getId());
+                            intent.putExtra("TO_NODE_ID", pendingCrossToRoom.getId());
+                            intent.putExtra("PATH_NODE_IDS", String.join(",", path));
+                            intent.putExtra("CROSS_BUILDING_STAGE", "FINAL_INDOOR");
+                            intent.putExtra("DISPLAY_DEST_LABEL", pendingCrossToRoom.getLabel());
+                            startActivity(intent);
+                            clearPendingCrossBuildingData();
+                        });
+                    }).start();
+                } else {
+                    Toast.makeText(this, "You are at the last step", Toast.LENGTH_SHORT).show();
+                }
             }
         });
 
@@ -1606,7 +1726,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 @Override
                 public void onSuccess(Route route) {
                         runOnUiThread(() -> drawRouteOnMap(route.getPoints(), route.getDuration(), route.getSteps()));
-                        runOnUiThread(() -> drawRouteOnMap(route.getPoints(), route.getDuration(), route.getSteps()));
                 }
 
                 @Override
@@ -1627,12 +1746,46 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
     }
 
+    private void loadIndoorPath(String buildingId,
+                                String fromNodeId,
+                                String toNodeId,
+                                java.util.function.Consumer<List<String>> onSuccess,
+                                String errorMessage) {
+        int resId = getResources().getIdentifier(buildingId.toLowerCase(), "raw", getPackageName());
+        if (resId == 0) {
+            Toast.makeText(this, errorMessage, Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        new Thread(() -> {
+            IndoorGraph graph = new IndoorGraph();
+            try (InputStream is = getResources().openRawResource(resId)) {
+                graph.load(is);
+                List<String> path = graph.shortestPath(fromNodeId, toNodeId);
+                runOnUiThread(() -> onSuccess.accept(path));
+            } catch (Exception e) {
+                runOnUiThread(() ->
+                        Toast.makeText(this, errorMessage, Toast.LENGTH_SHORT).show());
+            }
+        }).start();
+    }
+
     private static boolean checkForInsideRooms(String startName ) {
         return !startName.contains("H-") && !startName.contains("VE-") && !startName.contains("CC-")
                 && !startName.contains("LB-") && !startName.contains("MB-") && !startName.contains("VL-");
     }
 
+    private void clearPendingCrossBuildingData() {
+        pendingCrossBuildingOutdoor = false;
+        pendingFinalIndoorAfterOutdoor = false;
+        shouldStartOutdoorAfterIndoor = false;
 
+        pendingCrossToDoor = null;
+        pendingCrossToRoom = null;
+
+        pendingCrossFromBuilding = null;
+        pendingCrossToBuilding = null;
+    }
 
     private void updateRouteProgress(LatLng userLocation) {
 
@@ -1654,8 +1807,60 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             currentRoutePoints = updatedPath;
         }
 
+
+
         // Check if user has arrived at destination
-        if (NavigationHelper.hasArrived(userLocation, currentRoutePoints, 10.0)) {
+        double arrivalThreshold = pendingFinalIndoorAfterOutdoor ? 40.0 : 10.0;
+
+        Log.d("ROUTE","pendingFinalIndoorAfterOutdoor = " + pendingFinalIndoorAfterOutdoor);
+        Log.d("ROUTE","currentRoutePoints size = " + (currentRoutePoints == null ? 0 : currentRoutePoints.size()));
+
+        if (currentRoutePoints != null && !currentRoutePoints.isEmpty()) {
+            LatLng end = currentRoutePoints.get(currentRoutePoints.size() - 1);
+            Log.d("ROUTE","Outdoor route end: " + end.latitude + ", " + end.longitude);
+            Log.d("ROUTE","User location: " + userLocation.latitude + ", " + userLocation.longitude);
+        }
+
+        if (NavigationHelper.hasArrived(userLocation, currentRoutePoints, arrivalThreshold)) {
+
+            if (pendingFinalIndoorAfterOutdoor && pendingCrossToDoor != null && pendingCrossToRoom != null) {
+                pendingFinalIndoorAfterOutdoor = false;
+
+                if (navigationLocationCallback != null) {
+                    fusedLocationClient.removeLocationUpdates(navigationLocationCallback);
+                }
+
+                toggleNavigationUI(false);
+                clearNormalRoute();
+
+                loadIndoorPath(
+                        pendingCrossToBuilding,
+                        pendingCrossToDoor.getId(),
+                        pendingCrossToRoom.getId(),
+                        path -> {
+                            if (isDestroyed() || isFinishing()) return;
+
+                            if (path.isEmpty()) {
+                                Toast.makeText(this, "No indoor path found to destination room.",
+                                        Toast.LENGTH_LONG).show();
+                                return;
+                            }
+
+                            Intent intent = new Intent(this, IndoorMapActivity.class);
+                            intent.putExtra("BUILDING_ID", pendingCrossToBuilding);
+                            intent.putExtra("FLOOR_ID", pendingCrossToDoor.getFloorMenuId());
+                            intent.putExtra("FROM_NODE_ID", pendingCrossToDoor.getId());
+                            intent.putExtra("TO_NODE_ID", pendingCrossToRoom.getId());
+                            intent.putExtra("PATH_NODE_IDS", String.join(",", path));
+                            startActivity(intent);
+                            clearPendingCrossBuildingData();
+                        },
+                        "Error loading destination building graph."
+                );
+
+                return;
+            }
+
             Toast.makeText(this, "You have arrived!", Toast.LENGTH_LONG).show();
 
             Button btnEndTrip = findViewById(R.id.btn_end_trip);
@@ -1979,6 +2184,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
             for (int i = 0; i < nodes.length(); i++) {
                 processNode(nodes.getJSONObject(i), newLabels);
+
             }
 
         } catch (IOException | JSONException e) {
@@ -1989,7 +2195,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private void processNode(org.json.JSONObject obj, List<String> newLabels) {
         String id    = obj.optString("id", "").trim();
         String label = obj.optString("label", "").trim();
-        if (label.isEmpty() || indoorRoomMap.containsKey(label)) return;
 
         IndoorNode node = new IndoorNode.Builder()
                 .id(id).label(label)
@@ -2000,8 +2205,56 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 .y((float) obj.optDouble("y", 0.0))
                 .accessible(obj.optBoolean("accessible", true))
                 .build();
+
+        if (!id.isEmpty()) {
+            allIndoorNodesById.put(id, node);
+        }
+
+        if (label.isEmpty() || indoorRoomMap.containsKey(label)) return;
+
         indoorRoomMap.put(label, node);
         newLabels.add(label);
+    }
+
+
+
+    private List<IndoorNode> getDoorwayNodesForBuilding(String buildingId) {
+        List<IndoorNode> result = new ArrayList<>();
+
+        for (IndoorNode node : allIndoorNodesById.values()) {
+            if (node == null) continue;
+            if (!buildingId.equalsIgnoreCase(node.getRootBuildingId())) continue;
+
+            if (node.getId() != null && node.getId().toLowerCase().contains("building_entry_exit")) {
+                result.add(node);
+            }
+        }
+
+        return result;
+    }
+
+    private IndoorNode findPreferredDoorway(String buildingId) {
+        List<IndoorNode> doorways = getDoorwayNodesForBuilding(buildingId);
+
+        IndoorNode secondFloorAlternative = null;
+
+        for (IndoorNode doorway : doorways) {
+            String floor = doorway.getFloor();
+
+            if ("1".equals(floor)) {
+                return doorway;
+            }
+
+            if ("2".equals(floor) && secondFloorAlternative == null) {
+                secondFloorAlternative = doorway;
+            }
+        }
+
+        if (secondFloorAlternative != null) {
+            return secondFloorAlternative;
+        }
+
+        return doorways.isEmpty() ? null : doorways.get(0);
     }
 
     /**
@@ -2013,50 +2266,65 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         String toBuilding   = toRoom.getRootBuildingId();
 
         if (!fromBuilding.equalsIgnoreCase(toBuilding)) {
-            Toast.makeText(this,
-                "Cross-building indoor navigation is not supported yet.\n"
-                + "Both rooms must be in the same building.",
-                Toast.LENGTH_LONG).show();
+
+            IndoorNode fromDoor = findPreferredDoorway(fromBuilding);
+            IndoorNode toDoor   = findPreferredDoorway(toBuilding);
+
+            loadIndoorPath(
+                    fromBuilding,
+                    fromRoom.getId(),
+                    fromDoor.getId(),
+                    path -> {
+                        if (isDestroyed() || isFinishing()) return;
+
+                        Intent intent = new Intent(this, IndoorMapActivity.class);
+                        intent.putExtra("BUILDING_ID", fromBuilding);
+                        intent.putExtra("FLOOR_ID", fromRoom.getFloorMenuId());
+                        intent.putExtra("FROM_NODE_ID", fromRoom.getId());
+                        intent.putExtra("TO_NODE_ID", fromDoor.getId());
+                        intent.putExtra("PATH_NODE_IDS", String.join(",", path));
+                        intent.putExtra("CROSS_BUILDING_STAGE", "FIRST_INDOOR");
+                        intent.putExtra("DISPLAY_DEST_LABEL", fromDoor.getLabel());
+
+                        pendingCrossBuildingOutdoor = true;
+                        pendingCrossToDoor = toDoor;
+                        pendingCrossToRoom = toRoom;
+                        pendingCrossFromBuilding = fromBuilding;
+                        pendingCrossToBuilding = toBuilding;
+                        shouldStartOutdoorAfterIndoor = true;
+
+                        startActivity(intent);
+                    },
+                    "Error loading source building graph."
+            );
+
             return;
         }
 
-        int resId = getResources().getIdentifier(
-                fromBuilding.toLowerCase(), "raw", getPackageName());
-        if (resId == 0) {
-            Toast.makeText(this, "Building data not found.", Toast.LENGTH_SHORT).show();
-            return;
-        }
 
-        new Thread(() -> {
-            IndoorGraph graph = new IndoorGraph();
-            try (java.io.InputStream is = getResources().openRawResource(resId)) {
-                graph.load(is);
-            } catch (IOException | JSONException e) {
-                Log.e("MapsActivity", "Graph load failed", e);
-                runOnUiThread(() ->
-                    Toast.makeText(this, "Error loading building data.", Toast.LENGTH_SHORT).show());
-                return;
-            }
+        loadIndoorPath(
+                fromBuilding,
+                fromRoom.getId(),
+                toRoom.getId(),
+                path -> {
+                    if (isDestroyed() || isFinishing()) return;
 
-            List<String> path = graph.shortestPath(fromRoom.getId(), toRoom.getId());
+                    if (path.isEmpty()) {
+                        Toast.makeText(this, "No indoor path found between these rooms.",
+                                Toast.LENGTH_LONG).show();
+                        return;
+                    }
 
-            runOnUiThread(() -> {
-                if (isDestroyed() || isFinishing()) return;
-
-                if (path.isEmpty()) {
-                    Toast.makeText(this, "No indoor path found between these rooms.",
-                            Toast.LENGTH_LONG).show();
-                    return;
-                }
-                Intent intent = new Intent(this, IndoorMapActivity.class);
-                intent.putExtra("BUILDING_ID",   fromBuilding);
-                intent.putExtra("FLOOR_ID",      fromRoom.getFloorMenuId());
-                intent.putExtra("FROM_NODE_ID",  fromRoom.getId());
-                intent.putExtra("TO_NODE_ID",    toRoom.getId());
-                intent.putExtra("PATH_NODE_IDS", String.join(",", path));
-                startActivity(intent);
-            });
-        }).start();
+                    Intent intent = new Intent(this, IndoorMapActivity.class);
+                    intent.putExtra("BUILDING_ID", fromBuilding);
+                    intent.putExtra("FLOOR_ID", fromRoom.getFloorMenuId());
+                    intent.putExtra("FROM_NODE_ID", fromRoom.getId());
+                    intent.putExtra("TO_NODE_ID", toRoom.getId());
+                    intent.putExtra("PATH_NODE_IDS", String.join(",", path));
+                    startActivity(intent);
+                },
+                "Error loading building data."
+        );
     }
 
 }
