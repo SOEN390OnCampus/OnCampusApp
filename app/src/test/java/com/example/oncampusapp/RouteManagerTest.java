@@ -1,9 +1,119 @@
 package com.example.oncampusapp;
 
-import org.junit.Test;
-import static org.junit.Assert.*;
+import com.example.oncampusapp.navigation.RouteTravelMode;
+import com.google.android.gms.maps.model.LatLng;
 
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
+
+import java.util.HashMap;
+import java.util.Map;
+
+import static org.junit.Assert.*;
+import static org.mockito.Mockito.*;
+
+@RunWith(MockitoJUnitRunner.class)
 public class RouteManagerTest {
+
+    @Mock MapsActivity mockActivity;
+
+    private RouteManager routeManager;
+
+    @Before
+    public void setUp() {
+        routeManager = new RouteManager(mockActivity);
+    }
+
+    // ── Constructor & default state ───────────────────────────────────────────
+
+    @Test
+    public void defaultSelectedMode_isWalk() {
+        assertEquals(RouteTravelMode.WALK, routeManager.getSelectedMode());
+    }
+
+    @Test
+    public void defaultIsPreviewActive_isFalse() {
+        assertFalse(routeManager.isPreviewActive());
+    }
+
+    @Test
+    public void defaultRoutePolylines_isEmpty() {
+        assertNotNull(routeManager.getRoutePolylines());
+        assertTrue(routeManager.getRoutePolylines().isEmpty());
+    }
+
+    @Test
+    public void defaultShuttleMarkers_hasTwoNullSlots() {
+        assertNotNull(routeManager.getShuttleMarkers());
+        assertEquals(2, routeManager.getShuttleMarkers().length);
+        assertNull(routeManager.getShuttleMarkers()[0]);
+        assertNull(routeManager.getShuttleMarkers()[1]);
+    }
+
+    @Test
+    public void defaultFirstRoutePoint_isNull() {
+        assertNull(routeManager.getFirstRoutePoint());
+    }
+
+    // ── Setters / Getters ─────────────────────────────────────────────────────
+
+    @Test
+    public void setSelectedMode_drive_returnsCorrectMode() {
+        routeManager.setSelectedMode(RouteTravelMode.DRIVE);
+        assertEquals(RouteTravelMode.DRIVE, routeManager.getSelectedMode());
+    }
+
+    @Test
+    public void setSelectedMode_transit_returnsCorrectMode() {
+        routeManager.setSelectedMode(RouteTravelMode.TRANSIT);
+        assertEquals(RouteTravelMode.TRANSIT, routeManager.getSelectedMode());
+    }
+
+    @Test
+    public void setSelectedMode_shuttle_returnsCorrectMode() {
+        routeManager.setSelectedMode(RouteTravelMode.SHUTTLE);
+        assertEquals(RouteTravelMode.SHUTTLE, routeManager.getSelectedMode());
+    }
+
+    @Test
+    public void setShuttleMarkers_updatesArray() {
+        com.google.android.gms.maps.model.Marker[] markers = new com.google.android.gms.maps.model.Marker[2];
+        routeManager.setShuttleMarkers(markers);
+        assertSame(markers, routeManager.getShuttleMarkers());
+    }
+
+    @Test
+    public void setBuildingsMap_storesMap() {
+        Map<String, Building> map = new HashMap<>();
+        routeManager.setBuildingsMap(map);
+        // Verify indirectly: initiateRoutePreview with empty start/dest returns without crash
+        routeManager.initiateRoutePreview("", "dest");
+        routeManager.initiateRoutePreview("start", "");
+    }
+
+    // ── initiateRoutePreview early-exit paths ─────────────────────────────────
+
+    @Test
+    public void initiateRoutePreview_emptyStart_returnsImmediately() {
+        routeManager.setBuildingsMap(new HashMap<>());
+        // Should not throw — exits at the isEmpty() guard
+        routeManager.initiateRoutePreview("", "Hall Building");
+    }
+
+    @Test
+    public void initiateRoutePreview_emptyDest_returnsImmediately() {
+        routeManager.setBuildingsMap(new HashMap<>());
+        routeManager.initiateRoutePreview("Hall Building", "");
+    }
+
+    @Test
+    public void initiateRoutePreview_bothEmpty_returnsImmediately() {
+        routeManager.setBuildingsMap(new HashMap<>());
+        routeManager.initiateRoutePreview("", "");
+    }
 
     // ── parseDurationToMinutes ────────────────────────────────────────────────
 
