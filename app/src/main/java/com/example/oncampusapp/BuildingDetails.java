@@ -72,13 +72,15 @@ public class BuildingDetails {
         private String sunday;
         public Schedule(){
             this.alwaysOpen = false;
-            this.monday = "7 a.m.–11 p.m.";
-            this.tuesday = "7 a.m.–11 p.m.";
-            this.wednesday = "7 a.m.–11 p.m.";
-            this.thursday = "7 a.m.–11 p.m.";
-            this.friday = "7 a.m.–11 p.m.";
-            this.saturday = "7 a.m.–7 p.m.";
-            this.sunday = "7 a.m.–7 p.m.";
+            String regularTime = "7 a.m.–11 p.m.";
+            String weekendTime = "7 a.m.–7 p.m.";
+            this.monday = regularTime;
+            this.tuesday = regularTime;
+            this.wednesday = regularTime;
+            this.thursday = regularTime;
+            this.friday = regularTime;
+            this.saturday = weekendTime;
+            this.sunday = weekendTime;
         }
 
         @NonNull
@@ -98,7 +100,7 @@ public class BuildingDetails {
         public List<String> groupSchedule() {
 
             if (this.alwaysOpen) {
-                return null;
+                return new ArrayList<>();
             }
 
             List<String> result = new ArrayList<>();

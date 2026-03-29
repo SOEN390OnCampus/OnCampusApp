@@ -1,9 +1,16 @@
 package com.example.oncampusapp;
 
+import static androidx.test.espresso.Espresso.onView;
 import static androidx.test.espresso.action.ViewActions.click;
 import static androidx.test.espresso.action.ViewActions.closeSoftKeyboard;
 import static androidx.test.espresso.action.ViewActions.replaceText;
+import static androidx.test.espresso.action.ViewActions.typeText;
+import static androidx.test.espresso.assertion.ViewAssertions.matches;
+import static androidx.test.espresso.matcher.ViewMatchers.isDisplayed;
+import static androidx.test.espresso.matcher.ViewMatchers.isEnabled;
+import static androidx.test.espresso.matcher.ViewMatchers.withEffectiveVisibility;
 import static androidx.test.espresso.matcher.ViewMatchers.withId;
+import static androidx.test.espresso.matcher.ViewMatchers.withText;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
@@ -13,6 +20,7 @@ import static org.junit.Assert.assertTrue;
 import androidx.test.espresso.Espresso;
 import androidx.test.espresso.action.ViewActions;
 import androidx.test.espresso.assertion.ViewAssertions;
+import androidx.test.espresso.matcher.RootMatchers;
 import androidx.test.espresso.matcher.ViewMatchers;
 import androidx.test.ext.junit.rules.ActivityScenarioRule;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
@@ -48,126 +56,108 @@ public class NavigationUITest {
             new ActivityScenarioRule<>(MapsActivity.class);
 
     @Test
-    public void testOpenRoutePicker_ShowsInputs() throws InterruptedException {
-        Thread.sleep(4000); // Wait for map + GeoJSON
-
-        Espresso.onView(withId(R.id.search_bar_container))
+    public void testOpenRoutePicker_ShowsInputs() {
+        onView(withId(R.id.search_bar_container))
                 .perform(click());
 
-        Thread.sleep(1000); // Wait for slide-down animation
+        onView(withId(R.id.route_picker_container))
+                .check(matches(isDisplayed()));
 
-        Espresso.onView(withId(R.id.route_picker_container))
-                .check(ViewAssertions.matches(ViewMatchers.isDisplayed()));
-
-        Espresso.onView(withId(R.id.layout_inputs))
-                .check(ViewAssertions.matches(ViewMatchers.isDisplayed()));
+        onView(withId(R.id.layout_inputs))
+                .check(matches(isDisplayed()));
     }
 
     @Test
-    public void testInvalidAddress_DoesNotCrashOrNavigate() throws InterruptedException {
-        Thread.sleep(6000);
+    public void testInvalidAddress_DoesNotCrashOrNavigate() {
 
-        Espresso.onView(withId(R.id.search_bar_container)).perform(click());
-        Thread.sleep(1000);
+        onView(withId(R.id.search_bar_container)).perform(click());
 
         // Type gibberish without clicking the dropdown
-        Espresso.onView(withId(R.id.et_start))
-                .perform(ViewActions.typeText("Fake Building 123"), closeSoftKeyboard());
-        Espresso.onView(withId(R.id.et_destination))
-                .perform(ViewActions.typeText("Nowhere"), closeSoftKeyboard());
+        onView(withId(R.id.et_start))
+                .perform(typeText("Fake Building 123"), closeSoftKeyboard());
+        onView(withId(R.id.et_destination))
+                .perform(typeText("Nowhere"), closeSoftKeyboard());
 
         // Try to trigger preview
-        Espresso.onView(withId(R.id.btn_mode_walking)).perform(click());
-        Thread.sleep(1000);
+        onView(withId(R.id.btn_mode_walking)).perform(click());
 
         // Try to click GO
-        Espresso.onView(withId(R.id.btn_go)).perform(click());
-        Thread.sleep(500);
+        onView(withId(R.id.btn_go)).perform(click());
 
         // Verify the app safely blocked navigation and the Setup UI is still visible
-        Espresso.onView(withId(R.id.layout_inputs))
-                .check(ViewAssertions.matches(ViewMatchers.isDisplayed()));
+        onView(withId(R.id.layout_inputs))
+                .check(matches(isDisplayed()));
     }
 
     @Test
-    public void testNavigationModeToggle_GoAndExitButtons() throws InterruptedException {
-        Thread.sleep(4000); // Wait for map + GeoJSON
+    public void testNavigationModeToggle_GoAndExitButtons_demo() {
 
         // 1. Open the Picker
         Espresso.onView(withId(R.id.search_bar_container))
                 .perform(click());
-        Thread.sleep(1000);
+
 
         // 2. Type a partial name ("Henry") like a human, then close the keyboard
         Espresso.onView(withId(R.id.et_start))
-                .perform(ViewActions.typeText("Henry"), closeSoftKeyboard());
-
-        Thread.sleep(1500); // Give the dropdown a moment to animate in
+                .perform(typeText("Henry"), closeSoftKeyboard());
 
         // Click the first item in the Start dropdown
-        Espresso.onView(ViewMatchers.withText("H - Henry F. Hall Building"))
-                .inRoot(androidx.test.espresso.matcher.RootMatchers.isPlatformPopup())
+
+        Espresso.onView(withText("H - Henry F. Hall Building"))
+                .inRoot(RootMatchers.isPlatformPopup())
+                .check(matches(isDisplayed()))
                 .perform(click());
 
         // 3. Type a partial name ("Molson") in Destination
-        Espresso.onView(ViewMatchers.withId(R.id.et_destination))
-                .perform(ViewActions.typeText("Molson"), ViewActions.closeSoftKeyboard());
-
-        Thread.sleep(1500); // Wait for dropdown
+        Espresso.onView(withId(R.id.et_destination))
+                .perform(click(), typeText("Molson"), closeSoftKeyboard());
 
         // Click the destination from the dropdown
-        Espresso.onView(ViewMatchers.withText("MB - John Molson School of Business"))
-                .inRoot(androidx.test.espresso.matcher.RootMatchers.isPlatformPopup())
+        Espresso.onView(withText("MB - John Molson School of Business"))
+                .inRoot(RootMatchers.isPlatformPopup())
+                .check(matches(isDisplayed()))
                 .perform(click());
-
         // 4. Wait for the API call to return and draw the polyline.
-        Thread.sleep(3000);
+        Espresso.onView(withId(R.id.btn_go))
+                .check(matches(isEnabled()));
 
         // 5. Click the GO Button
         Espresso.onView(withId(R.id.btn_go))
                 .perform(click());
-        Thread.sleep(2500);
-
         // 6. VERIFY: The big inputs should be hidden (GONE)
         Espresso.onView(withId(R.id.layout_inputs))
-                .check(ViewAssertions.matches(
-                        ViewMatchers.withEffectiveVisibility(ViewMatchers.Visibility.GONE)));
+                .check(matches(withEffectiveVisibility(ViewMatchers.Visibility.GONE)));
+
+        Espresso.onView(withId(R.id.layout_navigation_active))
+                .check(matches(isDisplayed()));
 
         // 7. VERIFY: The small Navigation Bar should be visible
-        Espresso.onView(withId(R.id.layout_navigation_active))
-                .check(ViewAssertions.matches(ViewMatchers.isDisplayed()));
-
-        // 8. Click the EXIT Button
         Espresso.onView(withId(R.id.btn_end_trip))
                 .perform(click());
 
-        // Just a standard wait for the layout to pop back up
-        Thread.sleep(1000);
+        // 8. Click the EXIT Button
+        Espresso.onView(withId(R.id.layout_inputs))
+                .check(matches(withEffectiveVisibility(ViewMatchers.Visibility.VISIBLE)));
+
 
         // 9. VERIFY: The UI restored to the setup mode
-        Espresso.onView(ViewMatchers.withId(R.id.layout_inputs))
-                .check(ViewAssertions.matches(ViewMatchers.isDisplayed()));
-
         Espresso.onView(withId(R.id.layout_navigation_active))
-                .check(ViewAssertions.matches(
-                        ViewMatchers.withEffectiveVisibility(ViewMatchers.Visibility.GONE)));
+                .check(matches(withEffectiveVisibility(ViewMatchers.Visibility.GONE)));
     }
     @Test
-    public void testTransportationModeButtons_PolylineUpdate() throws InterruptedException {
+    public void testTransportationModeButtons_PolylineUpdate_demo() {
         AtomicReference<List<LatLng>> previousPoints = new AtomicReference<>();
 
-        Thread.sleep(4000); // Wait for map + GeoJSON
 
         // 1. Open the Picker
-        Espresso.onView(withId(R.id.search_bar_container))
+        onView(withId(R.id.search_bar_container))
                 .perform(click());
-        Thread.sleep(1000);
 
         // 2. Set start and destination
-        Espresso.onView(withId(R.id.et_start))
+        onView(withId(R.id.et_start))
                 .perform(click(), replaceText("H - Henry F. Hall Building"), closeSoftKeyboard());
 
-        Espresso.onView(withId(R.id.et_destination))
+        onView(withId(R.id.et_destination))
                 .perform(click(), replaceText("Richard J Renaud Science Complex (SP)"), closeSoftKeyboard());
 
         // 3. Test for each transportation mode button
@@ -176,10 +166,9 @@ public class NavigationUITest {
         checkModeBtnAndPolyline(previousPoints, R.id.btn_mode_transit);
     }
     // Helper function for testing the transportation mode buttons
-    private void checkModeBtnAndPolyline(AtomicReference<List<LatLng>> previousPoints, int btnId) throws InterruptedException {
+    private void checkModeBtnAndPolyline(AtomicReference<List<LatLng>> previousPoints, int btnId) {
         // Click the mode
-        Espresso.onView(withId(btnId)).perform(click());
-        Thread.sleep(3000); // Wait for route to draw
+        onView(withId(btnId)).perform(click());
 
         // Verify polyline
         activityRule.getScenario().onActivity(activity -> {

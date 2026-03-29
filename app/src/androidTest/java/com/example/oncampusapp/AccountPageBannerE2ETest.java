@@ -54,13 +54,12 @@ public class AccountPageBannerE2ETest {
     }
 
     @Test
-    public void testBannerAppearsWithCorrectData() throws InterruptedException {
+    public void testBannerAppearsWithCorrectData(){
         // Launch the Activity
         Intent intent = new Intent(ApplicationProvider.getApplicationContext(), AccountPage.class);
         intent.putExtra("email", "test@concordia.ca");
         ActivityScenario<AccountPage> scenario = ActivityScenario.launch(intent);
 
-        Thread.sleep(1500);
 
         // Verify the banner is visible
         Espresso.onView(withId(R.id.included_banner))
@@ -78,7 +77,6 @@ public class AccountPageBannerE2ETest {
         Espresso.onView(withId(R.id.banner_time_status))
                 .check(matches(withText(containsString("mins"))));
 
-        Thread.sleep(3000);
 
         scenario.close();
     }

@@ -187,4 +187,110 @@ public class MapsActivityUnitTest {
             assertEquals("Building " + i, retrieved.name);
         }
     }
+
+    @Test
+    public void testEntranceDoorway_PrefersFloor1OverFloor2() {
+        List<IndoorNode> doorways = new ArrayList<>();
+
+        IndoorNode secondFloor = new IndoorNode.Builder()
+                .id("F2")
+                .type("building_entry_exit")
+                .buildingId("LB")
+                .floor("2")
+                .x(0).y(0)
+                .accessible(true)
+                .build();
+
+        IndoorNode firstFloor = new IndoorNode.Builder()
+                .id("F1")
+                .type("building_entry_exit")
+                .buildingId("LB")
+                .floor("1")
+                .x(0).y(0)
+                .accessible(true)
+                .build();
+
+        doorways.add(secondFloor);
+        doorways.add(firstFloor);
+
+        IndoorNode result = null;
+        IndoorNode secondFloorAlternative = null;
+
+        for (IndoorNode doorway : doorways) {
+            String floor = doorway.getFloor();
+
+            if ("1".equals(floor)) {
+                result = doorway;
+                break;
+            }
+
+            if ("2".equals(floor) && secondFloorAlternative == null) {
+                secondFloorAlternative = doorway;
+            }
+        }
+
+        if (result == null && secondFloorAlternative != null) {
+            result = secondFloorAlternative;
+        }
+
+        if (result == null && !doorways.isEmpty()) {
+            result = doorways.get(0);
+        }
+
+        assertNotNull(result);
+        assertEquals("F1", result.getId());
+    }
+
+    @Test
+    public void testCrossBuilding_DifferentBuildings() {
+        IndoorNode fromRoom = new IndoorNode.Builder()
+                .id("H_F2_room_200")
+                .label("H-200")
+                .buildingId("H")
+                .floor("2")
+                .x(0).y(0)
+                .accessible(true)
+                .build();
+
+        IndoorNode toRoom = new IndoorNode.Builder()
+                .id("LB_F2_room_200")
+                .label("LB-200")
+                .buildingId("LB")
+                .floor("2")
+                .x(0).y(0)
+                .accessible(true)
+                .build();
+
+        boolean isCrossBuilding =
+                !fromRoom.getRootBuildingId().equalsIgnoreCase(toRoom.getRootBuildingId());
+
+        assertTrue("Should be cross-building when buildings differ", isCrossBuilding);
+    }
+
+    @Test
+    public void testCrossBuilding_SameBuilding() {
+        IndoorNode fromRoom = new IndoorNode.Builder()
+                .id("H_F2_room_200")
+                .label("H-200")
+                .buildingId("H")
+                .floor("2")
+                .x(0).y(0)
+                .accessible(true)
+                .build();
+
+        IndoorNode toRoom = new IndoorNode.Builder()
+                .id("H_F3_room_300")
+                .label("H-300")
+                .buildingId("H")
+                .floor("3")
+                .x(0).y(0)
+                .accessible(true)
+                .build();
+
+        boolean isCrossBuilding =
+                !fromRoom.getRootBuildingId().equalsIgnoreCase(toRoom.getRootBuildingId());
+
+        assertEquals("Should NOT be cross-building for same building", false, isCrossBuilding);
+    }
+
 }

@@ -149,6 +149,7 @@
                 android:layout_height="50dp"
                 android:backgroundTint="#7A1C1C"
                 android:text="@string/sign_out"
+                android:textColor="@color/white"
                 app:iconGravity="textTop"
                 app:iconSize="30dp" />
 
