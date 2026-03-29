@@ -71,4 +71,64 @@ public class IndoorNavigationControllerTest {
         assertEquals(5, controller.getIndoorRoomMap().size());
     }
 
+    // ── setSearchSuggestionsAdapter — stored and used later ──────────────────
+
+    @Test
+    public void setSearchSuggestionsAdapter_nullAdapter_doesNotThrow() {
+        controller.setSearchSuggestionsAdapter(null);
+    }
+
+    // ── loadIndoorRoomsIntoAdapter — spawns thread, returns immediately ───────
+
+    @Test
+    public void loadIndoorRoomsIntoAdapter_doesNotThrowOnCallingThread() {
+        // RETURNS_DEEP_STUBS: getResources().getIdentifier() returns 0 (int default)
+        // so every building exits early in processBuilding — no crash on calling thread.
+        controller.loadIndoorRoomsIntoAdapter();
+    }
+
+    @Test
+    public void loadIndoorRoomsIntoAdapter_withAdapterSet_doesNotThrow() {
+        controller.setSearchSuggestionsAdapter(mockAdapter);
+        controller.loadIndoorRoomsIntoAdapter();
+    }
+
+    // ── IndoorNode.Builder edge cases ─────────────────────────────────────────
+
+    @Test
+    public void indoorNodeBuilder_defaults_doesNotThrow() {
+        IndoorNode node = new IndoorNode.Builder().build();
+        assertNotNull(node);
+    }
+
+    @Test
+    public void indoorNodeBuilder_allFields_roundTrip() {
+        IndoorNode node = new IndoorNode.Builder()
+                .id("lb-207").label("LB-207")
+                .buildingId("LB").floor("2")
+                .type("room").x(10f).y(20f).accessible(true)
+                .build();
+        assertEquals("lb-207", node.getId());
+        assertEquals("LB-207", node.getLabel());
+        assertEquals("LB", node.getRootBuildingId());
+    }
+
+    @Test
+    public void indoorNodeBuilder_accessible_false() {
+        IndoorNode node = new IndoorNode.Builder().accessible(false).build();
+        assertNotNull(node);
+    }
+
+    // ── Map isolation — controller map and indoorRoomMap are the same object ──
+
+    @Test
+    public void controllerMap_andLocalMap_areSameReference() {
+        assertSame(indoorRoomMap, controller.getIndoorRoomMap());
+    }
+
+    @Test
+    public void controllerMap_mutationViaController_visibleLocally() {
+        indoorRoomMap.put("CC-310", new IndoorNode.Builder().label("CC-310").build());
+        assertTrue(controller.getIndoorRoomMap().containsKey("CC-310"));
+    }
 }
