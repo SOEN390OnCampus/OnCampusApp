@@ -2,9 +2,14 @@ package com.example.oncampusapp;
 
 import static org.junit.Assert.assertNotNull;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+
+import android.view.View;
+import android.widget.TextView;
 
 import org.junit.After;
 import org.junit.Before;
@@ -12,6 +17,10 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.annotation.Config;
+
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Locale;
 
 /**
  * Tests for EventBannerManager.
@@ -139,5 +148,92 @@ public class EventBannerManagerTest {
         manager.checkAndDisplayNextEventBanner();
         manager.checkAndDisplayNextEventBanner();
         manager.checkAndDisplayNextEventBanner();
+    }
+
+    // ── checkAndDisplayNextEventBanner – bannerView interaction ───────────────
+
+    /** Empty event array → nextClass = null, bannerView != null → hides banner. */
+    @Test
+    public void checkAndDisplayNextEventBanner_noEvents_hidesBannerView() {
+        View mockBannerView = mock(View.class);
+        doReturn(mockBannerView).when(mockActivity).findViewById(R.id.included_banner);
+        CalendarEventManager.globalEventsJson = "[]"; // valid JSON array, no events
+        manager.checkAndDisplayNextEventBanner();
+        verify(mockBannerView).setVisibility(View.GONE);
+    }
+
+    /** Upcoming event, but bannerView.findViewById returns null → early return at null guard. */
+    @Test
+    public void checkAndDisplayNextEventBanner_upcomingEvent_nullTitleView_returnsEarly() {
+        CalendarEventManager.globalEventsJson = buildEventJson(30, 90);
+        View mockBannerView = mock(View.class);
+        doReturn(mockBannerView).when(mockActivity).findViewById(R.id.included_banner);
+        // bannerView.findViewById returns null by default → titleView == null → return
+        manager.checkAndDisplayNextEventBanner();
+        // Must not crash; bannerView.setVisibility should NOT have been called
+        verify(mockBannerView, never()).setVisibility(anyInt());
+    }
+
+    /** Event starting in 30 min (within the 60-min window) → banner shown. */
+    @Test
+    public void checkAndDisplayNextEventBanner_eventWithin60Min_showsBanner() {
+        CalendarEventManager.globalEventsJson = buildEventJson(30, 90);
+        View mockBannerView    = mock(View.class);
+        TextView mockTitleView  = mock(TextView.class);
+        TextView mockDetailsView = mock(TextView.class);
+        doReturn(mockBannerView).when(mockActivity).findViewById(R.id.included_banner);
+        doReturn(mockTitleView).when(mockBannerView).findViewById(R.id.banner_event_title);
+        doReturn(mockDetailsView).when(mockBannerView).findViewById(R.id.banner_event_details);
+
+        manager.checkAndDisplayNextEventBanner();
+
+        verify(mockBannerView).setVisibility(View.VISIBLE);
+        verify(mockTitleView).setText(anyString());
+    }
+
+    /** Event starting in 90 min (beyond the 60-min window) → banner hidden. */
+    @Test
+    public void checkAndDisplayNextEventBanner_eventBeyond60Min_hidesBanner() {
+        CalendarEventManager.globalEventsJson = buildEventJson(90, 150);
+        View mockBannerView    = mock(View.class);
+        TextView mockTitleView  = mock(TextView.class);
+        TextView mockDetailsView = mock(TextView.class);
+        doReturn(mockBannerView).when(mockActivity).findViewById(R.id.included_banner);
+        doReturn(mockTitleView).when(mockBannerView).findViewById(R.id.banner_event_title);
+        doReturn(mockDetailsView).when(mockBannerView).findViewById(R.id.banner_event_details);
+
+        manager.checkAndDisplayNextEventBanner();
+
+        verify(mockBannerView).setVisibility(View.GONE);
+    }
+
+    /** Currently-ongoing event (start in past, end in future) → banner shown. */
+    @Test
+    public void checkAndDisplayNextEventBanner_ongoingEvent_showsBanner() {
+        CalendarEventManager.globalEventsJson = buildEventJson(-30, 30);
+        View mockBannerView    = mock(View.class);
+        TextView mockTitleView  = mock(TextView.class);
+        TextView mockDetailsView = mock(TextView.class);
+        doReturn(mockBannerView).when(mockActivity).findViewById(R.id.included_banner);
+        doReturn(mockTitleView).when(mockBannerView).findViewById(R.id.banner_event_title);
+        doReturn(mockDetailsView).when(mockBannerView).findViewById(R.id.banner_event_details);
+
+        manager.checkAndDisplayNextEventBanner();
+
+        verify(mockBannerView).setVisibility(View.VISIBLE);
+    }
+
+    // ── helpers ───────────────────────────────────────────────────────────────
+
+    /** Builds a one-element JSON array with an event offset by the given minutes. */
+    private static String buildEventJson(int startOffsetMinutes, int endOffsetMinutes) {
+        SimpleDateFormat fmt = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX", Locale.getDefault());
+        long now = System.currentTimeMillis();
+        String start = fmt.format(new Date(now + (long) startOffsetMinutes * 60_000));
+        String end   = fmt.format(new Date(now + (long) endOffsetMinutes   * 60_000));
+        return "[{\"summary\":\"SOEN 390\","
+                + "\"start\":{\"dateTime\":\"" + start + "\"},"
+                + "\"end\":{\"dateTime\":\"" + end + "\"},"
+                + "\"location\":\"H-110\"}]";
     }
 }
