@@ -2501,12 +2501,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
      */
     private void launchIndoorRoute(IndoorNode fromRoom, IndoorNode toRoom) {
         String fromBuilding = fromRoom.getRootBuildingId();
-        String toBuilding   = toRoom.getRootBuildingId();
+        String toBuilding = toRoom.getRootBuildingId();
 
         if (!fromBuilding.equalsIgnoreCase(toBuilding)) {
 
             IndoorNode fromDoor = findPreferredDoorway(fromBuilding);
-            IndoorNode toDoor   = findPreferredDoorway(toBuilding);
+            IndoorNode toDoor = findPreferredDoorway(toBuilding);
 
             loadIndoorPath(
                     fromBuilding,
@@ -2539,40 +2539,29 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             return;
         }
 
-        new Thread(() -> {
-            IndoorGraph graph = new IndoorGraph();
-            try (java.io.InputStream is = getResources().openRawResource(resId)) {
-                graph.load(is);
-            } catch (IOException | JSONException e) {
-                Log.e(TAG, "Graph load failed", e);
-                runOnUiThread(() ->
-                    Toast.makeText(this, "Error loading building data.", Toast.LENGTH_SHORT).show());
-                return;
-            }
+            loadIndoorPath(
+                    fromBuilding,
+                    fromRoom.getId(),
+                    toRoom.getId(),
+                    path -> {
+                        if (isDestroyed() || isFinishing()) return;
 
-        loadIndoorPath(
-                fromBuilding,
-                fromRoom.getId(),
-                toRoom.getId(),
-                path -> {
-                    if (isDestroyed() || isFinishing()) return;
+                        if (path.isEmpty()) {
+                            Toast.makeText(this, "No indoor path found between these rooms.",
+                                    Toast.LENGTH_LONG).show();
+                            return;
+                        }
 
-                    if (path.isEmpty()) {
-                        Toast.makeText(this, "No indoor path found between these rooms.",
-                                Toast.LENGTH_LONG).show();
-                        return;
-                    }
-
-                    Intent intent = new Intent(this, IndoorMapActivity.class);
-                    intent.putExtra("BUILDING_ID", fromBuilding);
-                    intent.putExtra("FLOOR_ID", fromRoom.getFloorMenuId());
-                    intent.putExtra("FROM_NODE_ID", fromRoom.getId());
-                    intent.putExtra("TO_NODE_ID", toRoom.getId());
-                    intent.putExtra("PATH_NODE_IDS", String.join(",", path));
-                    startActivity(intent);
-                },
-                "Error loading building data."
-        );
+                        Intent intent = new Intent(this, IndoorMapActivity.class);
+                        intent.putExtra("BUILDING_ID", fromBuilding);
+                        intent.putExtra("FLOOR_ID", fromRoom.getFloorMenuId());
+                        intent.putExtra("FROM_NODE_ID", fromRoom.getId());
+                        intent.putExtra("TO_NODE_ID", toRoom.getId());
+                        intent.putExtra("PATH_NODE_IDS", String.join(",", path));
+                        startActivity(intent);
+                    },
+                    "Error loading building data."
+            );
     }
 
     private void handleBannerDirectionsClick(org.json.JSONObject nextClass) {
