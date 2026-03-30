@@ -1,7 +1,6 @@
 package com.example.oncampusapp;
 
 import androidx.activity.result.ActivityResultLauncher;
-
 import com.google.android.gms.maps.GoogleMap;
 
 import org.junit.Before;
@@ -107,4 +106,5 @@ public class LocationPermissionManagerTest {
         manager.launchPermissionRequest();
         manager.launchPermissionRequest();
     }
+
 }

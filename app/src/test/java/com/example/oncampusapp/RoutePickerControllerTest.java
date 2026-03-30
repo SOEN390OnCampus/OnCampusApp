@@ -342,4 +342,72 @@ public class RoutePickerControllerTest {
         verify(next,    never()).setVisibility(View.VISIBLE);
         verify(textDir, never()).setVisibility(View.VISIBLE);
     }
+
+    @Test
+    public void toggleNavigationUI_driveMode_showsDirectionViews() {
+        LinearLayout inputs    = mock(LinearLayout.class);
+        LinearLayout tabs      = mock(LinearLayout.class);
+        Button go              = mock(Button.class);
+        LinearLayout navActive = mock(LinearLayout.class);
+        ConstraintLayout dir   = mock(ConstraintLayout.class);
+        ImageButton prev       = mock(ImageButton.class);
+        ImageButton next       = mock(ImageButton.class);
+        TextView textDir       = mock(TextView.class);
+        FrameLayout close      = mock(FrameLayout.class);
+
+        stubToggleViews(inputs, tabs, go, navActive, dir, prev, next, textDir, close);
+        when(mockRouteManager.getSelectedMode()).thenReturn(RouteTravelMode.DRIVE);
+
+        controller.toggleNavigationUI(true);
+
+        verify(dir).setVisibility(View.VISIBLE);
+        verify(prev).setVisibility(View.VISIBLE);
+        verify(next).setVisibility(View.VISIBLE);
+        verify(textDir).setVisibility(View.VISIBLE);
+    }
+
+    @Test
+    public void toggleNavigationUI_transitMode_showsDirectionViews() {
+        LinearLayout inputs    = mock(LinearLayout.class);
+        LinearLayout tabs      = mock(LinearLayout.class);
+        Button go              = mock(Button.class);
+        LinearLayout navActive = mock(LinearLayout.class);
+        ConstraintLayout dir   = mock(ConstraintLayout.class);
+        ImageButton prev       = mock(ImageButton.class);
+        ImageButton next       = mock(ImageButton.class);
+        TextView textDir       = mock(TextView.class);
+        FrameLayout close      = mock(FrameLayout.class);
+
+        stubToggleViews(inputs, tabs, go, navActive, dir, prev, next, textDir, close);
+        when(mockRouteManager.getSelectedMode()).thenReturn(RouteTravelMode.TRANSIT);
+
+        controller.toggleNavigationUI(true);
+
+        verify(dir).setVisibility(View.VISIBLE);
+        verify(prev).setVisibility(View.VISIBLE);
+        verify(next).setVisibility(View.VISIBLE);
+        verify(textDir).setVisibility(View.VISIBLE);
+    }
+
+    @Test
+    public void toggleNavigationUI_notNavigating_hidesDirectionViews() {
+        LinearLayout inputs    = mock(LinearLayout.class);
+        LinearLayout tabs      = mock(LinearLayout.class);
+        Button go              = mock(Button.class);
+        LinearLayout navActive = mock(LinearLayout.class);
+        ConstraintLayout dir   = mock(ConstraintLayout.class);
+        ImageButton prev       = mock(ImageButton.class);
+        ImageButton next       = mock(ImageButton.class);
+        TextView textDir       = mock(TextView.class);
+        FrameLayout close      = mock(FrameLayout.class);
+
+        stubToggleViews(inputs, tabs, go, navActive, dir, prev, next, textDir, close);
+
+        controller.toggleNavigationUI(false);
+
+        verify(dir).setVisibility(View.GONE);
+        verify(prev).setVisibility(View.GONE);
+        verify(next).setVisibility(View.GONE);
+        verify(textDir).setVisibility(View.GONE);
+    }
 }

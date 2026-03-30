@@ -131,4 +131,12 @@ public class IndoorNavigationControllerTest {
         indoorRoomMap.put("CC-310", new IndoorNode.Builder().label("CC-310").build());
         assertTrue(controller.getIndoorRoomMap().containsKey("CC-310"));
     }
+
+    // ── setSearchSuggestionsAdapter – replaced adapter ────────────────────────
+
+    @Test
+    public void setSearchSuggestionsAdapter_calledTwice_doesNotThrow() {
+        controller.setSearchSuggestionsAdapter(mockAdapter);
+        controller.setSearchSuggestionsAdapter(null);
+    }
 }

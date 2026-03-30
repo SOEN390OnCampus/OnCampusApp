@@ -341,4 +341,51 @@ public class RouteManagerTest {
         routeManager.clearNormalRoute();
         assertNull(routeManager.getFirstRoutePoint());
     }
+
+    // ── applySameCampusCheck – shuttle mode, different campuses ───────────────
+
+    @Test
+    public void applySameCampusCheck_shuttleMode_differentCampuses_returnsFalse() {
+        routeManager.setSelectedMode(RouteTravelMode.SHUTTLE);
+        // SGW + LOY are on different campuses → isSameCampus returns false → method returns false
+        LatLng sgw = new LatLng(45.4972, -73.5790);
+        LatLng loy = new LatLng(45.4582, -73.6405);
+        assertFalse(routeManager.applySameCampusCheck(sgw, loy));
+        // Mode must remain SHUTTLE (not switched to WALK)
+        assertEquals(RouteTravelMode.SHUTTLE, routeManager.getSelectedMode());
+    }
+
+    // ── parseDurationToMinutes – additional edge cases ────────────────────────
+
+    @Test
+    public void parseDuration_singleMinute_returnsOne() {
+        assertEquals(1, RouteManager.parseDurationToMinutes("1 minute"));
+    }
+
+    @Test
+    public void parseDuration_leadingTrailingSpaces_handledCorrectly() {
+        assertEquals(5, RouteManager.parseDurationToMinutes("  5 mins  "));
+    }
+
+    @Test
+    public void parseDuration_zeroHoursZeroMinutes_returnsZero() {
+        assertEquals(0, RouteManager.parseDurationToMinutes("0 hours 0 mins"));
+    }
+
+    // ── resetRouteState – idempotent ──────────────────────────────────────────
+
+    @Test
+    public void resetRouteState_calledTwice_doesNotThrow() {
+        routeManager.resetRouteState();
+        routeManager.resetRouteState();
+    }
+
+    // ── setSelectedMode – all modes round-trip ────────────────────────────────
+
+    @Test
+    public void setSelectedMode_walk_roundTrip() {
+        routeManager.setSelectedMode(RouteTravelMode.DRIVE);
+        routeManager.setSelectedMode(RouteTravelMode.WALK);
+        assertEquals(RouteTravelMode.WALK, routeManager.getSelectedMode());
+    }
 }
