@@ -8,6 +8,7 @@ import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
@@ -53,6 +54,7 @@ public class AccountPage extends AppCompatActivity {
     // --- Timer Variables for the Live Banner ---
     private android.os.Handler timerHandler = new android.os.Handler();
     private Runnable timerRunnable;
+    private static final String TAG = "AccountPage";
 
     private static final String CALENDAR_SCOPE =
             "https://www.googleapis.com/auth/calendar.readonly";
@@ -70,16 +72,15 @@ public class AccountPage extends AppCompatActivity {
         window.setStatusBarColor(Color.parseColor("#7A1C1C"));
 
         email = getIntent().getStringExtra("email");
-
-        calendarListJson = getIntent().getStringExtra("calendar_list_json");
         calendarToken = getIntent().getStringExtra("calendar_token");
+
+        // Pull from global variables instead of Intent to avoid TransactionTooLargeException/DeadObjectException
+        eventsJson = CalendarEventManager.globalEventsJson;
+        calendarListJson = CalendarEventManager.globalCalendarListJson;
 
         repository = CalendarRepository.getInstance();
 
         super.onCreate(savedInstanceState);
-
-        // Pull from global variable instead of Intent to avoid crashes
-        eventsJson = CalendarEventManager.globalEventsJson;
 
         // US-3.3 REQUIREMENT: Schedule the notification for the next class
         if (eventsJson != null && !eventsJson.isEmpty()) {
@@ -89,11 +90,9 @@ public class AccountPage extends AppCompatActivity {
                     NotificationScheduler.scheduleClassNotification(this, nextClass);
                 }
             } catch (Exception e) {
-                e.printStackTrace();
+                Log.e(TAG, "Calendar creation failed");
             }
         }
-
-        repository = CalendarRepository.getInstance();
 
         setContentView(R.layout.account_page);
         setViews();
@@ -137,6 +136,9 @@ public class AccountPage extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
+        // Refresh data from global variables in case they changed
+        eventsJson = CalendarEventManager.globalEventsJson;
+        calendarListJson = CalendarEventManager.globalCalendarListJson;
         populateCalendarList();
     }
 
@@ -219,7 +221,7 @@ public class AccountPage extends AppCompatActivity {
 
                 } catch (Exception e) {
 
-                    e.printStackTrace();
+                    Log.e(TAG, "Refresh button failed");
 
                     runOnUiThread(() -> {
                         btnRefresh.setEnabled(true);
@@ -343,7 +345,7 @@ public class AccountPage extends AppCompatActivity {
                 calendarContainer.addView(itemView);
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            Log.e(TAG, "Calendar population failed");
             Toast.makeText(this, "Error loading calendars", Toast.LENGTH_SHORT).show();
         }
     }

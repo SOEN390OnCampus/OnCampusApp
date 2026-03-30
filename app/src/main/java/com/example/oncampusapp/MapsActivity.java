@@ -92,6 +92,7 @@ import com.google.maps.android.data.geojson.GeoJsonLineStringStyle;
 import com.google.maps.android.data.geojson.GeoJsonPolygon;
 import com.google.maps.android.data.geojson.GeoJsonPolygonStyle;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -123,6 +124,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private boolean isRoutePickerOpen = false;
     private boolean isPreviewActive = false;
 
+    private boolean pendingNotificationDirections = false;
     private final Handler bannerHandler = new Handler();
     private final Runnable bannerRunnable = new Runnable() {
         @Override
@@ -154,8 +156,14 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     private ActivityResultLauncher<String[]> locationPermissionRequest;
     private TextView btnSgwLoy;
+
     private static final String sgw = "SGW";
     private static final String loy = "LOY";
+    private static final String TAG = "MapsActivity";
+    private static final String KEY_NOTIFICATION_ID = "notification_id";
+    private static final String KEY_START = "start";
+    private static final String KEY_DATE_TIME = "dateTime";
+    private static final String DATE_FORMAT = "yyyy-MM-dd'T'HH:mm:ssXXX";
 
     // Navigation Variables
     private List<LatLng> currentRoutePoints;
@@ -245,52 +253,87 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
         WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
         getWindow().setStatusBarColor(Color.TRANSPARENT);
-
         launchPermissionRequest();
 
-        // ViewBinding: inflate, then set content view ONCE
+        initializeBinding();
+        cancelNotificationIfPresent(getIntent());
+        initializeBannerInsets();
+        initializeBottomNavigation();
+        initializeLocationProvider();
+        initializeMap();
+        requestRuntimePermissionsIfNeeded();
+        initializeNotificationSupport();
+        initializeLocationPermissionLauncher();
+        runStartupTasks();
+    }
+
+    // HELPERS for onCreate method
+    private void initializeBinding(){
         binding = ActivityMapsBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
-
-        // Preload shuttle route data from bundled JSON
         ShuttleHelper.init(this);
-        View bannerView = findViewById(R.id.included_banner);
-        if (bannerView != null) {
-            ViewCompat.setOnApplyWindowInsetsListener(bannerView, (v, windowInsets) -> {
-                Insets insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars());
-                ViewGroup.MarginLayoutParams mlp = (ViewGroup.MarginLayoutParams) v.getLayoutParams();
-                // Push the banner down by the height of the status bar + 16 pixels for a nice gap
-                mlp.topMargin = insets.top + 16;
-                v.setLayoutParams(mlp);
-                return windowInsets; // Return the original insets untouched
-            });
+        setupRoutePickerUi();
+        buildingClassifier = new BuildingClassifier();
+    }
+
+    private void cancelNotificationIfPresent(Intent intent) {
+        if (intent == null || !intent.hasExtra(KEY_NOTIFICATION_ID)) {
+            return;
         }
 
-        setupRoutePickerUi();
+        int notificationId = intent.getIntExtra(KEY_NOTIFICATION_ID, -1);
+        if (notificationId == -1) {
+            return;
+        }
 
-        binding.bottomNav.setOnItemSelectedListener(item -> {
+        NotificationManager manager =
+                (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+        if (manager != null) {
+            manager.cancel(notificationId);
+        }
+    }
 
-            int id = item.getItemId();
+    private void initializeBannerInsets() {
+        View bannerView = findViewById(R.id.included_banner);
+        if (bannerView == null) {
+            return;
+        }
 
-            if (id == R.id.nav_home) {
-                Toast.makeText(this, "Home clicked", Toast.LENGTH_SHORT).show();
-                return true;
-            } else if (id == R.id.nav_account) {
-                startActivity(new Intent(this, GoogleCalendarAuthActivity.class));
-                return true;
-            } else if (id == R.id.nav_settings) {
-                Toast.makeText(this, "Settings clicked", Toast.LENGTH_SHORT).show();
-                return true;
-            }
-
-            return false;
+        ViewCompat.setOnApplyWindowInsetsListener(bannerView, (v, windowInsets) -> {
+            Insets insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars());
+            ViewGroup.MarginLayoutParams mlp = (ViewGroup.MarginLayoutParams) v.getLayoutParams();
+            mlp.topMargin = insets.top + 16;
+            v.setLayoutParams(mlp);
+            return windowInsets;
         });
+    }
 
-        buildingClassifier = new BuildingClassifier();
+    private void initializeBottomNavigation() {
+        binding.bottomNav.setOnItemSelectedListener(item -> handleBottomNavSelection(item.getItemId()));
+    }
 
+    private boolean handleBottomNavSelection(int id) {
+        if (id == R.id.nav_home) {
+            Toast.makeText(this, "Home clicked", Toast.LENGTH_SHORT).show();
+            return true;
+        }
+
+        if (id == R.id.nav_account) {
+            startActivity(new Intent(this, GoogleCalendarAuthActivity.class));
+            return true;
+        }
+
+        if (id == R.id.nav_settings) {
+            Toast.makeText(this, "Settings clicked", Toast.LENGTH_SHORT).show();
+            return true;
+        }
+
+        return false;
+    }
+
+    private void initializeLocationProvider() {
         OnCampusApplication app = (OnCampusApplication) getApplication();
 
         // If a mock hasn't been injected yet, set the default one
@@ -298,66 +341,86 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             app.setLocationProvider(new FusedLocationProvider(this));
         }
 
-        // Use the provider from the application
         fusedLocationClient = app.getLocationProvider();
-
-        // Initialize our custom Location Source
         myLocationSource = new FusedLocationSource(this, fusedLocationClient);
+    }
 
+    private void initializeMap() {
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
         assert mapFragment != null;
 
-        // Increment before starting the async task
         mapIdlingResource.increment();
         mapFragment.getMapAsync(this);
+    }
 
+    // Permissions
+    private void requestRuntimePermissionsIfNeeded() {
+        requestFineLocationPermissionIfNeeded();
+        requestBackgroundLocationPermissionIfNeeded();
+        requestNotificationPermissionIfNeeded();
+    }
+
+    private void requestFineLocationPermissionIfNeeded() {
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
                 != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(this,
-                    new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
-                    1001);
-        }
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            if (ContextCompat.checkSelfPermission(this,
-                    Manifest.permission.ACCESS_BACKGROUND_LOCATION)
-                    != PackageManager.PERMISSION_GRANTED) {
-
-                ActivityCompat.requestPermissions(this,
-                        new String[]{Manifest.permission.ACCESS_BACKGROUND_LOCATION},
-                        3001);
-            }
-        }
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            if (ActivityCompat.checkSelfPermission(
+            ActivityCompat.requestPermissions(
                     this,
-                    Manifest.permission.POST_NOTIFICATIONS
-            ) != PackageManager.PERMISSION_GRANTED) {
-                ActivityCompat.requestPermissions(
-                        this,
-                        new String[]{Manifest.permission.POST_NOTIFICATIONS},
-                        2001
-                );
-            }
+                    new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
+                    1001
+            );
+        }
+    }
+
+    private void requestBackgroundLocationPermissionIfNeeded() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+            return;
         }
 
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_BACKGROUND_LOCATION)
+                != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(
+                    this,
+                    new String[]{Manifest.permission.ACCESS_BACKGROUND_LOCATION},
+                    3001
+            );
+        }
+    }
+
+    private void requestNotificationPermissionIfNeeded() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+            return;
+        }
+
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
+                != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(
+                    this,
+                    new String[]{Manifest.permission.POST_NOTIFICATIONS},
+                    2001
+            );
+        }
+    }
+
+    private void initializeNotificationSupport() {
         createNotificationChannel();
-        // Initialize the permission launcher
-        locationPermissionRequest = registerForActivityResult(new ActivityResultContracts.RequestMultiplePermissions(), result -> {
-            result.getOrDefault(Manifest.permission.ACCESS_FINE_LOCATION, false);
-            result.getOrDefault(Manifest.permission.ACCESS_COARSE_LOCATION, false);
-        });
+    }
 
-        // Check and Request on Startup
+    private void initializeLocationPermissionLauncher() {
+        locationPermissionRequest = registerForActivityResult(
+                new ActivityResultContracts.RequestMultiplePermissions(),
+                result -> {
+                    result.getOrDefault(Manifest.permission.ACCESS_FINE_LOCATION, false);
+                    result.getOrDefault(Manifest.permission.ACCESS_COARSE_LOCATION, false);
+                }
+        );
+    }
+
+    private void runStartupTasks() {
         checkLocationPermissions();
-
-        // Load building details
         loadBuildingDetails();
-
         checkAndDisplayNextEventBanner();
-
+        handleNotificationDirectionsIntent(getIntent());
     }
 
     @Override
@@ -1047,6 +1110,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             BuildingFloorSelectDialog dialog = new BuildingFloorSelectDialog();
             dialog.show(getSupportFragmentManager(), "BuildingFloorSelectDialog");
         });
+
+        tryGenerateDirectionsFromNotification();
     }
 
     private GeoJsonFeature createSquareFeature(LatLng center, String id) {
@@ -1469,7 +1534,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
     }
 
-
     @SuppressLint("MissingPermission")
     private void startNavigationUpdates() {
         // Stop any existing listener to be safe
@@ -1526,9 +1590,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         return true;
     }
 
-
-
-
      // Converts a Google Directions API duration string into total minutes.
     //Definition: total = walkToStop + shuttleRide + walkFromStop (A-->ShuttleX-->ShuttleY-->B)
     private int parseDurationToMinutes(String durationText) {
@@ -1553,10 +1614,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         return totalMinutes;
     }
-
-
-
-
     private void initiateRoutePreview() {
         String startName = startDestinationText.getText().toString().trim();
         String destName = endDestinationText.getText().toString().trim();
@@ -1803,7 +1860,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     polyline.setPoints(updatedPath);
                 }
             }
-
             currentRoutePoints = updatedPath;
         }
 
@@ -1888,7 +1944,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         btnGo.setLayoutParams(params);
     }
 
-
     //Helper methods for shuttle 3 leg addition
      private void clearNormalRoute() {
          for (Polyline polyline : routePolylines) {
@@ -1938,7 +1993,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         return mMap.addPolyline(options);
     }
 
-
     public GeoJsonLayer getLayer(){
         return layer;
     }
@@ -1962,9 +2016,24 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         View bannerView = findViewById(R.id.included_banner);
 
         if (nextClass != null && bannerView != null) {
+            bannerView.setOnClickListener(v -> {
+                handleBannerDirectionsClick(nextClass);
+            });
 
             TextView titleView = bannerView.findViewById(R.id.banner_event_title);
             TextView detailsView = bannerView.findViewById(R.id.banner_event_details);
+
+            LinearLayout directionsContainer = bannerView.findViewById(R.id.banner_directions_container);
+            ImageView goButton = bannerView.findViewById(R.id.banner_btn_go);
+
+            if (directionsContainer != null) {
+                directionsContainer.setVisibility(View.VISIBLE);
+                directionsContainer.setOnClickListener(v -> handleBannerDirectionsClick(nextClass));
+            }
+
+            if (goButton != null) {
+                goButton.setOnClickListener(v -> handleBannerDirectionsClick(nextClass));
+            }
 
             // Failsafe if views aren't found
             if (titleView == null || detailsView == null) return;
@@ -1973,12 +2042,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
             try {
                 long now = System.currentTimeMillis();
-                String startStr = nextClass.getJSONObject("start").getString("dateTime");
-                String endStr = nextClass.getJSONObject("end").getString("dateTime");
+                String startStr = nextClass.getJSONObject(KEY_START).getString(KEY_DATE_TIME);
+                String endStr = nextClass.getJSONObject("end").getString(KEY_DATE_TIME);
                 String rawLocation = nextClass.optString("location", "");
                 String description = nextClass.optString("description", "");
 
-                SimpleDateFormat exactTimeFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX", Locale.getDefault());
+                SimpleDateFormat exactTimeFormat = new SimpleDateFormat(DATE_FORMAT, Locale.getDefault());
                 long startTime = exactTimeFormat.parse(startStr).getTime();
                 long endTime = exactTimeFormat.parse(endStr).getTime();
 
@@ -2068,7 +2137,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             }
         } else if (bannerView != null) {
             bannerView.setVisibility(View.GONE);
+            ImageView goButton = bannerView.findViewById(R.id.banner_btn_go);
+            if (goButton != null) goButton.setVisibility(View.GONE);
         }
+    }
+    public void checkAndDisplayNextEventBannerForTest() {
+        checkAndDisplayNextEventBanner();
     }
 
     // ==========================================
@@ -2114,7 +2188,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     public List<Polyline> getRoutePolylines() {
         return this.routePolylines;
     }
-
     public void moveMapToLocation(LatLng location, float zoom) {
         mapIdlingResource.increment();
 
@@ -2142,7 +2215,172 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 if (!mapIdlingResource.isIdleNow())
                     mapIdlingResource.decrement();
             }
+
         });
+    }
+    private void handleNotificationDirectionsIntent(Intent intent) {
+        if (intent == null) return;
+
+        boolean openDirections = intent.getBooleanExtra("OPEN_DIRECTIONS", false);
+        if (!openDirections) return;
+
+        pendingNotificationDirections = true;
+        tryGenerateDirectionsFromNotification();
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+
+        // Cancels any existing notifications
+        if (intent != null && intent.hasExtra(KEY_NOTIFICATION_ID)) {
+            int notificationId = intent.getIntExtra(KEY_NOTIFICATION_ID, -1);
+
+            if (notificationId != -1) {
+                NotificationManager manager =
+                        (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+                if (manager != null) {
+                    manager.cancel(notificationId);
+                }
+            }
+        }
+        handleNotificationDirectionsIntent(intent);
+    }
+
+    private void tryGenerateDirectionsFromNotification() {
+        if (!pendingNotificationDirections) return;
+
+        if (mMap == null || startDestinationText == null || endDestinationText == null || buildingsMap.isEmpty()) {
+            return;
+        }
+
+        String eventsJson = CalendarEventManager.globalEventsJson;
+        if (eventsJson == null || eventsJson.isEmpty()) {
+            Toast.makeText(this, "No calendar events available", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        try {
+            JSONObject nextClass = CalendarEventManager.findNextUpcomingEvent(eventsJson);
+            if (nextClass == null) {
+                Toast.makeText(this, "No upcoming class found", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            NotificationRouteHelper.Result result = NotificationRouteHelper.resolveRoute(eventsJson, nextClass, geoIdToBuildingDetailsMap);
+
+            if (result == null || result.getDestinationBuilding() == null || result.getDestinationBuilding().isEmpty()) {
+                Toast.makeText(this, "Could not determine next class location", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            if (result.shouldStartFromPreviousBuilding()){
+                openRouteFromBuildings(result.getPreviousBuilding(), result.getDestinationBuilding());
+            } else {
+                openRouteFromCurrentLocation(result.getDestinationBuilding());
+            }
+
+            pendingNotificationDirections = false;
+
+        } catch (Exception e) {
+            Log.e(TAG, "Direction generation failed");
+            Toast.makeText(this, "Failed to generate directions", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void openRouteFromBuildings(String startBuilding, String destinationBuilding) {
+        View bannerView = findViewById(R.id.included_banner);
+        if (bannerView != null) {
+            bannerView.setVisibility(View.GONE);
+        }
+
+        if (startDestinationText == null || endDestinationText == null) return;
+
+        startDestinationText.setText(startBuilding);
+        endDestinationText.setText(destinationBuilding);
+
+        View searchBar = findViewById(R.id.search_bar_container);
+        if (searchBar != null) {
+            searchBar.setVisibility(View.GONE);
+        }
+
+        if (routePicker != null) {
+            routePicker.setVisibility(View.VISIBLE);
+        }
+
+        isRoutePickerOpen = true;
+
+        initiateRoutePreview();
+    }
+
+    @SuppressLint("MissingPermission")
+    private void openRouteFromCurrentLocation(String destinationBuilding) {
+        View bannerView = findViewById(R.id.included_banner);
+        if (bannerView != null) {
+            bannerView.setVisibility(View.GONE);
+        }
+        LatLng destCoords = BuildingLookup.getLatLngFromBuildingName(destinationBuilding, buildingsMap);
+
+        if (destCoords == null) {
+            Toast.makeText(this, "Could not find destination building", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
+                != PackageManager.PERMISSION_GRANTED) {
+            Toast.makeText(this, "Location permission not granted", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        fusedLocationClient.getLastLocation()
+                .addOnSuccessListener(this, location -> {
+                    if (location == null) {
+                        Toast.makeText(this, "Could not get current location", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+
+                    LatLng startCoords = new LatLng(location.getLatitude(), location.getLongitude());
+
+                    View searchBar = findViewById(R.id.search_bar_container);
+                    if (searchBar != null) {
+                        searchBar.setVisibility(View.GONE);
+                    }
+
+                    if (routePicker != null) {
+                        routePicker.setVisibility(View.VISIBLE);
+                    }
+
+                    isRoutePickerOpen = true;
+
+                    if (endDestinationText != null) {
+                        endDestinationText.setText(destinationBuilding);
+                    }
+                    if (startDestinationText != null) {
+                        startDestinationText.setText("Current Location");
+                    }
+
+                    NavigationHelper.fetchRoute(
+                            startCoords,
+                            destCoords,
+                            selectedMode,
+                            BuildConfig.MAPS_API_KEY,
+                            new NavigationHelper.RoutesCallback() {
+                                @Override
+                                public void onSuccess(Route route) {
+                                    runOnUiThread(() ->
+                                            drawRouteOnMap(route.getPoints(), route.getDuration(), route.getSteps()));
+                                }
+
+                                @Override
+                                public void onError(Exception e) {
+                                    Log.e(TAG, "Failed to open route from current location");
+                                    runOnUiThread(() ->
+                                            Toast.makeText(MapsActivity.this, "Failed to load route", Toast.LENGTH_SHORT).show());
+                                }
+                            }
+                    );
+                });
     }
 
     // ── Indoor navigation helpers ─────────────────────────────────────────────
@@ -2188,7 +2426,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             }
 
         } catch (IOException | JSONException e) {
-            Log.e("MapsActivity", "Failed to load indoor rooms for " + buildingId, e);
+            Log.e(TAG, "Failed to load indoor rooms for " + buildingId, e);
         }
     }
 
@@ -2263,12 +2501,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
      */
     private void launchIndoorRoute(IndoorNode fromRoom, IndoorNode toRoom) {
         String fromBuilding = fromRoom.getRootBuildingId();
-        String toBuilding   = toRoom.getRootBuildingId();
+        String toBuilding = toRoom.getRootBuildingId();
 
         if (!fromBuilding.equalsIgnoreCase(toBuilding)) {
 
             IndoorNode fromDoor = findPreferredDoorway(fromBuilding);
-            IndoorNode toDoor   = findPreferredDoorway(toBuilding);
+            IndoorNode toDoor = findPreferredDoorway(toBuilding);
 
             loadIndoorPath(
                     fromBuilding,
@@ -2301,30 +2539,55 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             return;
         }
 
+            loadIndoorPath(
+                    fromBuilding,
+                    fromRoom.getId(),
+                    toRoom.getId(),
+                    path -> {
+                        if (isDestroyed() || isFinishing()) return;
 
-        loadIndoorPath(
-                fromBuilding,
-                fromRoom.getId(),
-                toRoom.getId(),
-                path -> {
-                    if (isDestroyed() || isFinishing()) return;
+                        if (path.isEmpty()) {
+                            Toast.makeText(this, "No indoor path found between these rooms.",
+                                    Toast.LENGTH_LONG).show();
+                            return;
+                        }
 
-                    if (path.isEmpty()) {
-                        Toast.makeText(this, "No indoor path found between these rooms.",
-                                Toast.LENGTH_LONG).show();
-                        return;
-                    }
-
-                    Intent intent = new Intent(this, IndoorMapActivity.class);
-                    intent.putExtra("BUILDING_ID", fromBuilding);
-                    intent.putExtra("FLOOR_ID", fromRoom.getFloorMenuId());
-                    intent.putExtra("FROM_NODE_ID", fromRoom.getId());
-                    intent.putExtra("TO_NODE_ID", toRoom.getId());
-                    intent.putExtra("PATH_NODE_IDS", String.join(",", path));
-                    startActivity(intent);
-                },
-                "Error loading building data."
-        );
+                        Intent intent = new Intent(this, IndoorMapActivity.class);
+                        intent.putExtra("BUILDING_ID", fromBuilding);
+                        intent.putExtra("FLOOR_ID", fromRoom.getFloorMenuId());
+                        intent.putExtra("FROM_NODE_ID", fromRoom.getId());
+                        intent.putExtra("TO_NODE_ID", toRoom.getId());
+                        intent.putExtra("PATH_NODE_IDS", String.join(",", path));
+                        startActivity(intent);
+                    },
+                    "Error loading building data."
+            );
     }
 
+    private void handleBannerDirectionsClick(org.json.JSONObject nextClass) {
+        View bannerView = findViewById(R.id.included_banner);
+        if (bannerView != null) {
+            bannerView.setVisibility(View.GONE);
+        }
+        try {
+            String eventsJson = CalendarEventManager.globalEventsJson;
+
+            NotificationRouteHelper.Result result = NotificationRouteHelper.resolveRoute(eventsJson, nextClass, geoIdToBuildingDetailsMap);
+
+            if (result == null || result.getDestinationBuilding() == null || result.getDestinationBuilding().isEmpty()) {
+                Toast.makeText(this, "No location found for this class", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            if (result.shouldStartFromPreviousBuilding()){
+                openRouteFromBuildings(result.getPreviousBuilding(), result.getDestinationBuilding());
+            } else {
+                openRouteFromCurrentLocation(result.getDestinationBuilding());
+            }
+
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to handle banner directions click");
+            Toast.makeText(this, "Failed to open directions", Toast.LENGTH_SHORT).show();
+        }
+    }
 }

@@ -1,5 +1,7 @@
 package com.example.oncampusapp;
 
+import android.util.Log;
+
 import org.json.JSONArray;
 import org.json.JSONObject;
 import java.text.SimpleDateFormat;
@@ -8,6 +10,7 @@ import java.util.Locale;
 public class CalendarEventManager {
 
     public static String globalEventsJson = "";
+    public static String globalCalendarListJson = "";
 
     /**
      * Parses the JSON array of events and returns the current OR next upcoming event.
@@ -53,7 +56,7 @@ public class CalendarEventManager {
                 }
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            Log.e("CalendarEventManager", "Couldn't find next upcoming event");
         }
 
         return nextEvent;
