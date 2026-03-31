@@ -138,7 +138,9 @@ public class NavigationHelperTest {
         final Exception[] captured = {null};
         NavigationHelper.fetchRoute(startPoint, destinationPoint, RouteTravelMode.WALK, null,
                 new NavigationHelper.RoutesCallback() {
-                    @Override public void onSuccess(Route route) {}
+                    @Override public void onSuccess(Route route) {
+                        // Not called in this test case - we're testing early error exit
+                    }
                     @Override public void onError(Exception e) { captured[0] = e; }
                 });
         assertNotNull("onError should be called for null API key", captured[0]);
@@ -150,7 +152,9 @@ public class NavigationHelperTest {
         final Exception[] captured = {null};
         NavigationHelper.fetchRoute(startPoint, destinationPoint, RouteTravelMode.DRIVE, "",
                 new NavigationHelper.RoutesCallback() {
-                    @Override public void onSuccess(Route route) {}
+                    @Override public void onSuccess(Route route) {
+                        // Not called in this test case - we're testing early error exit
+                    }
                     @Override public void onError(Exception e) { captured[0] = e; }
                 });
         assertNotNull("onError should be called for empty API key", captured[0]);
@@ -163,7 +167,9 @@ public class NavigationHelperTest {
             final boolean[] errored = {false};
             NavigationHelper.fetchRoute(startPoint, destinationPoint, mode, null,
                     new NavigationHelper.RoutesCallback() {
-                        @Override public void onSuccess(Route route) {}
+                        @Override public void onSuccess(Route route) {
+                            // Not called in this test case - we're testing early error exit
+                        }
                         @Override public void onError(Exception e) { errored[0] = true; }
                     });
             assertTrue("Mode " + mode + " should error on null key", errored[0]);
