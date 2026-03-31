@@ -46,11 +46,21 @@ public class RoutePickerController {
     private final IndoorNavigationController indoorNavController;
     private final EventBannerManager bannerManager;
 
-    // View references that must be accessible across multiple methods
+    // View references accessible across multiple methods
     private AutoCompleteTextView startDestinationText;
     private AutoCompleteTextView endDestinationText;
     private LinearLayout routePicker;
     private GoogleMap mMap;
+    private CardView searchBar;
+    private LinearLayout layoutInputs;
+    private LinearLayout layoutTabs;
+    private LinearLayout layoutNavActive;
+    private Button btnGo;
+    private Button btnEndTrip;
+    private ImageView currentLocationIcon;
+    private TextView txtNavInstruction;
+    private TextView txtDuration;
+    private Animation slideDown;
 
     public RoutePickerController(MapsActivity activity,
                                   RouteManager routeManager,
@@ -115,59 +125,67 @@ public class RoutePickerController {
 
     /** Inflates and wires all route-picker views. Call once from onCreate(). */
     public void setup() {
-        // ── View initialisation ──────────────────────────────────────────────
-        CardView searchBar              = activity.findViewById(R.id.search_bar_container);
-        routePicker                     = activity.findViewById(R.id.route_picker_container);
-        startDestinationText            = activity.findViewById(R.id.et_start);
-        endDestinationText              = activity.findViewById(R.id.et_destination);
-        ImageView currentLocationIcon   = activity.findViewById(R.id.currentLocationIcon);
-        ImageButton btnSwapAddress      = activity.findViewById(R.id.btn_swap_address);
+        initViewReferences();
+        Animation slideUp = AnimationUtils.loadAnimation(activity, R.anim.slide_up);
+        slideDown         = AnimationUtils.loadAnimation(activity, R.anim.slide_down);
+        setupWindowInsets();
+        Runnable closeRoutePicker = buildCloseRoutePickerRunnable(slideUp);
+        searchBar.setOnClickListener(v -> openRoutePickerPanel());
+        setupSuggestionListeners();
+        Button btnShuttleTimetable = activity.findViewById(R.id.btn_shuttle_timetable);
+        btnShuttleTimetable.setOnClickListener(v -> ShuttleHelper.openTimetable(activity));
+        routeManager.setTransportButtons(
+                activity.findViewById(R.id.btn_mode_walking), btnShuttleTimetable, btnGo);
+        setupTransportTabListeners(btnShuttleTimetable);
+        ImageButton btnSwapAddress = activity.findViewById(R.id.btn_swap_address);
+        btnSwapAddress.setOnClickListener(v -> { swapAddresses(); previewRoute(); });
+        currentLocationIcon.setOnClickListener(v -> setCurrentBuilding());
+        btnGo.setOnClickListener(v -> handleGoClick());
+        ImageButton prevDirBtn = activity.findViewById(R.id.prevDirBtn);
+        ImageButton nextDirBtn = activity.findViewById(R.id.nextDirBtn);
+        nextDirBtn.setOnClickListener(v -> routeManager.navigateToNextDirection());
+        prevDirBtn.setOnClickListener(v -> routeManager.navigateToPreviousDirection());
+        btnEndTrip.setOnClickListener(v -> handleEndTrip());
+        setupBackPressHandler(closeRoutePicker);
+    }
 
-        LinearLayout layoutInputs       = activity.findViewById(R.id.layout_inputs);
-        LinearLayout layoutTabs         = activity.findViewById(R.id.layout_tabs);
-        LinearLayout layoutNavActive    = activity.findViewById(R.id.layout_navigation_active);
+    private void initViewReferences() {
+        searchBar            = activity.findViewById(R.id.search_bar_container);
+        routePicker          = activity.findViewById(R.id.route_picker_container);
+        startDestinationText = activity.findViewById(R.id.et_start);
+        endDestinationText   = activity.findViewById(R.id.et_destination);
+        currentLocationIcon  = activity.findViewById(R.id.currentLocationIcon);
+        layoutInputs         = activity.findViewById(R.id.layout_inputs);
+        layoutTabs           = activity.findViewById(R.id.layout_tabs);
+        layoutNavActive      = activity.findViewById(R.id.layout_navigation_active);
+        btnGo                = activity.findViewById(R.id.btn_go);
+        btnEndTrip           = activity.findViewById(R.id.btn_end_trip);
+        txtNavInstruction    = activity.findViewById(R.id.txt_nav_instruction);
+        txtDuration          = activity.findViewById(R.id.txt_duration);
+    }
 
-        ConstraintLayout dirLayout      = activity.findViewById(R.id.dirLayout);
-        ImageButton prevDirBtn          = activity.findViewById(R.id.prevDirBtn);
-        ImageButton nextDirBtn          = activity.findViewById(R.id.nextDirBtn);
-
-        Button btnGo                    = activity.findViewById(R.id.btn_go);
-        Button btnEndTrip               = activity.findViewById(R.id.btn_end_trip);
-        TextView txtNavInstruction      = activity.findViewById(R.id.txt_nav_instruction);
-        TextView txtDuration            = activity.findViewById(R.id.txt_duration);
-
-        ImageButton btnWalk             = activity.findViewById(R.id.btn_mode_walking);
-        ImageButton btnCar              = activity.findViewById(R.id.btn_mode_driving);
-        ImageButton btnTransit          = activity.findViewById(R.id.btn_mode_transit);
-        View btnShuttle                 = activity.findViewById(R.id.btn_mode_shuttle);
-        List<View> transportTabs        = Arrays.asList(btnWalk, btnCar, btnTransit, btnShuttle);
-
-        Animation slideDown = AnimationUtils.loadAnimation(activity, R.anim.slide_down);
-        Animation slideUp   = AnimationUtils.loadAnimation(activity, R.anim.slide_up);
-
-        // ── Window-inset listeners ───────────────────────────────────────────
-        ViewCompat.setOnApplyWindowInsetsListener(searchBar, (v, windowInsets) -> {
-            Insets insets = windowInsets.getInsets(WindowInsetsCompat.Type.statusBars());
-            ViewGroup.MarginLayoutParams mlp = (ViewGroup.MarginLayoutParams) v.getLayoutParams();
-            mlp.topMargin = insets.top + 10;
-            v.setLayoutParams(mlp);
+    private void setupWindowInsets() {
+        ViewCompat.setOnApplyWindowInsetsListener(searchBar, (v, insets) -> {
+            applyStatusBarTopMargin(v, insets);
             return WindowInsetsCompat.CONSUMED;
         });
-
-        ViewCompat.setOnApplyWindowInsetsListener(layoutInputs, (v, windowInsets) -> {
-            Insets insets = windowInsets.getInsets(WindowInsetsCompat.Type.statusBars());
-            ViewGroup.MarginLayoutParams mlp = (ViewGroup.MarginLayoutParams) v.getLayoutParams();
-            mlp.topMargin = insets.top + 10;
-            v.setLayoutParams(mlp);
+        ViewCompat.setOnApplyWindowInsetsListener(layoutInputs, (v, insets) -> {
+            applyStatusBarTopMargin(v, insets);
             return WindowInsetsCompat.CONSUMED;
         });
+    }
 
-        // ── Close-route-picker runnable ──────────────────────────────────────
-        Runnable closeRoutePicker = () -> {
+    private void applyStatusBarTopMargin(View v, WindowInsetsCompat windowInsets) {
+        Insets insets = windowInsets.getInsets(WindowInsetsCompat.Type.statusBars());
+        ViewGroup.MarginLayoutParams mlp = (ViewGroup.MarginLayoutParams) v.getLayoutParams();
+        mlp.topMargin = insets.top + 10;
+        v.setLayoutParams(mlp);
+    }
+
+    private Runnable buildCloseRoutePickerRunnable(Animation slideUp) {
+        return () -> {
             slideUp.setAnimationListener(new Animation.AnimationListener() {
-                @Override public void onAnimationStart(Animation animation) {
-                    // No action needed when animation starts
-                }
+                @Override public void onAnimationStart(Animation animation) { /* no-op */ }
                 @Override public void onAnimationEnd(Animation animation) {
                     routePicker.setVisibility(View.GONE);
                     searchBar.setVisibility(View.VISIBLE);
@@ -175,228 +193,195 @@ public class RoutePickerController {
                     bannerManager.setRoutePickerOpen(false);
                     bannerManager.checkAndDisplayNextEventBanner();
                 }
-                @Override public void onAnimationRepeat(Animation animation) {
-                    // No action needed when animation repeats
-                }
+                @Override public void onAnimationRepeat(Animation animation) { /* no-op */ }
             });
             routePicker.startAnimation(slideUp);
         };
+    }
 
-        // ── Search bar click ─────────────────────────────────────────────────
-        searchBar.setOnClickListener(v -> {
-            bannerManager.setRoutePickerOpen(true);
-
-            View bannerView = activity.findViewById(R.id.included_banner);
-            if (bannerView != null) bannerView.setVisibility(View.GONE);
-
-            searchBar.setVisibility(View.GONE);
-            routePicker.setVisibility(View.VISIBLE);
-            routePicker.startAnimation(slideDown);
-
-            layoutInputs.setVisibility(View.VISIBLE);
-            layoutTabs.setVisibility(View.VISIBLE);
-            btnGo.setVisibility(View.VISIBLE);
-            layoutNavActive.setVisibility(View.GONE);
-            currentLocationIcon.setVisibility(View.VISIBLE);
-
-            startDestinationText.setFocusableInTouchMode(true);
-            startDestinationText.requestFocus();
-            startDestinationText.post(() -> {
-                InputMethodManager imm = (InputMethodManager)
-                        activity.getSystemService(Context.INPUT_METHOD_SERVICE);
-                if (imm != null)
-                    imm.showSoftInput(startDestinationText, InputMethodManager.SHOW_IMPLICIT);
-            });
+    private void openRoutePickerPanel() {
+        bannerManager.setRoutePickerOpen(true);
+        View bannerView = activity.findViewById(R.id.included_banner);
+        if (bannerView != null) bannerView.setVisibility(View.GONE);
+        searchBar.setVisibility(View.GONE);
+        routePicker.setVisibility(View.VISIBLE);
+        routePicker.startAnimation(slideDown);
+        layoutInputs.setVisibility(View.VISIBLE);
+        layoutTabs.setVisibility(View.VISIBLE);
+        btnGo.setVisibility(View.VISIBLE);
+        layoutNavActive.setVisibility(View.GONE);
+        currentLocationIcon.setVisibility(View.VISIBLE);
+        startDestinationText.setFocusableInTouchMode(true);
+        startDestinationText.requestFocus();
+        startDestinationText.post(() -> {
+            InputMethodManager imm = (InputMethodManager)
+                    activity.getSystemService(Context.INPUT_METHOD_SERVICE);
+            if (imm != null) imm.showSoftInput(startDestinationText, InputMethodManager.SHOW_IMPLICIT);
         });
+    }
 
-        // ── Auto-preview on suggestion selection ─────────────────────────────
+    private void setupSuggestionListeners() {
         startDestinationText.setOnItemClickListener((parent, view, position, id) -> {
-            String selected = (String) parent.getItemAtPosition(position);
-            startDestinationText.setText(selected);
-            startDestinationText.setSelection(selected.length());
-            routeManager.initiateRoutePreview(
-                    startDestinationText.getText().toString().trim(),
-                    endDestinationText.getText().toString().trim());
+            startDestinationText.setText((String) parent.getItemAtPosition(position));
+            startDestinationText.setSelection(startDestinationText.getText().length());
+            previewRoute();
         });
         endDestinationText.setOnItemClickListener((parent, view, position, id) -> {
-            String selected = (String) parent.getItemAtPosition(position);
-            endDestinationText.setText(selected);
-            endDestinationText.setSelection(selected.length());
-            routeManager.initiateRoutePreview(
-                    startDestinationText.getText().toString().trim(),
-                    endDestinationText.getText().toString().trim());
+            endDestinationText.setText((String) parent.getItemAtPosition(position));
+            endDestinationText.setSelection(endDestinationText.getText().length());
+            previewRoute();
         });
+    }
 
-        // ── Transport tab highlight logic ────────────────────────────────────
-        View.OnClickListener tabHighlight = v -> {
-            v.setBackgroundColor(Color.parseColor("#D3D3D3"));
-            v.setAlpha(1.0f);
-            for (View tab : transportTabs) {
-                if (tab != v) {
-                    tab.setBackgroundResource(0);
-                    tab.setAlpha(0.5f);
-                }
-            }
-        };
-
-        Button btnShuttleTimetable = activity.findViewById(R.id.btn_shuttle_timetable);
-        btnShuttleTimetable.setOnClickListener(v -> ShuttleHelper.openTimetable(activity));
-
-        routeManager.setTransportButtons(btnWalk, btnShuttleTimetable, btnGo);
+    private void setupTransportTabListeners(Button btnShuttleTimetable) {
+        ImageButton btnWalk    = activity.findViewById(R.id.btn_mode_walking);
+        ImageButton btnCar     = activity.findViewById(R.id.btn_mode_driving);
+        ImageButton btnTransit = activity.findViewById(R.id.btn_mode_transit);
+        View btnShuttle        = activity.findViewById(R.id.btn_mode_shuttle);
+        List<View> tabs        = Arrays.asList(btnWalk, btnCar, btnTransit, btnShuttle);
+        View.OnClickListener highlight = v -> highlightTab(v, tabs);
 
         btnWalk.setOnClickListener(v -> {
-            tabHighlight.onClick(v);
-            routeManager.setSelectedMode(RouteTravelMode.WALK);
-            btnShuttleTimetable.setVisibility(View.GONE);
-            routeManager.adjustGoButtonWidth(btnGo, false);
-            ShuttleHelper.hideShuttleStops(routeManager.getShuttleMarkers());
-            routeManager.clearShuttleRoute();
-            routeManager.initiateRoutePreview(
-                    startDestinationText.getText().toString().trim(),
-                    endDestinationText.getText().toString().trim());
+            highlight.onClick(v);
+            selectNonShuttleMode(RouteTravelMode.WALK, btnShuttleTimetable);
         });
         btnCar.setOnClickListener(v -> {
-            tabHighlight.onClick(v);
-            routeManager.setSelectedMode(RouteTravelMode.DRIVE);
-            btnShuttleTimetable.setVisibility(View.GONE);
-            routeManager.adjustGoButtonWidth(btnGo, false);
-            ShuttleHelper.hideShuttleStops(routeManager.getShuttleMarkers());
-            routeManager.clearShuttleRoute();
-            routeManager.initiateRoutePreview(
-                    startDestinationText.getText().toString().trim(),
-                    endDestinationText.getText().toString().trim());
+            highlight.onClick(v);
+            selectNonShuttleMode(RouteTravelMode.DRIVE, btnShuttleTimetable);
         });
         btnTransit.setOnClickListener(v -> {
-            tabHighlight.onClick(v);
-            routeManager.setSelectedMode(RouteTravelMode.TRANSIT);
-            btnShuttleTimetable.setVisibility(View.GONE);
-            routeManager.adjustGoButtonWidth(btnGo, false);
-            ShuttleHelper.hideShuttleStops(routeManager.getShuttleMarkers());
-            routeManager.clearShuttleRoute();
-            routeManager.initiateRoutePreview(
-                    startDestinationText.getText().toString().trim(),
-                    endDestinationText.getText().toString().trim());
+            highlight.onClick(v);
+            selectNonShuttleMode(RouteTravelMode.TRANSIT, btnShuttleTimetable);
         });
         btnShuttle.setOnClickListener(v -> {
-            tabHighlight.onClick(v);
-            routeManager.setSelectedMode(RouteTravelMode.SHUTTLE);
-            btnShuttleTimetable.setVisibility(View.VISIBLE);
-            routeManager.adjustGoButtonWidth(btnGo, true);
-            routeManager.clearNormalRoute();
-            routeManager.setShuttleMarkers(
-                    ShuttleHelper.showShuttleStops(activity, mMap, routeManager.getShuttleMarkers()));
-            routeManager.initiateRoutePreview(
-                    startDestinationText.getText().toString().trim(),
-                    endDestinationText.getText().toString().trim());
+            highlight.onClick(v);
+            selectShuttleMode(btnShuttleTimetable);
         });
+    }
 
-        // ── Helper buttons ───────────────────────────────────────────────────
-        btnSwapAddress.setOnClickListener(v -> {
-            swapAddresses();
-            routeManager.initiateRoutePreview(
-                    startDestinationText.getText().toString().trim(),
-                    endDestinationText.getText().toString().trim());
-        });
-        currentLocationIcon.setOnClickListener(v -> setCurrentBuilding());
+    private void highlightTab(View selected, List<View> tabs) {
+        selected.setBackgroundColor(Color.parseColor("#D3D3D3"));
+        selected.setAlpha(1.0f);
+        for (View tab : tabs) {
+            if (tab != selected) { tab.setBackgroundResource(0); tab.setAlpha(0.5f); }
+        }
+    }
 
-        // ── Go button ────────────────────────────────────────────────────────
-        btnGo.setOnClickListener(v -> {
-            String startText = startDestinationText.getText().toString().trim();
-            String destText  = endDestinationText.getText().toString().trim();
+    private void selectNonShuttleMode(RouteTravelMode mode, Button btnShuttleTimetable) {
+        routeManager.setSelectedMode(mode);
+        btnShuttleTimetable.setVisibility(View.GONE);
+        routeManager.adjustGoButtonWidth(btnGo, false);
+        ShuttleHelper.hideShuttleStops(routeManager.getShuttleMarkers());
+        routeManager.clearShuttleRoute();
+        previewRoute();
+    }
 
-            if (startText.isEmpty() || destText.isEmpty()) {
-                Toast.makeText(activity, "Please enter both locations", Toast.LENGTH_SHORT).show();
-                return;
-            }
+    private void selectShuttleMode(Button btnShuttleTimetable) {
+        routeManager.setSelectedMode(RouteTravelMode.SHUTTLE);
+        btnShuttleTimetable.setVisibility(View.VISIBLE);
+        routeManager.adjustGoButtonWidth(btnGo, true);
+        routeManager.clearNormalRoute();
+        routeManager.setShuttleMarkers(
+                ShuttleHelper.showShuttleStops(activity, mMap, routeManager.getShuttleMarkers()));
+        previewRoute();
+    }
 
-            IndoorNode fromRoom = indoorNavController.getIndoorRoomMap().get(startText);
-            IndoorNode toRoom   = indoorNavController.getIndoorRoomMap().get(destText);
+    private void handleGoClick() {
+        String startText = startDestinationText.getText().toString().trim();
+        String destText  = endDestinationText.getText().toString().trim();
+        if (startText.isEmpty() || destText.isEmpty()) {
+            Toast.makeText(activity, "Please enter both locations", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        if (tryLaunchIndoorRoute(startText, destText)) return;
+        LatLng startCoords = BuildingLookup.getLatLngFromBuildingName(startText, MapsActivity.buildingsMap);
+        LatLng destCoords  = BuildingLookup.getLatLngFromBuildingName(destText,  MapsActivity.buildingsMap);
+        if (startCoords != null && destCoords != null
+                && routeManager.applySameCampusCheck(startCoords, destCoords)) {
+            routeManager.initiateRoutePreview(startText, destText);
+            return;
+        }
+        if (routeManager.getSelectedMode() != RouteTravelMode.SHUTTLE && !routeManager.isPreviewActive()) {
+            Toast.makeText(activity, "Calculating route, please wait...", Toast.LENGTH_SHORT).show();
+            routeManager.initiateRoutePreview(startText, destText);
+            return;
+        }
+        startNavigation(startText, destText);
+    }
 
-            if (fromRoom != null && toRoom != null) {
-                indoorNavController.launchIndoorRoute(fromRoom, toRoom);
-                return;
-            }
-            if (fromRoom != null || toRoom != null) {
-                Toast.makeText(activity,
-                        "Mix of indoor room and outdoor location is not supported.\n"
-                                + "Please enter two rooms (e.g. H-867) or two buildings.",
-                        Toast.LENGTH_LONG).show();
-                return;
-            }
+    private boolean tryLaunchIndoorRoute(String startText, String destText) {
+        IndoorNode fromRoom = indoorNavController.getIndoorRoomMap().get(startText);
+        IndoorNode toRoom   = indoorNavController.getIndoorRoomMap().get(destText);
+        if (fromRoom != null && toRoom != null) {
+            indoorNavController.launchIndoorRoute(fromRoom, toRoom);
+            return true;
+        }
+        if (fromRoom != null || toRoom != null) {
+            Toast.makeText(activity,
+                    "Mix of indoor room and outdoor location is not supported.\n"
+                            + "Please enter two rooms (e.g. H-867) or two buildings.",
+                    Toast.LENGTH_LONG).show();
+            return true;
+        }
+        return false;
+    }
 
-            LatLng startCoords = BuildingLookup.getLatLngFromBuildingName(startText, MapsActivity.buildingsMap);
-            LatLng destCoords  = BuildingLookup.getLatLngFromBuildingName(destText,  MapsActivity.buildingsMap);
-            if (startCoords != null && destCoords != null
-                    && routeManager.applySameCampusCheck(startCoords, destCoords)) {
-                routeManager.initiateRoutePreview(startText, destText);
-                return;
-            }
+    private void startNavigation(String startText, String destText) {
+        routeManager.removeStartDot();
+        routeManager.startNavigationUpdates();
+        Toast.makeText(activity, "Navigation Started", Toast.LENGTH_SHORT).show();
+        toggleNavigationUI(true);
+        String modeLabel = routeManager.getSelectedMode().getValue();
+        if (txtDuration != null && txtDuration.getText().length() > 0
+                && !txtDuration.getText().equals("-- MIN")) {
+            txtNavInstruction.setText(txtDuration.getText() + " (" + modeLabel + ")");
+        } else {
+            txtNavInstruction.setText("Follow the route (" + modeLabel + ")");
+        }
+        LatLng cameraTarget = routeManager.getSelectedMode() == RouteTravelMode.SHUTTLE
+                ? BuildingLookup.getLatLngFromBuildingName(startText, MapsActivity.buildingsMap)
+                : routeManager.getFirstRoutePoint();
+        if (cameraTarget != null && mMap != null) {
+            mMap.animateCamera(CameraUpdateFactory.newCameraPosition(
+                    new CameraPosition.Builder().target(cameraTarget).zoom(19f).tilt(0).build()));
+        }
+    }
 
-            if (routeManager.getSelectedMode() != RouteTravelMode.SHUTTLE
-                    && !routeManager.isPreviewActive()) {
-                Toast.makeText(activity, "Calculating route, please wait...", Toast.LENGTH_SHORT).show();
-                routeManager.initiateRoutePreview(startText, destText);
-                return;
-            }
+    private void handleEndTrip() {
+        routeManager.stopNavigation();
+        toggleNavigationUI(false);
+        if (mMap != null) {
+            mMap.animateCamera(CameraUpdateFactory.newCameraPosition(
+                    new CameraPosition.Builder(mMap.getCameraPosition()).tilt(0).zoom(16f).build()));
+        }
+    }
 
-            routeManager.removeStartDot();
-            routeManager.startNavigationUpdates();
-            Toast.makeText(activity, "Navigation Started", Toast.LENGTH_SHORT).show();
-            toggleNavigationUI(true);
-
-            if (txtDuration != null && txtDuration.getText().length() > 0
-                    && !txtDuration.getText().equals("-- MIN")) {
-                txtNavInstruction.setText(
-                        txtDuration.getText() + " (" + routeManager.getSelectedMode().getValue() + ")");
-            } else {
-                txtNavInstruction.setText(
-                        "Follow the route (" + routeManager.getSelectedMode().getValue() + ")");
-            }
-
-            LatLng cameraTarget = routeManager.getSelectedMode() == RouteTravelMode.SHUTTLE
-                    ? BuildingLookup.getLatLngFromBuildingName(startText, MapsActivity.buildingsMap)
-                    : routeManager.getFirstRoutePoint();
-            if (cameraTarget != null && mMap != null) {
-                mMap.animateCamera(CameraUpdateFactory.newCameraPosition(
-                        new CameraPosition.Builder()
-                                .target(cameraTarget).zoom(19f).tilt(0).build()));
-            }
-        });
-
-        nextDirBtn.setOnClickListener(v -> routeManager.navigateToNextDirection());
-        prevDirBtn.setOnClickListener(v -> routeManager.navigateToPreviousDirection());
-
-        // ── End Trip button ──────────────────────────────────────────────────
-        btnEndTrip.setOnClickListener(v -> {
-            routeManager.stopNavigation();
-            toggleNavigationUI(false);
-            if (mMap != null) {
-                mMap.animateCamera(CameraUpdateFactory.newCameraPosition(
-                        new CameraPosition.Builder(mMap.getCameraPosition())
-                                .tilt(0).zoom(16f).build()));
-            }
-        });
-
-        // ── Back-press handler ───────────────────────────────────────────────
+    private void setupBackPressHandler(Runnable closeRoutePicker) {
         activity.getOnBackPressedDispatcher().addCallback(activity, new OnBackPressedCallback(true) {
             @Override
             public void handleOnBackPressed() {
-                if (routePicker.getVisibility() == View.VISIBLE) {
-                    if (layoutNavActive.getVisibility() == View.VISIBLE) {
-                        btnEndTrip.performClick();
-                        return;
-                    }
-                    closeRoutePicker.run();
-                    startDestinationText.setText("");
-                    endDestinationText.setText("");
-                    if (txtDuration != null) txtDuration.setText("");
-                    routeManager.resetRouteState();
-                } else {
+                if (routePicker.getVisibility() != View.VISIBLE) {
                     setEnabled(false);
                     activity.getOnBackPressedDispatcher().onBackPressed();
+                    return;
                 }
+                if (layoutNavActive.getVisibility() == View.VISIBLE) {
+                    btnEndTrip.performClick();
+                    return;
+                }
+                closeRoutePicker.run();
+                startDestinationText.setText("");
+                endDestinationText.setText("");
+                if (txtDuration != null) txtDuration.setText("");
+                routeManager.resetRouteState();
             }
         });
+    }
+
+    private void previewRoute() {
+        routeManager.initiateRoutePreview(
+                startDestinationText.getText().toString().trim(),
+                endDestinationText.getText().toString().trim());
     }
 
     // ── Navigation UI toggling ───────────────────────────────────────────────

@@ -45,6 +45,9 @@ import java.util.Map;
 
 public class RouteManager {
 
+    private static final String TAG = "RouteManager";
+    private static final String COLOR_ROUTE_BLUE = "#4285F4";
+
     private final MapsActivity activity;
     private GoogleMap mMap;
     private ILocationProvider fusedLocationClient;
@@ -135,87 +138,104 @@ public class RouteManager {
         LatLng stopA = shuttleMarkers[0].getPosition();
         LatLng stopB = shuttleMarkers[1].getPosition();
         double distToA = SphericalUtil.computeDistanceBetween(startCoords, stopA);
-        double distToB = SphericalUtil.computeDistanceBetween(startCoords, stopB);
-        LatLng pickupStop  = (distToA <= distToB) ? stopA : stopB;
-        LatLng dropoffStop = (pickupStop == stopA)  ? stopB : stopA;
+        LatLng pickupStop  = (distToA <= SphericalUtil.computeDistanceBetween(startCoords, stopB)) ? stopA : stopB;
+        LatLng dropoffStop = (pickupStop == stopA) ? stopB : stopA;
 
         clearNormalRoute();
         clearShuttleRoute();
-
-        List<LatLng> shuttlePath = ShuttleHelper.getShuttleRoute(pickupStop, dropoffStop);
-        shuttlePolyline = drawSegmentPolyline(shuttlePath, false);
+        shuttlePolyline = drawSegmentPolyline(ShuttleHelper.getShuttleRoute(pickupStop, dropoffStop), false);
 
         TextView txtDuration = activity.findViewById(R.id.txt_duration);
-        if (txtDuration != null) {
-            txtDuration.setText(ShuttleHelper.SHUTTLE_DURATION_FALLBACK.toUpperCase());
-        }
+        if (txtDuration != null) txtDuration.setText(ShuttleHelper.SHUTTLE_DURATION_FALLBACK.toUpperCase());
 
-        final int[] walkToMinutes  = {0};
-        final int[] shuttleMinutes = {0};
+        final int[] walkToMinutes   = {0};
+        final int[] shuttleMinutes  = {0};
         final int[] walkFromMinutes = {0};
         final boolean[] walkToDone   = {false};
         final boolean[] shuttleDone  = {false};
         final boolean[] walkFromDone = {false};
 
-        Runnable updateTotal = () -> {
-            if (walkToDone[0] && shuttleDone[0] && walkFromDone[0]) {
-                int total = walkToMinutes[0] + shuttleMinutes[0] + walkFromMinutes[0];
-                activity.runOnUiThread(() -> {
-                    TextView dv = activity.findViewById(R.id.txt_duration);
-                    if (dv != null) dv.setText((total + " MIN").toUpperCase());
-                });
-            }
-        };
+        Runnable updateTotal = () -> tryUpdateShuttleTotal(
+                walkToMinutes, shuttleMinutes, walkFromMinutes, walkToDone, shuttleDone, walkFromDone);
 
-        NavigationHelper.fetchRoute(startCoords, pickupStop, RouteTravelMode.WALK,
+        fetchWalkToStopRoute(startCoords, pickupStop, walkToMinutes, walkToDone, updateTotal);
+        fetchWalkFromStopRoute(dropoffStop, destCoords, walkFromMinutes, walkFromDone, updateTotal);
+        fetchShuttleSegmentDuration(startCoords, shuttleMinutes, shuttleDone, updateTotal);
+    }
+
+    private void tryUpdateShuttleTotal(int[] walkTo, int[] shuttle, int[] walkFrom,
+                                       boolean[] toDone, boolean[] shuttleDone, boolean[] fromDone) {
+        if (!toDone[0] || !shuttleDone[0] || !fromDone[0]) return;
+        int total = walkTo[0] + shuttle[0] + walkFrom[0];
+        activity.runOnUiThread(() -> {
+            TextView dv = activity.findViewById(R.id.txt_duration);
+            if (dv != null) dv.setText((total + " MIN").toUpperCase());
+        });
+    }
+
+    private void fetchWalkToStopRoute(LatLng start, LatLng stop,
+                                      int[] walkToMinutes, boolean[] walkToDone, Runnable onDone) {
+        NavigationHelper.fetchRoute(start, stop, RouteTravelMode.WALK,
                 BuildConfig.MAPS_API_KEY, new NavigationHelper.RoutesCallback() {
                     @Override public void onSuccess(Route route) {
                         walkToMinutes[0] = parseDurationToMinutes(route.getDuration());
                         walkToDone[0] = true;
-                        activity.runOnUiThread(() -> {
-                            walkToStopPolyline = drawSegmentPolyline(route.getPoints(), true);
-                            View layout = activity.findViewById(R.id.layout_walk_to_shuttle);
-                            TextView tv = activity.findViewById(R.id.txt_walk_to_shuttle);
-                            if (layout != null && tv != null) {
-                                if (walkToMinutes[0] > 0) {
-                                    tv.setText((walkToMinutes[0] + " MIN TO STOP").toUpperCase());
-                                    layout.setVisibility(View.VISIBLE);
-                                } else {
-                                    layout.setVisibility(View.GONE);
-                                }
-                            }
-                        });
-                        updateTotal.run();
+                        activity.runOnUiThread(() -> showWalkToStopResult(route.getPoints(), walkToMinutes[0]));
+                        onDone.run();
                     }
                     @Override public void onError(Exception e) {
-                        Log.e("RouteManager", "Walk-to-stop route error", e); walkToDone[0] = true; updateTotal.run();
+                        Log.e(TAG, "Walk-to-stop route error", e);
+                        walkToDone[0] = true;
+                        onDone.run();
                     }
                 });
+    }
 
-        NavigationHelper.fetchRoute(dropoffStop, destCoords, RouteTravelMode.WALK,
+    private void showWalkToStopResult(List<LatLng> points, int minutes) {
+        walkToStopPolyline = drawSegmentPolyline(points, true);
+        View layout = activity.findViewById(R.id.layout_walk_to_shuttle);
+        TextView tv = activity.findViewById(R.id.txt_walk_to_shuttle);
+        if (layout == null || tv == null) return;
+        if (minutes > 0) {
+            tv.setText((minutes + " MIN TO STOP").toUpperCase());
+            layout.setVisibility(View.VISIBLE);
+        } else {
+            layout.setVisibility(View.GONE);
+        }
+    }
+
+    private void fetchWalkFromStopRoute(LatLng stop, LatLng dest,
+                                        int[] walkFromMinutes, boolean[] walkFromDone, Runnable onDone) {
+        NavigationHelper.fetchRoute(stop, dest, RouteTravelMode.WALK,
                 BuildConfig.MAPS_API_KEY, new NavigationHelper.RoutesCallback() {
                     @Override public void onSuccess(Route route) {
                         walkFromMinutes[0] = parseDurationToMinutes(route.getDuration());
                         walkFromDone[0] = true;
-                        activity.runOnUiThread(() ->
-                                walkFromStopPolyline = drawSegmentPolyline(route.getPoints(), true));
-                        updateTotal.run();
+                        activity.runOnUiThread(() -> walkFromStopPolyline = drawSegmentPolyline(route.getPoints(), true));
+                        onDone.run();
                     }
                     @Override public void onError(Exception e) {
-                        Log.e("RouteManager", "Walk-from-stop route error", e); walkFromDone[0] = true; updateTotal.run();
+                        Log.e(TAG, "Walk-from-stop route error", e);
+                        walkFromDone[0] = true;
+                        onDone.run();
                     }
                 });
+    }
 
-        ShuttleHelper.fetchDuration(startCoords, BuildConfig.MAPS_API_KEY,
+    private void fetchShuttleSegmentDuration(LatLng start, int[] shuttleMinutes,
+                                             boolean[] shuttleDone, Runnable onDone) {
+        ShuttleHelper.fetchDuration(start, BuildConfig.MAPS_API_KEY,
                 new ShuttleHelper.ShuttleCallback() {
                     @Override public void onSuccess(List<LatLng> path, String durationText) {
                         shuttleMinutes[0] = parseDurationToMinutes(durationText);
-                        shuttleDone[0] = true; updateTotal.run();
+                        shuttleDone[0] = true;
+                        onDone.run();
                     }
                     @Override public void onError(Exception e) {
-                        Log.e("RouteManager", "Shuttle duration fetch error", e);
+                        Log.e(TAG, "Shuttle duration fetch error", e);
                         shuttleMinutes[0] = parseDurationToMinutes(ShuttleHelper.SHUTTLE_DURATION_FALLBACK);
-                        shuttleDone[0] = true; updateTotal.run();
+                        shuttleDone[0] = true;
+                        onDone.run();
                     }
                 });
     }
@@ -228,7 +248,7 @@ public class RouteManager {
                                 drawRouteOnMap(route.getPoints(), route.getDuration(), route.getSteps()));
                     }
                     @Override public void onError(Exception e) {
-                        Log.e("RouteManager", "Standard route fetch error", e);
+                        Log.e(TAG,"Standard route fetch error", e);
                         activity.runOnUiThread(() ->
                                 Toast.makeText(activity, "Failed to load route", Toast.LENGTH_SHORT).show());
                     }
@@ -295,10 +315,10 @@ public class RouteManager {
                 && step.getTransitDetails().getTransitLine() != null) {
             options.color(Color.parseColor(step.getTransitDetails().getTransitLine().getColor()));
         } else if (step.getTravelMode() == RouteTravelMode.WALK) {
-            options.color(Color.parseColor("#4285F4"))
+            options.color(Color.parseColor(COLOR_ROUTE_BLUE))
                    .pattern(Arrays.asList(new Dot(), new Gap(20)));
         } else {
-            options.color(Color.parseColor("#4285F4"));
+            options.color(Color.parseColor(COLOR_ROUTE_BLUE));
         }
         return options;
     }
@@ -306,7 +326,7 @@ public class RouteManager {
     public Polyline drawSegmentPolyline(List<LatLng> path, boolean isDotted) {
         if (mMap == null || path == null || path.isEmpty()) return null;
         PolylineOptions options = new PolylineOptions()
-                .addAll(path).color(Color.parseColor("#4285F4"))
+                .addAll(path).color(Color.parseColor(COLOR_ROUTE_BLUE))
                 .width(20).zIndex(2).geodesic(true);
         if (isDotted) options.pattern(Arrays.asList(new Dot(), new Gap(20)));
         return mMap.addPolyline(options);

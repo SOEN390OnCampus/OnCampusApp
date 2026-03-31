@@ -75,58 +75,14 @@ public class GeoJsonMapLoader {
             List<GeoJsonFeature> pointFeatures = new ArrayList<>();
 
             for (GeoJsonFeature feature : layer.getFeatures()) {
-                String type     = feature.getProperty("type");
-                String building = feature.getProperty("building");
-                String name     = feature.getProperty("name");
-                String id       = feature.getProperty("@id");
-                String operator = feature.getProperty("operator");
-
-                if (name != null && !name.trim().isEmpty()
-                        && !buildingSuggestions.contains(name)) {
-                    buildingSuggestions.add(name);
-                }
-
-                boolean isConcordiaBuilding = buildingClassifier
-                        .isConcordiaBuilding(building, name, operator);
-
-                FeatureStyler.StyleConfig config = featureStyler.getStyle(type, isConcordiaBuilding);
-
-                if (config.isLineString) {
-                    GeoJsonLineStringStyle lineStyle = new GeoJsonLineStringStyle();
-                    lineStyle.setColor(config.strokeColor);
-                    lineStyle.setWidth(config.strokeWidth);
-                    feature.setLineStringStyle(lineStyle);
-                } else {
-                    GeoJsonPolygonStyle polyStyle = new GeoJsonPolygonStyle();
-                    polyStyle.setFillColor(config.fillColor);
-                    polyStyle.setStrokeColor(config.strokeColor);
-                    polyStyle.setStrokeWidth(config.strokeWidth);
-                    feature.setPolygonStyle(polyStyle);
-                }
-
-                if (isConcordiaBuilding && feature.hasGeometry()) {
-                    processPolygonBuilding(feature, id, name, pointFeatures, geofenceManager,
-                            buildingManager, map);
-                }
+                processFeature(feature, buildingSuggestions, featureStyler, geofenceManager,
+                        buildingManager, map, pointFeatures);
             }
 
             layer.addLayerToMap();
-            for (GeoJsonFeature pf : pointFeatures) {
-                layer.addFeature(pf);
-            }
+            for (GeoJsonFeature pf : pointFeatures) layer.addFeature(pf);
 
-            layer.setOnFeatureClickListener(feature -> {
-                if (feature.getGeometry() instanceof GeoJsonPolygon) {
-                    String clickedLayer = feature.getProperty("layer");
-                    if (clickedLayer == null) {
-                        clickHandler.onBuildingPolygonClicked(feature);
-                        return;
-                    }
-                    if (clickedLayer.equals("detailButton")) {
-                        clickHandler.onDetailButtonClicked(feature.getProperty("id"));
-                    }
-                }
-            });
+            layer.setOnFeatureClickListener(feature -> handleFeatureClick(feature, clickHandler));
 
         } catch (IOException | JSONException e) {
             e.printStackTrace();
@@ -135,6 +91,52 @@ public class GeoJsonMapLoader {
 
         Collections.sort(buildingSuggestions);
         onLoaded.onLoaded(buildingSuggestions, layer, buildingManager);
+    }
+
+    private void processFeature(GeoJsonFeature feature, ArrayList<String> suggestions,
+                                FeatureStyler styler, GeofenceManager geofenceManager,
+                                BuildingManager buildingManager, GoogleMap map,
+                                List<GeoJsonFeature> pointFeatures) {
+        String name     = feature.getProperty("name");
+        String building = feature.getProperty("building");
+        String operator = feature.getProperty("operator");
+        String id       = feature.getProperty("@id");
+
+        if (name != null && !name.trim().isEmpty() && !suggestions.contains(name)) {
+            suggestions.add(name);
+        }
+
+        boolean isConcordiaBuilding = buildingClassifier.isConcordiaBuilding(building, name, operator);
+        applyFeatureStyle(feature, styler.getStyle(feature.getProperty("type"), isConcordiaBuilding));
+
+        if (isConcordiaBuilding && feature.hasGeometry()) {
+            processPolygonBuilding(feature, id, name, pointFeatures, geofenceManager, buildingManager, map);
+        }
+    }
+
+    private void applyFeatureStyle(GeoJsonFeature feature, FeatureStyler.StyleConfig config) {
+        if (config.isLineString) {
+            GeoJsonLineStringStyle lineStyle = new GeoJsonLineStringStyle();
+            lineStyle.setColor(config.strokeColor);
+            lineStyle.setWidth(config.strokeWidth);
+            feature.setLineStringStyle(lineStyle);
+        } else {
+            GeoJsonPolygonStyle polyStyle = new GeoJsonPolygonStyle();
+            polyStyle.setFillColor(config.fillColor);
+            polyStyle.setStrokeColor(config.strokeColor);
+            polyStyle.setStrokeWidth(config.strokeWidth);
+            feature.setPolygonStyle(polyStyle);
+        }
+    }
+
+    private void handleFeatureClick(Feature feature, FeatureClickHandler clickHandler) {
+        if (!(feature.getGeometry() instanceof GeoJsonPolygon)) return;
+        String clickedLayer = feature.getProperty("layer");
+        if (clickedLayer == null) {
+            clickHandler.onBuildingPolygonClicked(feature);
+        } else if (clickedLayer.equals("detailButton")) {
+            clickHandler.onDetailButtonClicked(feature.getProperty("id"));
+        }
     }
 
     // ── Building polygon processing ───────────────────────────────────────────
