@@ -46,6 +46,10 @@ public class ShuttleHelperRobolectricTest {
     public void init_calledTwice_earlyReturnDoesNotThrow() {
         // Second call hits the "already initialised" early-return guard
         ShuttleHelper.init(context);
+        // Verify that shuttle route retrieval still works after second init call
+        List<LatLng> route = ShuttleHelper.getShuttleRoute(NEAR_SGW, NEAR_LOY);
+        assertNotNull(route);
+        assertFalse(route.isEmpty());
     }
 
     // ── getShuttleRoute — after init ──────────────────────────────────────────
