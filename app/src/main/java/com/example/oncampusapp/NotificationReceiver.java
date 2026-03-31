@@ -2,6 +2,7 @@ package com.example.oncampusapp;
 
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -35,15 +36,32 @@ public class NotificationReceiver extends BroadcastReceiver {
             notificationManager.createNotificationChannel(channel);
         }
 
+        int notificationId = (int) (System.currentTimeMillis() % Integer.MAX_VALUE);
+
+        // For generating directions
+        Intent directionsIntent = new Intent(context, MapsActivity.class);
+        directionsIntent.putExtra("OPEN_DIRECTIONS", true);
+        directionsIntent.putExtra("notification_id", notificationId);
+        directionsIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+
+        PendingIntent pendingIntent = PendingIntent.getActivity(
+                context,
+                1001,
+                directionsIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+        );
+
         // Build the actual notification
         NotificationCompat.Builder builder = new NotificationCompat.Builder(context, CHANNEL_ID)
                 .setSmallIcon(R.drawable.ic_launcher_foreground) // Replace with your app's icon if you have one
                 .setContentTitle("Class Starting Soon: " + eventTitle)
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
                 .setContentText("Location: " + eventLocation)
                 .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setContentIntent(pendingIntent)
+                .addAction(R.drawable.ic_launcher_foreground, "Directions", pendingIntent)
                 .setAutoCancel(true);
 
         // Show the notification (Use a unique ID based on time so they don't overwrite each other)
-        notificationManager.notify((int) System.currentTimeMillis(), builder.build());
-    }
+        notificationManager.notify(notificationId, builder.build());    }
 }

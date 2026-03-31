@@ -204,14 +204,13 @@ public class GoogleCalendarAuthActivity extends AppCompatActivity {
 
                     // Save the massive JSON string to the global variable instead!
                     CalendarEventManager.setGlobalEventsJson(allEventsArray.toString());
+                    // Save the massive JSON strings to global variables to avoid TransactionTooLargeException
+                    CalendarEventManager.globalCalendarListJson = allCalendars;
 
                     Intent intent = new Intent(GoogleCalendarAuthActivity.this, AccountPage.class);
 
-                    // ---> INSERTED HERE <---
-                    // Pass only the email string through the Intent so it doesn't crash
+                    // Pass only small pieces of data through the Intent
                     intent.putExtra("email", account.getEmail());
-                    intent.putExtra("calendar_events_json", allEventsArray.toString());
-                    intent.putExtra("calendar_list_json", allCalendars);
                     intent.putExtra("calendar_token", token);
                     startActivity(intent);
                     finish();

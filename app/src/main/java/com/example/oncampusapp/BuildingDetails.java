@@ -14,6 +14,10 @@ public class BuildingDetails {
     private Schedule schedule;
     private double lat;
     private double lng;
+
+    public void setName(String name) {
+        this.name = name;
+    }
     public String getCode() {
         return code;
     }
