@@ -26,7 +26,8 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:usesCleartextTraffic="false"
-        android:theme="@style/Theme.OnCampusApp">
+        android:theme="@style/Theme.OnCampusApp"
+        tools:ignore="UsesCleartextTraffic">
 
         <receiver
             android:name=".NotificationReceiver"
