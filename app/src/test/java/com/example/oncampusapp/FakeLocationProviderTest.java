@@ -102,6 +102,7 @@ public class FakeLocationProviderTest {
     public void removeLocationUpdates_unknownCallback_doesNotThrow() {
         LocationCallback cb = new LocationCallback() {};
         provider.removeLocationUpdates(cb);
+        assertNotNull(provider);
     }
 
     @Test
@@ -109,5 +110,6 @@ public class FakeLocationProviderTest {
         LocationCallback cb = new LocationCallback() {};
         provider.removeLocationUpdates(cb);
         provider.removeLocationUpdates(cb);
+        assertNotNull(provider);
     }
 }

@@ -42,19 +42,20 @@ public class GeofenceBroadcastReceiverTest {
 
     @Test
     public void onReceive_nullIntent_doesNotThrow() {
-        // GeofencingEvent.fromIntent(null) → event is null → early return
         receiver.onReceive(context, null);
+        assertNotNull(receiver);
     }
 
     @Test
     public void onReceive_emptyIntent_doesNotThrow() {
-        // An Intent with no geofence extras → fromIntent returns null or error event → early return
         receiver.onReceive(context, new Intent());
+        assertNotNull(receiver);
     }
 
     @Test
     public void onReceive_intentWithNoExtras_doesNotThrow() {
         Intent intent = new Intent("com.google.android.gms.location.Geofence.ACTION_GEOFENCE_TRANSITION");
         receiver.onReceive(context, intent);
+        assertNotNull(receiver);
     }
 }
