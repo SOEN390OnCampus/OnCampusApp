@@ -146,7 +146,7 @@ public class EventBannerManager {
                             detailsView.setCompoundDrawablePadding(16);
                         }
                     } catch (Exception e) {
-                        e.printStackTrace();
+                        Log.e("EventBannerManager", "Failed to set banner icons", e);
                     }
                 }
 
@@ -175,7 +175,7 @@ public class EventBannerManager {
                 }
 
             } catch (Exception e) {
-                e.printStackTrace();
+                Log.e("EventBannerManager", "Failed to parse event for banner", e);
                 titleView.setText("Next: " + title);
                 detailsView.setText("Check schedule for details");
             }
