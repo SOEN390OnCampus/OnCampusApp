@@ -165,7 +165,9 @@ public class RoutePickerController {
         // ── Close-route-picker runnable ──────────────────────────────────────
         Runnable closeRoutePicker = () -> {
             slideUp.setAnimationListener(new Animation.AnimationListener() {
-                @Override public void onAnimationStart(Animation animation) {}
+                @Override public void onAnimationStart(Animation animation) {
+                    // No action needed when animation starts
+                }
                 @Override public void onAnimationEnd(Animation animation) {
                     routePicker.setVisibility(View.GONE);
                     searchBar.setVisibility(View.VISIBLE);
@@ -173,7 +175,9 @@ public class RoutePickerController {
                     bannerManager.setRoutePickerOpen(false);
                     bannerManager.checkAndDisplayNextEventBanner();
                 }
-                @Override public void onAnimationRepeat(Animation animation) {}
+                @Override public void onAnimationRepeat(Animation animation) {
+                    // No action needed when animation repeats
+                }
             });
             routePicker.startAnimation(slideUp);
         };
