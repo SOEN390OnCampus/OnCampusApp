@@ -88,11 +88,13 @@ dependencies {
 
 sonarqube {
     properties {
-        property "sonar.projectKey", "OnCampusApp"
+        property "sonar.projectKey", "SOEN390OnCampus_OnCampusApp"
         property "sonar.projectName", "OnCampusApp"
-        property "sonar.host.url", "http://localhost:9000"
+        property "sonar.organization", "soen390oncampus"
+        property "sonar.host.url", "https://sonarcloud.io"
         property "sonar.coverage.jacoco.xmlReportPaths", "${buildDir}/reports/jacoco/jacocoCombinedTestReport/jacocoCombinedTestReport.xml"
         property "sonar.java.binaries", "${buildDir}/intermediates/javac/debug/compileDebugJavaWithJavac/classes"
+        property "sonar.sources", "src/main/java"
     }
 }
 
@@ -102,7 +104,7 @@ tasks.withType(Test).configureEach {
 }
 
 tasks.register("jacocoCombinedTestReport", JacocoReport) {
-    dependsOn("testDebugUnitTest", "createDebugCoverageReport")
+    dependsOn("testDebugUnitTest")
 
     def fileFilter = [
             '**/R.class', '**/R$*.class', '**/BuildConfig.*', '**/Manifest*.*',
