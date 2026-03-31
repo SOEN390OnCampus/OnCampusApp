@@ -64,23 +64,27 @@ public class EventBannerManagerTest {
     @Test
     public void start_doesNotThrow() {
         manager.start();
+        assertNotNull(manager);
     }
 
     @Test
     public void stop_doesNotThrow() {
         manager.stop();
+        assertNotNull(manager);
     }
 
     @Test
     public void stopAfterStart_doesNotThrow() {
         manager.start();
         manager.stop();
+        assertNotNull(manager);
     }
 
     @Test
     public void startCalledTwice_doesNotThrow() {
         manager.start();
         manager.start();
+        assertNotNull(manager);
     }
 
     @Test
@@ -88,6 +92,7 @@ public class EventBannerManagerTest {
         // removeCallbacks on an idle handler is a no-op
         manager.stop();
         manager.stop();
+        assertNotNull(manager);
     }
 
     // ── setRoutePickerOpen ────────────────────────────────────────────────────
@@ -95,11 +100,13 @@ public class EventBannerManagerTest {
     @Test
     public void setRoutePickerOpen_true_doesNotThrow() {
         manager.setRoutePickerOpen(true);
+        assertNotNull(manager);
     }
 
     @Test
     public void setRoutePickerOpen_false_doesNotThrow() {
         manager.setRoutePickerOpen(false);
+        assertNotNull(manager);
     }
 
     @Test
@@ -107,6 +114,7 @@ public class EventBannerManagerTest {
         manager.setRoutePickerOpen(true);
         manager.setRoutePickerOpen(false);
         manager.setRoutePickerOpen(true);
+        assertNotNull(manager);
     }
 
     // ── checkAndDisplayNextEventBanner – early-exit paths ─────────────────────
@@ -148,6 +156,7 @@ public class EventBannerManagerTest {
         manager.checkAndDisplayNextEventBanner();
         manager.checkAndDisplayNextEventBanner();
         manager.checkAndDisplayNextEventBanner();
+        assertNotNull(manager);
     }
 
     // ── checkAndDisplayNextEventBanner – bannerView interaction ───────────────

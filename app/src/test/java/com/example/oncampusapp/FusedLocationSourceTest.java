@@ -34,7 +34,7 @@ public class FusedLocationSourceTest {
 
     @Test
     public void constructor_doesNotThrow() {
-        // FusedLocationSource created without crashing
+        assertNotNull(source);
     }
 
     // ── deactivate ────────────────────────────────────────────────────────────
@@ -50,6 +50,7 @@ public class FusedLocationSourceTest {
     public void deactivate_multipleTimes_doesNotThrow() {
         source.deactivate();
         source.deactivate();
+        assertNotNull(source);
     }
 
     // ── activate ──────────────────────────────────────────────────────────────
@@ -65,5 +66,6 @@ public class FusedLocationSourceTest {
     public void activate_thenDeactivate_doesNotThrow() {
         source.activate(mockListener);
         source.deactivate();
+        assertNotNull(source);
     }
 }

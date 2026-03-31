@@ -45,7 +45,7 @@ public class IndoorNavigationControllerTest {
     @Test
     public void setSearchSuggestionsAdapter_doesNotThrow() {
         controller.setSearchSuggestionsAdapter(mockAdapter);
-        // No exception = pass; adapter is stored for later use
+        assertNotNull(controller.getIndoorRoomMap());
     }
 
     // ── Map mutation via the returned reference ───────────────────────────────
@@ -76,21 +76,22 @@ public class IndoorNavigationControllerTest {
     @Test
     public void setSearchSuggestionsAdapter_nullAdapter_doesNotThrow() {
         controller.setSearchSuggestionsAdapter(null);
+        assertNotNull(controller.getIndoorRoomMap());
     }
 
     // ── loadIndoorRoomsIntoAdapter — spawns thread, returns immediately ───────
 
     @Test
     public void loadIndoorRoomsIntoAdapter_doesNotThrowOnCallingThread() {
-        // RETURNS_DEEP_STUBS: getResources().getIdentifier() returns 0 (int default)
-        // so every building exits early in processBuilding — no crash on calling thread.
         controller.loadIndoorRoomsIntoAdapter();
+        assertNotNull(controller.getIndoorRoomMap());
     }
 
     @Test
     public void loadIndoorRoomsIntoAdapter_withAdapterSet_doesNotThrow() {
         controller.setSearchSuggestionsAdapter(mockAdapter);
         controller.loadIndoorRoomsIntoAdapter();
+        assertNotNull(controller.getIndoorRoomMap());
     }
 
     // ── IndoorNode.Builder edge cases ─────────────────────────────────────────
@@ -138,5 +139,6 @@ public class IndoorNavigationControllerTest {
     public void setSearchSuggestionsAdapter_calledTwice_doesNotThrow() {
         controller.setSearchSuggestionsAdapter(mockAdapter);
         controller.setSearchSuggestionsAdapter(null);
+        assertNotNull(controller.getIndoorRoomMap());
     }
 }

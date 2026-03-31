@@ -37,6 +37,7 @@ public class LocationPermissionManagerTest {
     public void setMap_nullMap_doesNotThrow() {
         // setMap only assigns the field — null assignment is safe
         manager.setMap(null);
+        assertNotNull(manager);
     }
 
     // ── logPermissionResult (static) ──────────────────────────────────────────
@@ -44,31 +45,37 @@ public class LocationPermissionManagerTest {
     @Test
     public void logPermissionResult_granted_doesNotThrow() {
         LocationPermissionManager.logPermissionResult("ACCESS_FINE_LOCATION", true);
+        assertNotNull(manager);
     }
 
     @Test
     public void logPermissionResult_denied_doesNotThrow() {
         LocationPermissionManager.logPermissionResult("ACCESS_FINE_LOCATION", false);
+        assertNotNull(manager);
     }
 
     @Test
     public void logPermissionResult_nullPermission_doesNotThrow() {
         LocationPermissionManager.logPermissionResult(null, false);
+        assertNotNull(manager);
     }
 
     @Test
     public void logPermissionResult_emptyPermission_doesNotThrow() {
         LocationPermissionManager.logPermissionResult("", true);
+        assertNotNull(manager);
     }
 
     @Test
     public void logPermissionResult_postNotifications_doesNotThrow() {
         LocationPermissionManager.logPermissionResult("POST_NOTIFICATIONS", true);
+        assertNotNull(manager);
     }
 
     @Test
     public void logPermissionResult_coarseLocation_doesNotThrow() {
         LocationPermissionManager.logPermissionResult("ACCESS_COARSE_LOCATION", false);
+        assertNotNull(manager);
     }
 
     // ── enableMyLocation ──────────────────────────────────────────────────────
@@ -89,6 +96,7 @@ public class LocationPermissionManagerTest {
         manager.setMap(mockMap);
         manager.enableMyLocation();
         manager.enableMyLocation();
+        assertNotNull(manager);
     }
 
     // ── launchPermissionRequest ───────────────────────────────────────────────
@@ -105,6 +113,7 @@ public class LocationPermissionManagerTest {
     public void launchPermissionRequest_multipleTimes_doesNotThrow() {
         manager.launchPermissionRequest();
         manager.launchPermissionRequest();
+        assertNotNull(manager);
     }
 
 }

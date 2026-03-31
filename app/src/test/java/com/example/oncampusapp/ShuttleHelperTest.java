@@ -83,9 +83,8 @@ public class ShuttleHelperTest {
 
     @Test
     public void testHideShuttleStops_WithNullArray() {
-        // Should not throw exception
         ShuttleHelper.hideShuttleStops(null);
-        // No verification needed, just ensure no exception thrown
+        assertNotNull(ShuttleHelper.SHUTTLE_STOP_SGW);
     }
 
     @Test

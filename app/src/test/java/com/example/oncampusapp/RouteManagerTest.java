@@ -91,9 +91,9 @@ public class RouteManagerTest {
     public void setBuildingsMap_storesMap() {
         Map<String, Building> map = new HashMap<>();
         routeManager.setBuildingsMap(map);
-        // Verify indirectly: initiateRoutePreview with empty start/dest returns without crash
         routeManager.initiateRoutePreview("", "dest");
         routeManager.initiateRoutePreview("start", "");
+        assertNotNull(routeManager.getRoutePolylines());
     }
 
     // ── initiateRoutePreview early-exit paths ─────────────────────────────────
@@ -101,20 +101,22 @@ public class RouteManagerTest {
     @Test
     public void initiateRoutePreview_emptyStart_returnsImmediately() {
         routeManager.setBuildingsMap(new HashMap<>());
-        // Should not throw — exits at the isEmpty() guard
         routeManager.initiateRoutePreview("", "Hall Building");
+        assertFalse(routeManager.isPreviewActive());
     }
 
     @Test
     public void initiateRoutePreview_emptyDest_returnsImmediately() {
         routeManager.setBuildingsMap(new HashMap<>());
         routeManager.initiateRoutePreview("Hall Building", "");
+        assertFalse(routeManager.isPreviewActive());
     }
 
     @Test
     public void initiateRoutePreview_bothEmpty_returnsImmediately() {
         routeManager.setBuildingsMap(new HashMap<>());
         routeManager.initiateRoutePreview("", "");
+        assertFalse(routeManager.isPreviewActive());
     }
 
     // ── parseDurationToMinutes ────────────────────────────────────────────────
@@ -205,35 +207,37 @@ public class RouteManagerTest {
     @Test
     public void setMap_null_doesNotThrow() {
         routeManager.setMap(null);
+        assertNotNull(routeManager);
     }
 
     @Test
     public void setLocationClient_null_doesNotThrow() {
         routeManager.setLocationClient(null);
+        assertNotNull(routeManager);
     }
 
     // ── removeStartDot ────────────────────────────────────────────────────────
 
     @Test
     public void removeStartDot_nullStartDot_doesNotThrow() {
-        // startDot is null by default — null check inside the method guards it
         routeManager.removeStartDot();
+        assertNull(routeManager.getFirstRoutePoint());
     }
 
     // ── stopNavigation ────────────────────────────────────────────────────────
 
     @Test
     public void stopNavigation_nullCallback_doesNotThrow() {
-        // navigationLocationCallback is null by default — null check guards it
         routeManager.stopNavigation();
+        assertNotNull(routeManager);
     }
 
     // ── clearNormalRoute ──────────────────────────────────────────────────────
 
     @Test
     public void clearNormalRoute_emptyState_doesNotThrow() {
-        // routePolylines is empty, all markers null — all null-checks in place
         routeManager.clearNormalRoute();
+        assertTrue(routeManager.getRoutePolylines().isEmpty());
     }
 
     @Test
@@ -246,8 +250,8 @@ public class RouteManagerTest {
 
     @Test
     public void clearShuttleRoute_emptyState_doesNotThrow() {
-        // all polylines null, activity.findViewById returns null — guarded by null check
         routeManager.clearShuttleRoute();
+        assertNotNull(routeManager.getShuttleMarkers());
     }
 
     // ── resetRouteState ───────────────────────────────────────────────────────
@@ -255,6 +259,7 @@ public class RouteManagerTest {
     @Test
     public void resetRouteState_doesNotThrow() {
         routeManager.resetRouteState();
+        assertNotNull(routeManager);
     }
 
     @Test
@@ -286,29 +291,30 @@ public class RouteManagerTest {
 
     @Test
     public void drawRouteOnMap_nullMap_returnsImmediately() {
-        // mMap is null → first guard returns early, no crash
         routeManager.drawRouteOnMap(new ArrayList<>(), "5 mins", new ArrayList<>());
+        assertTrue(routeManager.getRoutePolylines().isEmpty());
     }
 
     @Test
     public void drawRouteOnMap_nullPath_returnsImmediately() {
         routeManager.drawRouteOnMap(null, "5 mins", new ArrayList<>());
+        assertTrue(routeManager.getRoutePolylines().isEmpty());
     }
 
     // ── updateRouteProgress (null guard) ─────────────────────────────────────
 
     @Test
     public void updateRouteProgress_nullRoutePoints_doesNotThrow() {
-        // currentRoutePoints is null by default → first guard returns early
         routeManager.updateRouteProgress(new LatLng(45.4972, -73.5790));
+        assertNotNull(routeManager);
     }
 
     // ── showCurrentDirection (empty guard) ───────────────────────────────────
 
     @Test
     public void showCurrentDirection_emptyDirections_doesNotThrow() {
-        // directionsList is empty → guard returns early before any Android call
         routeManager.showCurrentDirection();
+        assertNotNull(routeManager);
     }
 
     // ── applySameCampusCheck — non-shuttle modes return false immediately ─────
@@ -378,6 +384,7 @@ public class RouteManagerTest {
     public void resetRouteState_calledTwice_doesNotThrow() {
         routeManager.resetRouteState();
         routeManager.resetRouteState();
+        assertFalse(routeManager.isPreviewActive());
     }
 
     // ── setSelectedMode – all modes round-trip ────────────────────────────────

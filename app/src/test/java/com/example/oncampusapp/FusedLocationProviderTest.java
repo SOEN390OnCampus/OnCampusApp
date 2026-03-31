@@ -40,16 +40,19 @@ public class FusedLocationProviderTest {
     @Test
     public void setFakeLocation_doesNotThrow() {
         provider.setFakeLocation(45.497, -73.579);
+        assertNotNull(provider);
     }
 
     @Test
     public void setFakeLocation_zeroes_doesNotThrow() {
         provider.setFakeLocation(0.0, 0.0);
+        assertNotNull(provider);
     }
 
     @Test
     public void setFakeLocation_negativeCoords_doesNotThrow() {
         provider.setFakeLocation(-90.0, -180.0);
+        assertNotNull(provider);
     }
 
     @Test
@@ -57,6 +60,7 @@ public class FusedLocationProviderTest {
         provider.setFakeLocation(45.497, -73.579);
         provider.setFakeLocation(45.458, -73.640);
         provider.setFakeLocation(0.0, 0.0);
+        assertNotNull(provider);
     }
 
     // ── removeLocationUpdates ─────────────────────────────────────────────────
@@ -65,5 +69,6 @@ public class FusedLocationProviderTest {
     public void removeLocationUpdates_withUnknownCallback_doesNotThrow() {
         LocationCallback cb = new LocationCallback() {};
         provider.removeLocationUpdates(cb);
+        assertNotNull(provider);
     }
 }

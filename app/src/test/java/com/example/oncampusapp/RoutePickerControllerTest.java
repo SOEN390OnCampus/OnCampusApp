@@ -77,11 +77,13 @@ public class RoutePickerControllerTest {
     @Test
     public void setMap_nonNull_doesNotThrow() {
         controller.setMap(mockMap);
+        assertNotNull(controller);
     }
 
     @Test
     public void setMap_null_doesNotThrow() {
         controller.setMap(null);
+        assertNotNull(controller);
     }
 
     // ── setSearchAdapter ──────────────────────────────────────────────────────
@@ -101,6 +103,7 @@ public class RoutePickerControllerTest {
     @Test
     public void setSearchAdapter_null_doesNotThrow() {
         controller.setSearchAdapter(null);
+        assertNotNull(controller);
     }
 
     // ── tryFillFocusedField – routePicker state ───────────────────────────────

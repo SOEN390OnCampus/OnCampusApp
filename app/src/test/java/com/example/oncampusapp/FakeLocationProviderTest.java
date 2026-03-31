@@ -42,6 +42,7 @@ public class FakeLocationProviderTest {
     @Test
     public void setFakeLocation_doesNotThrow() {
         provider.setFakeLocation(45.497, -73.579);
+        assertNotNull(provider.getLastLocation());
     }
 
     @Test
@@ -54,11 +55,13 @@ public class FakeLocationProviderTest {
     @Test
     public void setFakeLocation_zeroes_doesNotThrow() {
         provider.setFakeLocation(0.0, 0.0);
+        assertNotNull(provider.getLastLocation());
     }
 
     @Test
     public void setFakeLocation_negativeCoords_doesNotThrow() {
         provider.setFakeLocation(-45.0, -73.0);
+        assertNotNull(provider.getLastLocation());
     }
 
     @Test
