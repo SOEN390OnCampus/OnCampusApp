@@ -145,7 +145,9 @@ public class LocationParserTest {
     @Test
     public void parseSmartLocation_calledTwice_doesNotThrow() {
         Context context = ApplicationProvider.getApplicationContext();
-        LocationParser.parseSmartLocation(context, "COMP 346", "H-110", "");
-        LocationParser.parseSmartLocation(context, "SOEN 390", "H-110", "");
+        String first = LocationParser.parseSmartLocation(context, "COMP 346", "H-110", "");
+        String second = LocationParser.parseSmartLocation(context, "SOEN 390", "H-110", "");
+        assertNotNull(first);
+        assertNotNull(second);
     }
 }
