@@ -74,6 +74,26 @@ public class RoutePickerController {
     }
 
     /**
+     * Opens the route picker pre-filled with start and destination, then
+     * kicks off a route preview. Called from notification/banner directions flow.
+     */
+    public void openWithStartAndDestination(String start, String destination) {
+        View bannerView = activity.findViewById(R.id.included_banner);
+        if (bannerView != null) bannerView.setVisibility(View.GONE);
+
+        if (startDestinationText == null || endDestinationText == null) return;
+        startDestinationText.setText(start);
+        endDestinationText.setText(destination);
+
+        View searchBar = activity.findViewById(R.id.search_bar_container);
+        if (searchBar != null) searchBar.setVisibility(View.GONE);
+        if (routePicker != null) routePicker.setVisibility(View.VISIBLE);
+
+        bannerManager.setRoutePickerOpen(true);
+        routeManager.initiateRoutePreview(start, destination);
+    }
+
+    /**
      * If the route picker is visible and a search field has focus, fills that
      * field with {@code name} and returns {@code true}.  Returns {@code false}
      * otherwise so the caller can fall back to showing the building-info dialog.

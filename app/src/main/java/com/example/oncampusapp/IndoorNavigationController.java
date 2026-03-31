@@ -12,6 +12,7 @@ import org.json.JSONObject;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -20,6 +21,7 @@ public class IndoorNavigationController {
 
     private final MapsActivity activity;
     private final Map<String, IndoorNode> indoorRoomMap;
+    private final Map<String, IndoorNode> allIndoorNodesById = new HashMap<>();
     private ArrayAdapter<String> searchSuggestionsAdapter;
 
     public IndoorNavigationController(MapsActivity activity, Map<String, IndoorNode> indoorRoomMap) {
@@ -72,7 +74,7 @@ public class IndoorNavigationController {
     private void processNode(JSONObject obj, List<String> newLabels) {
         String id    = obj.optString("id", "").trim();
         String label = obj.optString("label", "").trim();
-        if (label.isEmpty() || indoorRoomMap.containsKey(label)) return;
+
         IndoorNode node = new IndoorNode.Builder()
                 .id(id).label(label)
                 .type(obj.optString("type", ""))
@@ -82,6 +84,12 @@ public class IndoorNavigationController {
                 .y((float) obj.optDouble("y", 0.0))
                 .accessible(obj.optBoolean("accessible", true))
                 .build();
+
+        if (!id.isEmpty()) {
+            allIndoorNodesById.put(id, node);
+        }
+
+        if (label.isEmpty() || indoorRoomMap.containsKey(label)) return;
         indoorRoomMap.put(label, node);
         newLabels.add(label);
     }
@@ -91,47 +99,98 @@ public class IndoorNavigationController {
         String toBuilding   = toRoom.getRootBuildingId();
 
         if (!fromBuilding.equalsIgnoreCase(toBuilding)) {
-            Toast.makeText(activity,
-                    "Cross-building indoor navigation is not supported yet.\n"
-                    + "Both rooms must be in the same building.",
-                    Toast.LENGTH_LONG).show();
+            IndoorNode fromDoor = findPreferredDoorway(fromBuilding);
+            IndoorNode toDoor   = findPreferredDoorway(toBuilding);
+
+            if (fromDoor == null || toDoor == null) {
+                Toast.makeText(activity,
+                        "Cross-building indoor navigation is not supported for these buildings.",
+                        Toast.LENGTH_LONG).show();
+                return;
+            }
+
+            loadIndoorPath(fromBuilding, fromRoom.getId(), fromDoor.getId(),
+                    path -> {
+                        if (activity.isDestroyed() || activity.isFinishing()) return;
+
+                        Intent intent = new Intent(activity, IndoorMapActivity.class);
+                        intent.putExtra("BUILDING_ID",          fromBuilding);
+                        intent.putExtra("FLOOR_ID",             fromRoom.getFloorMenuId());
+                        intent.putExtra("FROM_NODE_ID",         fromRoom.getId());
+                        intent.putExtra("TO_NODE_ID",           fromDoor.getId());
+                        intent.putExtra("PATH_NODE_IDS",        String.join(",", path));
+                        intent.putExtra("CROSS_BUILDING_STAGE", "FIRST_INDOOR");
+                        intent.putExtra("DISPLAY_DEST_LABEL",   fromDoor.getLabel());
+
+                        activity.setPendingCrossBuilding(toDoor, toRoom, fromBuilding, toBuilding);
+                        activity.startActivity(intent);
+                    },
+                    "Error loading source building graph.");
             return;
         }
 
+        loadIndoorPath(fromBuilding, fromRoom.getId(), toRoom.getId(),
+                path -> {
+                    if (activity.isDestroyed() || activity.isFinishing()) return;
+                    if (path.isEmpty()) {
+                        Toast.makeText(activity, "No indoor path found between these rooms.",
+                                Toast.LENGTH_LONG).show();
+                        return;
+                    }
+                    Intent intent = new Intent(activity, IndoorMapActivity.class);
+                    intent.putExtra("BUILDING_ID",   fromBuilding);
+                    intent.putExtra("FLOOR_ID",      fromRoom.getFloorMenuId());
+                    intent.putExtra("FROM_NODE_ID",  fromRoom.getId());
+                    intent.putExtra("TO_NODE_ID",    toRoom.getId());
+                    intent.putExtra("PATH_NODE_IDS", String.join(",", path));
+                    activity.startActivity(intent);
+                },
+                "Error loading building data.");
+    }
+
+    public void loadIndoorPath(String buildingId, String fromNodeId, String toNodeId,
+                               java.util.function.Consumer<List<String>> onSuccess,
+                               String errorMessage) {
         int resId = activity.getResources().getIdentifier(
-                fromBuilding.toLowerCase(), "raw", activity.getPackageName());
+                buildingId.toLowerCase(), "raw", activity.getPackageName());
         if (resId == 0) {
-            Toast.makeText(activity, "Building data not found.", Toast.LENGTH_SHORT).show();
+            Toast.makeText(activity, errorMessage, Toast.LENGTH_SHORT).show();
             return;
         }
-
         new Thread(() -> {
             IndoorGraph graph = new IndoorGraph();
             try (InputStream is = activity.getResources().openRawResource(resId)) {
                 graph.load(is);
-            } catch (IOException | JSONException e) {
-                Log.e("IndoorNavController", "Graph load failed", e);
+                List<String> path = graph.shortestPath(fromNodeId, toNodeId);
+                activity.runOnUiThread(() -> onSuccess.accept(path));
+            } catch (Exception e) {
                 activity.runOnUiThread(() ->
-                        Toast.makeText(activity, "Error loading building data.", Toast.LENGTH_SHORT).show());
-                return;
+                        Toast.makeText(activity, errorMessage, Toast.LENGTH_SHORT).show());
             }
-
-            List<String> path = graph.shortestPath(fromRoom.getId(), toRoom.getId());
-            activity.runOnUiThread(() -> {
-                if (activity.isDestroyed() || activity.isFinishing()) return;
-                if (path.isEmpty()) {
-                    Toast.makeText(activity, "No indoor path found between these rooms.",
-                            Toast.LENGTH_LONG).show();
-                    return;
-                }
-                Intent intent = new Intent(activity, IndoorMapActivity.class);
-                intent.putExtra("BUILDING_ID",   fromBuilding);
-                intent.putExtra("FLOOR_ID",      fromRoom.getFloorMenuId());
-                intent.putExtra("FROM_NODE_ID",  fromRoom.getId());
-                intent.putExtra("TO_NODE_ID",    toRoom.getId());
-                intent.putExtra("PATH_NODE_IDS", String.join(",", path));
-                activity.startActivity(intent);
-            });
         }).start();
+    }
+
+    private List<IndoorNode> getDoorwayNodesForBuilding(String buildingId) {
+        List<IndoorNode> result = new ArrayList<>();
+        for (IndoorNode node : allIndoorNodesById.values()) {
+            if (node == null) continue;
+            if (!buildingId.equalsIgnoreCase(node.getRootBuildingId())) continue;
+            if (node.getId() != null && node.getId().toLowerCase().contains("building_entry_exit")) {
+                result.add(node);
+            }
+        }
+        return result;
+    }
+
+    private IndoorNode findPreferredDoorway(String buildingId) {
+        List<IndoorNode> doorways = getDoorwayNodesForBuilding(buildingId);
+        IndoorNode secondFloorAlternative = null;
+        for (IndoorNode doorway : doorways) {
+            String floor = doorway.getFloor();
+            if ("1".equals(floor)) return doorway;
+            if ("2".equals(floor) && secondFloorAlternative == null) secondFloorAlternative = doorway;
+        }
+        if (secondFloorAlternative != null) return secondFloorAlternative;
+        return doorways.isEmpty() ? null : doorways.get(0);
     }
 }

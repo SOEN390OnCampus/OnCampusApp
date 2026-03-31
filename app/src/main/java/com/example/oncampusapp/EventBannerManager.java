@@ -4,6 +4,8 @@ import android.graphics.Color;
 import android.graphics.drawable.Drawable;
 import android.os.Handler;
 import android.view.View;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import androidx.core.content.ContextCompat;
@@ -91,6 +93,19 @@ public class EventBannerManager {
                 }
 
                 bannerView.setVisibility(View.VISIBLE);
+
+                // Wire directions button click listeners
+                final JSONObject eventRef = nextClass;
+                bannerView.setOnClickListener(v -> activity.handleBannerDirectionsClick(eventRef));
+                LinearLayout directionsContainer = bannerView.findViewById(R.id.banner_directions_container);
+                if (directionsContainer != null) {
+                    directionsContainer.setVisibility(View.VISIBLE);
+                    directionsContainer.setOnClickListener(v -> activity.handleBannerDirectionsClick(eventRef));
+                }
+                ImageView goButton = bannerView.findViewById(R.id.banner_btn_go);
+                if (goButton != null) {
+                    goButton.setOnClickListener(v -> activity.handleBannerDirectionsClick(eventRef));
+                }
 
                 TextView timeStatusView = bannerView.findViewById(R.id.banner_time_status);
                 TextView onlineTagView  = bannerView.findViewById(R.id.banner_online_tag);

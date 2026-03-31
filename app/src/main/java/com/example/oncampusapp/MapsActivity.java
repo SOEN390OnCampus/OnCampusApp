@@ -85,6 +85,8 @@ import com.google.maps.android.data.geojson.GeoJsonPolygonStyle;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import com.example.oncampusapp.navigation.RouteTravelMode;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -129,6 +131,20 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private TextView btnSgwLoy;
     private static final String sgw = "SGW";
     private static final String loy = "LOY";
+    private static final String TAG = "MapsActivity";
+    private static final String KEY_NOTIFICATION_ID = "notification_id";
+
+    // Pending notification flag
+    private boolean pendingNotificationDirections = false;
+
+    // Cross-building navigation state
+    private boolean pendingCrossBuildingOutdoor = false;
+    private IndoorNode pendingCrossToDoor;
+    private IndoorNode pendingCrossToRoom;
+    private String pendingCrossFromBuilding;
+    private String pendingCrossToBuilding;
+    private boolean shouldStartOutdoorAfterIndoor = false;
+    private boolean pendingFinalIndoorAfterOutdoor = false;
 
     // A counter that tells Espresso tests to wait for the map to load
     public CountingIdlingResource mapIdlingResource = new CountingIdlingResource("MapReadyResource");
@@ -325,12 +341,48 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         bannerManager.checkAndDisplayNextEventBanner();
 
+        cancelNotificationIfPresent(getIntent());
+        handleNotificationDirectionsIntent(getIntent());
     }
 
     @Override
     protected void onResume() {
         super.onResume();
         bannerManager.start();
+
+        if (shouldStartOutdoorAfterIndoor && pendingCrossBuildingOutdoor) {
+            shouldStartOutdoorAfterIndoor = false;
+
+            LatLng startCoords = BuildingLookup.getLatLngFromBuildingName(pendingCrossFromBuilding, buildingsMap);
+            LatLng destCoords  = BuildingLookup.getLatLngFromBuildingName(pendingCrossToBuilding, buildingsMap);
+
+            if (startCoords == null || destCoords == null) {
+                Toast.makeText(this, "Could not find outdoor building coordinates.", Toast.LENGTH_LONG).show();
+                return;
+            }
+
+            NavigationHelper.fetchRoute(startCoords, destCoords, RouteTravelMode.WALK,
+                    BuildConfig.MAPS_API_KEY,
+                    new NavigationHelper.RoutesCallback() {
+                        @Override
+                        public void onSuccess(Route route) {
+                            runOnUiThread(() -> {
+                                routeManager.drawRouteOnMap(route.getPoints(), route.getDuration(), route.getSteps());
+                                routeManager.startNavigationUpdates();
+                                routePickerController.toggleNavigationUI(true);
+                                pendingFinalIndoorAfterOutdoor = true;
+                                Toast.makeText(MapsActivity.this, "Outdoor navigation started", Toast.LENGTH_SHORT).show();
+                            });
+                        }
+                        @Override
+                        public void onError(Exception e) {
+                            runOnUiThread(() ->
+                                    Toast.makeText(MapsActivity.this, "Failed to load outdoor route", Toast.LENGTH_SHORT).show());
+                        }
+                    });
+
+            pendingCrossBuildingOutdoor = false;
+        }
     }
 
     @Override
@@ -427,6 +479,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             BuildingFloorSelectDialog dialog = new BuildingFloorSelectDialog();
             dialog.show(getSupportFragmentManager(), "BuildingFloorSelectDialog");
         });
+
+        tryGenerateDirectionsFromNotification();
     }
 
     private void switchCampus() {
@@ -529,6 +583,166 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     public void moveMapToLocation(LatLng location, float zoom) {
         locationPermManager.moveMapToLocation(location, zoom);
+    }
+
+    // ── Notification / banner directions ─────────────────────────────────────
+
+    private void cancelNotificationIfPresent(Intent intent) {
+        if (intent == null || !intent.hasExtra(KEY_NOTIFICATION_ID)) return;
+        int notificationId = intent.getIntExtra(KEY_NOTIFICATION_ID, -1);
+        if (notificationId == -1) return;
+        NotificationManager manager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+        if (manager != null) manager.cancel(notificationId);
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        cancelNotificationIfPresent(intent);
+        handleNotificationDirectionsIntent(intent);
+    }
+
+    private void handleNotificationDirectionsIntent(Intent intent) {
+        if (intent == null) return;
+        if (!intent.getBooleanExtra("OPEN_DIRECTIONS", false)) return;
+        pendingNotificationDirections = true;
+        tryGenerateDirectionsFromNotification();
+    }
+
+    private void tryGenerateDirectionsFromNotification() {
+        if (!pendingNotificationDirections) return;
+        if (mMap == null || buildingsMap.isEmpty()) return;
+
+        String eventsJson = CalendarEventManager.globalEventsJson;
+        if (eventsJson == null || eventsJson.isEmpty()) {
+            Toast.makeText(this, "No calendar events available", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        try {
+            JSONObject nextClass = CalendarEventManager.findNextUpcomingEvent(eventsJson);
+            if (nextClass == null) {
+                Toast.makeText(this, "No upcoming class found", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            NotificationRouteHelper.Result result = NotificationRouteHelper.resolveRoute(
+                    eventsJson, nextClass, buildingDialogManager.getGeoIdToBuildingDetailsMap());
+
+            if (result == null || result.getDestinationBuilding() == null
+                    || result.getDestinationBuilding().isEmpty()) {
+                Toast.makeText(this, "Could not determine next class location", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            if (result.shouldStartFromPreviousBuilding()) {
+                openRouteFromBuildings(result.getPreviousBuilding(), result.getDestinationBuilding());
+            } else {
+                openRouteFromCurrentLocation(result.getDestinationBuilding());
+            }
+            pendingNotificationDirections = false;
+
+        } catch (Exception e) {
+            Log.e(TAG, "Direction generation failed", e);
+            Toast.makeText(this, "Failed to generate directions", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void openRouteFromBuildings(String startBuilding, String destinationBuilding) {
+        routePickerController.openWithStartAndDestination(startBuilding, destinationBuilding);
+    }
+
+    @SuppressLint("MissingPermission")
+    private void openRouteFromCurrentLocation(String destinationBuilding) {
+        View bannerView = findViewById(R.id.included_banner);
+        if (bannerView != null) bannerView.setVisibility(View.GONE);
+
+        LatLng destCoords = BuildingLookup.getLatLngFromBuildingName(destinationBuilding, buildingsMap);
+        if (destCoords == null) {
+            Toast.makeText(this, "Could not find destination building", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
+                != PackageManager.PERMISSION_GRANTED) {
+            Toast.makeText(this, "Location permission not granted", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        fusedLocationClient.getLastLocation().addOnSuccessListener(this, location -> {
+            if (location == null) {
+                Toast.makeText(this, "Could not get current location", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            LatLng startCoords = new LatLng(location.getLatitude(), location.getLongitude());
+            routePickerController.openWithStartAndDestination("Current Location", destinationBuilding);
+            NavigationHelper.fetchRoute(startCoords, destCoords,
+                    routeManager.getSelectedMode(), BuildConfig.MAPS_API_KEY,
+                    new NavigationHelper.RoutesCallback() {
+                        @Override public void onSuccess(Route route) {
+                            runOnUiThread(() -> routeManager.drawRouteOnMap(
+                                    route.getPoints(), route.getDuration(), route.getSteps()));
+                        }
+                        @Override public void onError(Exception e) {
+                            Log.e(TAG, "Failed to open route from current location", e);
+                            runOnUiThread(() -> Toast.makeText(MapsActivity.this,
+                                    "Failed to load route", Toast.LENGTH_SHORT).show());
+                        }
+                    });
+        });
+    }
+
+    public void handleBannerDirectionsClick(JSONObject nextClass) {
+        View bannerView = findViewById(R.id.included_banner);
+        if (bannerView != null) bannerView.setVisibility(View.GONE);
+        try {
+            String eventsJson = CalendarEventManager.globalEventsJson;
+            NotificationRouteHelper.Result result = NotificationRouteHelper.resolveRoute(
+                    eventsJson, nextClass, buildingDialogManager.getGeoIdToBuildingDetailsMap());
+
+            if (result == null || result.getDestinationBuilding() == null
+                    || result.getDestinationBuilding().isEmpty()) {
+                Toast.makeText(this, "No location found for this class", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            if (result.shouldStartFromPreviousBuilding()) {
+                openRouteFromBuildings(result.getPreviousBuilding(), result.getDestinationBuilding());
+            } else {
+                openRouteFromCurrentLocation(result.getDestinationBuilding());
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to handle banner directions click", e);
+            Toast.makeText(this, "Failed to open directions", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    public void checkAndDisplayNextEventBannerForTest() {
+        bannerManager.checkAndDisplayNextEventBanner();
+    }
+
+    // ── Cross-building state helpers ──────────────────────────────────────────
+
+    /** Called by IndoorNavigationController when a cross-building route is initiated. */
+    void setPendingCrossBuilding(IndoorNode toDoor, IndoorNode toRoom,
+                                 String fromBuilding, String toBuilding) {
+        this.pendingCrossBuildingOutdoor  = true;
+        this.pendingCrossToDoor           = toDoor;
+        this.pendingCrossToRoom           = toRoom;
+        this.pendingCrossFromBuilding     = fromBuilding;
+        this.pendingCrossToBuilding       = toBuilding;
+        this.shouldStartOutdoorAfterIndoor = true;
+    }
+
+    private void clearPendingCrossBuildingData() {
+        pendingCrossBuildingOutdoor   = false;
+        pendingFinalIndoorAfterOutdoor = false;
+        shouldStartOutdoorAfterIndoor  = false;
+        pendingCrossToDoor            = null;
+        pendingCrossToRoom            = null;
+        pendingCrossFromBuilding      = null;
+        pendingCrossToBuilding        = null;
     }
 
 }
