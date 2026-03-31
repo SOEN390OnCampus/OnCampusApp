@@ -48,6 +48,9 @@ public class NotificationE2ETest {
 
         String expectedTitle = "Class Starting Soon: COMP 346";
 
+        // Move the app to the background so the system shows the heads-up peek overlay
+        device.pressHome();
+
         NotificationReceiver receiver = new NotificationReceiver();
         receiver.onReceive(context, intent);
 
