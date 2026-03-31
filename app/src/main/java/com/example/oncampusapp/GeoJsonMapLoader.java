@@ -105,44 +105,8 @@ public class GeoJsonMapLoader {
                 }
 
                 if (isConcordiaBuilding && feature.hasGeometry()) {
-                    Geometry geometry = feature.getGeometry();
-
-                    if (geometry instanceof GeoJsonPolygon) {
-                        GeoJsonPolygon polygon = (GeoJsonPolygon) feature.getGeometry();
-                        List<LatLng> coordinates = polygon.getCoordinates().get(0);
-
-                        LatLng center = GeofenceManager.getPolygonCenter(coordinates);
-                        float radius  = GeofenceManager.getPolygonRadius(center, coordinates);
-
-                        if (id == null || id.isEmpty()) id = feature.getId();
-                        if (id == null || id.isEmpty()) {
-                            Log.e("Geofence", "Skipping feature, ID is null: "
-                                    + feature.getProperty("name"));
-                            continue;
-                        }
-
-                        Building building1 = new Building(id, name, coordinates);
-                        MapsActivity.buildingsMap.put(id, building1);
-                        buildingManager.addBuilding(building1);
-                        geofenceManager.addGeofence(id, center.latitude, center.longitude, radius);
-
-                        // Special-case for the SP building
-                        if (id.equals("way/47331993")) {
-                            BuildingDetails details = buildingDialogManager
-                                    .getGeoIdToBuildingDetailsMap().get(id);
-                            center = new LatLng(details.getLat(), details.getLng());
-                        }
-
-                        if (buildingDialogManager.getGeoIdToBuildingDetailsMap()
-                                .containsKey(id)) {
-                            pointFeatures.add(createSquareFeature(center, id));
-                            map.addGroundOverlay(new GroundOverlayOptions()
-                                    .image(BitmapDescriptorFactory.fromResource(
-                                            R.drawable.ic_building_details))
-                                    .position(center, 10f, 10f)
-                                    .zIndex(100));
-                        }
-                    }
+                    processPolygonBuilding(feature, id, name, pointFeatures, geofenceManager,
+                            buildingManager, map);
                 }
             }
 
@@ -171,6 +135,47 @@ public class GeoJsonMapLoader {
 
         Collections.sort(buildingSuggestions);
         onLoaded.onLoaded(buildingSuggestions, layer, buildingManager);
+    }
+
+    // ── Building polygon processing ───────────────────────────────────────────
+
+    private void processPolygonBuilding(GeoJsonFeature feature, String id, String name,
+                                        List<GeoJsonFeature> pointFeatures,
+                                        GeofenceManager geofenceManager,
+                                        BuildingManager buildingManager,
+                                        GoogleMap map) {
+        Geometry geometry = feature.getGeometry();
+        if (!(geometry instanceof GeoJsonPolygon)) return;
+
+        GeoJsonPolygon polygon = (GeoJsonPolygon) geometry;
+        List<LatLng> coordinates = polygon.getCoordinates().get(0);
+        LatLng center = GeofenceManager.getPolygonCenter(coordinates);
+        float radius  = GeofenceManager.getPolygonRadius(center, coordinates);
+
+        String resolvedId = (id == null || id.isEmpty()) ? feature.getId() : id;
+        if (resolvedId == null || resolvedId.isEmpty()) {
+            Log.e("Geofence", "Skipping feature, ID is null: " + feature.getProperty("name"));
+            return;
+        }
+
+        MapsActivity.buildingsMap.put(resolvedId, new Building(resolvedId, name, coordinates));
+        buildingManager.addBuilding(new Building(resolvedId, name, coordinates));
+        geofenceManager.addGeofence(resolvedId, center.latitude, center.longitude, radius);
+
+        // Special-case for the SP building
+        if (resolvedId.equals("way/47331993")) {
+            BuildingDetails details = buildingDialogManager
+                    .getGeoIdToBuildingDetailsMap().get(resolvedId);
+            if (details != null) center = new LatLng(details.getLat(), details.getLng());
+        }
+
+        if (buildingDialogManager.getGeoIdToBuildingDetailsMap().containsKey(resolvedId)) {
+            pointFeatures.add(createSquareFeature(center, resolvedId));
+            map.addGroundOverlay(new GroundOverlayOptions()
+                    .image(BitmapDescriptorFactory.fromResource(R.drawable.ic_building_details))
+                    .position(center, 10f, 10f)
+                    .zIndex(100));
+        }
     }
 
     // ── Pure geometry helpers (previously private in MapsActivity) ────────────
