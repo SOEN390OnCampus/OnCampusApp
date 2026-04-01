@@ -236,8 +236,14 @@ public class IndoorDirectionsActivity extends AppCompatActivity {
                     runOnUiThread(() -> showStatus("Error loading building map data."));
                     return;
                 }
+               boolean reducedMobilityEnabled = true;
+               List<String> path;
 
-                List<String> path = graph.shortestPath(fromNode.getId(), toNode.getId());
+                if (isReducedMobilityEnabled()) {
+                    path = graph.shortestAccessiblePath(fromNode.getId(), toNode.getId());
+                } else {
+                    path = graph.shortestPath(fromNode.getId(), toNode.getId());
+                }
 
                 runOnUiThread(() -> {
                     if (isDestroyed() || isFinishing()) return;
@@ -298,5 +304,10 @@ public class IndoorDirectionsActivity extends AppCompatActivity {
         if (imm != null && focus != null) {
             imm.hideSoftInputFromWindow(focus.getWindowToken(), 0);
         }
+    }
+
+       private boolean isReducedMobilityEnabled() {
+        SharedPreferences prefs = getSharedPreferences("app_prefs", MODE_PRIVATE);
+        return prefs.getBoolean("reduced_mobility_enabled", false);
     }
 }
