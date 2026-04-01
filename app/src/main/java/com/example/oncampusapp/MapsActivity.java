@@ -1818,6 +1818,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             IndoorGraph graph = new IndoorGraph();
             try (InputStream is = getResources().openRawResource(resId)) {
                 graph.load(is);
+                boolean reducedMobilityEnabled = true;
 
                 List<String> path;
 
