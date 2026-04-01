@@ -1818,7 +1818,15 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             IndoorGraph graph = new IndoorGraph();
             try (InputStream is = getResources().openRawResource(resId)) {
                 graph.load(is);
-                List<String> path = graph.shortestPath(fromNodeId, toNodeId);
+
+                List<String> path;
+
+                if (isReducedMobilityEnabled()) {
+                    path = graph.shortestAccessiblePath(fromNodeId, toNodeId);
+                } else {
+                    path = graph.shortestPath(fromNodeId, toNodeId);
+                }
+                
                 runOnUiThread(() -> onSuccess.accept(path));
             } catch (Exception e) {
                 runOnUiThread(() ->
@@ -2589,5 +2597,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             Log.e(TAG, "Failed to handle banner directions click");
             Toast.makeText(this, "Failed to open directions", Toast.LENGTH_SHORT).show();
         }
+    }
+
+
+     private boolean isReducedMobilityEnabled() {
+        SharedPreferences prefs = getSharedPreferences("app_prefs", MODE_PRIVATE);
+        return prefs.getBoolean("reduced_mobility_enabled", false);
     }
 }
