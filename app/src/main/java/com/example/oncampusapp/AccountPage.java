@@ -178,7 +178,9 @@ public class AccountPage extends AppCompatActivity {
             }
 
             else if (id == R.id.nav_settings) {
-                Toast.makeText(this, "Settings clicked", Toast.LENGTH_SHORT).show();
+                Intent intent = new Intent(AccountPage.this, SettingsActivity.class);
+                startActivity(intent);
+                finish();
                 return true;
             }
 

@@ -137,7 +137,8 @@ public class IndoorMapActivity extends AppCompatActivity {
                     return true;
 
                 } else if (itemId == R.id.nav_settings) {
-                    // Add logic for settings page here later
+                    Intent settingsIntent = new Intent(IndoorMapActivity.this, SettingsActivity.class);
+                    startActivity(settingsIntent);
                     return true;
                 }
                 return false;

@@ -134,7 +134,9 @@ public class GoogleCalendarAuthActivity extends AppCompatActivity {
             }
 
             else if (id == R.id.nav_settings) {
-                Toast.makeText(this, "Settings clicked", Toast.LENGTH_SHORT).show();
+                Intent intent = new Intent(GoogleCalendarAuthActivity.this, SettingsActivity.class);
+                startActivity(intent);
+                finish();
                 return true;
             }
 
