@@ -12640,13 +12640,6 @@
       "accessible": false
     },
     {
-      "source": "H_F2_stair_landing_3",
-      "target": "H_F8_stair_landing_3",
-      "type": "stair",
-      "weight": 1,
-      "accessible": false
-    },
-    {
       "source": "H_F8_stair_landing_3",
       "target": "H_F9_stair_landing_22",
       "type": "stair",
