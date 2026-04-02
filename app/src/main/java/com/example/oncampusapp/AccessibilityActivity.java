@@ -10,7 +10,7 @@ import android.widget.ArrayAdapter;
 import android.widget.ImageView;
 import android.widget.Spinner;
 import android.widget.TextView;
-
+import android.util.Log;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.google.android.material.bottomnavigation.BottomNavigationView;
@@ -85,10 +85,15 @@ public class AccessibilityActivity extends AppCompatActivity {
         languageSpinner.setAlpha(1f);
 
         View reducedMobilityButton = findViewById(R.id.btn_reduced_mobility);
-        reducedMobilityButton.setSelected(false);
+
+        isReducedMobilityEnabled = AccessibilityPreferences.isReducedMobilityEnabled(this);
+        reducedMobilityButton.setSelected(isReducedMobilityEnabled);
+
         reducedMobilityButton.setOnClickListener(v -> {
             isReducedMobilityEnabled = !isReducedMobilityEnabled;
             reducedMobilityButton.setSelected(isReducedMobilityEnabled);
+            AccessibilityPreferences.setReducedMobilityEnabled(this, isReducedMobilityEnabled);
+            Log.d("ACCESSIBILITY", "Toggle clicked. New value = " + isReducedMobilityEnabled);
         });
 
         SwitchMaterial textSizeSwitch = findViewById(R.id.switch_text_size_control);

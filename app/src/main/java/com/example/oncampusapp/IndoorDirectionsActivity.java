@@ -1,5 +1,4 @@
 package com.example.oncampusapp;
-
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -246,12 +245,15 @@ public class IndoorDirectionsActivity extends AppCompatActivity {
                     runOnUiThread(() -> showStatus("Error loading building map data."));
                     return;
                 }
-               boolean reducedMobilityEnabled = true;
-               List<String> path;
+
+                Log.d("ACCESSIBILITY", "IndoorDirections reduced mobility = " + isReducedMobilityEnabled());
+                List<String> path;
 
                 if (isReducedMobilityEnabled()) {
+                    Log.d("ACCESSIBILITY", "Using ACCESSIBLE indoor path");
                     path = graph.shortestAccessiblePath(fromNode.getId(), toNode.getId());
                 } else {
+                    Log.d("ACCESSIBILITY", "Using NORMAL indoor path");
                     path = graph.shortestPath(fromNode.getId(), toNode.getId());
                 }
 
@@ -316,8 +318,7 @@ public class IndoorDirectionsActivity extends AppCompatActivity {
         }
     }
 
-       private boolean isReducedMobilityEnabled() {
-        SharedPreferences prefs = getSharedPreferences("app_prefs", MODE_PRIVATE);
-        return prefs.getBoolean("reduced_mobility_enabled", false);
+    private boolean isReducedMobilityEnabled() {
+        return AccessibilityPreferences.isReducedMobilityEnabled(this);
     }
 }

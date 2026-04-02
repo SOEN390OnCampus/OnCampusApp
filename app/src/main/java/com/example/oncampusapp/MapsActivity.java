@@ -12,7 +12,6 @@ import androidx.core.view.WindowCompat;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.core.graphics.Insets;
-
 import android.annotation.SuppressLint;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
@@ -795,9 +794,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                             return;
                         }
 
-                        List<String> path = graph.shortestPath(
-                                pendingCrossToDoor.getId(),
-                                pendingCrossToRoom.getId()
+                        boolean accessible = AccessibilityPreferences.isReducedMobilityEnabled(this);
+                        List<String> path = accessible
+                                ? graph.shortestAccessiblePath(pendingCrossToDoor.getId(), pendingCrossToRoom.getId())
+                                : graph.shortestPath(pendingCrossToDoor.getId(), pendingCrossToRoom.getId()
                         );
 
                         runOnUiThread(() -> {
@@ -1823,7 +1823,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             IndoorGraph graph = new IndoorGraph();
             try (InputStream is = getResources().openRawResource(resId)) {
                 graph.load(is);
-                boolean reducedMobilityEnabled = true;
 
                 List<String> path;
 
@@ -1909,19 +1908,19 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                         pendingCrossToRoom.getId(),
                         path -> {
                             if (isDestroyed() || isFinishing()) return;
-
                             if (path.isEmpty()) {
                                 Toast.makeText(this, "No indoor path found to destination room.",
                                         Toast.LENGTH_LONG).show();
                                 return;
                             }
-
                             Intent intent = new Intent(this, IndoorMapActivity.class);
                             intent.putExtra("BUILDING_ID", pendingCrossToBuilding);
                             intent.putExtra("FLOOR_ID", pendingCrossToDoor.getFloorMenuId());
                             intent.putExtra("FROM_NODE_ID", pendingCrossToDoor.getId());
                             intent.putExtra("TO_NODE_ID", pendingCrossToRoom.getId());
                             intent.putExtra("PATH_NODE_IDS", String.join(",", path));
+                            intent.putExtra("CROSS_BUILDING_STAGE", "FINAL_INDOOR");
+                            intent.putExtra("DISPLAY_DEST_LABEL", pendingCrossToRoom.getLabel());
                             startActivity(intent);
                             clearPendingCrossBuildingData();
                         },
@@ -2606,8 +2605,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     }
 
 
-     private boolean isReducedMobilityEnabled() {
-        SharedPreferences prefs = getSharedPreferences("app_prefs", MODE_PRIVATE);
-        return prefs.getBoolean("reduced_mobility_enabled", false);
+    private boolean isReducedMobilityEnabled() {
+        return AccessibilityPreferences.isReducedMobilityEnabled(this);
     }
 }
