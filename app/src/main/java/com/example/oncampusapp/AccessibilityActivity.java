@@ -92,9 +92,16 @@ public class AccessibilityActivity extends AppCompatActivity {
         });
 
         SwitchMaterial textSizeSwitch = findViewById(R.id.switch_text_size_control);
+        SwitchMaterial highContrastSwitch = findViewById(R.id.switch_high_contrast);
         TextView textSizeValue = findViewById(R.id.txt_text_size_value);
         View zoomOut = findViewById(R.id.btn_text_zoom_out);
         View zoomIn = findViewById(R.id.btn_text_zoom_in);
+
+        highContrastSwitch.setChecked(HighContrastPreferences.isEnabled(this));
+        highContrastSwitch.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            HighContrastPreferences.setEnabled(this, isChecked);
+            GrayscaleModeManager.applyToActivity(this);
+        });
 
         currentTextSizePercent = TextSizePreferences.getTextSizePercent(this);
         boolean isTextSizeEnabled = TextSizePreferences.isTextSizeEnabled(this);
