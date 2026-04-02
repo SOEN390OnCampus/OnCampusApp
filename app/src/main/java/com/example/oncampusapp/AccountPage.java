@@ -210,7 +210,7 @@ public class AccountPage extends AppCompatActivity {
                     eventsJson = events.toString();
 
                     // Update global events JSON so the banner hydrates dynamically
-                    CalendarEventManager.globalEventsJson = eventsJson;
+                    CalendarEventManager.setGlobalEventsJson(eventsJson);
 
                     runOnUiThread(() -> {
                         btnRefresh.setEnabled(true);
@@ -357,90 +357,90 @@ public class AccountPage extends AppCompatActivity {
 
         JSONObject nextClass = CalendarEventManager.findNextUpcomingEvent(eventsJson);
         View bannerView = findViewById(R.id.included_banner);
+        if (bannerView == null) return;
 
-        if (nextClass != null && bannerView != null) {
-            TextView titleView = bannerView.findViewById(R.id.banner_event_title);
-            TextView detailsView = bannerView.findViewById(R.id.banner_event_details);
+        if (nextClass != null) {
+            populateBanner(bannerView, nextClass);
+        } else {
+            bannerView.setVisibility(View.GONE);
+        }
+    }
 
-            if (titleView == null || detailsView == null) {
-                android.util.Log.e("BannerCrash", "Missing TextViews in XML!");
+    private void populateBanner(View bannerView, JSONObject nextClass) {
+        TextView titleView = bannerView.findViewById(R.id.banner_event_title);
+        TextView detailsView = bannerView.findViewById(R.id.banner_event_details);
+        if (titleView == null || detailsView == null) {
+            android.util.Log.e("BannerCrash", "Missing TextViews in XML!");
+            return;
+        }
+
+        String title = nextClass.optString("summary", "Class");
+        try {
+            long now = System.currentTimeMillis();
+            java.text.SimpleDateFormat fmt = new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX", java.util.Locale.getDefault());
+            long startTime = fmt.parse(nextClass.getJSONObject("start").getString("dateTime")).getTime();
+            long endTime = fmt.parse(nextClass.getJSONObject("end").getString("dateTime")).getTime();
+            String rawLocation = nextClass.optString("location", "");
+            String description = nextClass.optString("description", "");
+
+            if (now < startTime && (startTime - now) > 60 * 60 * 1000L) {
+                bannerView.setVisibility(View.GONE);
                 return;
             }
 
-            String title = nextClass.optString("summary", "Class");
+            bannerView.setVisibility(View.VISIBLE);
+            titleView.setText(title);
 
-            try {
-                long now = System.currentTimeMillis();
-                String startStr = nextClass.getJSONObject("start").getString("dateTime");
-                String endStr = nextClass.getJSONObject("end").getString("dateTime");
-                String rawLocation = nextClass.optString("location", "");
-                String description = nextClass.optString("description", "");
+            int redColor = Color.parseColor("#8B1E2D");
+            int greyColor = Color.parseColor("#808080");
+            int iconSizePx = (int) (16 * getResources().getDisplayMetrics().density);
 
-                java.text.SimpleDateFormat exactTimeFormat = new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX", java.util.Locale.getDefault());
-                long startTime = exactTimeFormat.parse(startStr).getTime();
-                long endTime = exactTimeFormat.parse(endStr).getTime();
+            TextView timeStatusView = bannerView.findViewById(R.id.banner_time_status);
+            TextView onlineTagView = bannerView.findViewById(R.id.banner_online_tag);
 
-                long sixtyMinutesInMillis = 60 * 60 * 1000;
-                if (now < startTime && (startTime - now) > sixtyMinutesInMillis) {
-                    bannerView.setVisibility(View.GONE);
-                    return;
-                }
-                bannerView.setVisibility(View.VISIBLE);
+            timeStatusView.setText(NotificationTimeFormatter.getBannerTimeStatus(now, startTime, endTime));
+            timeStatusView.setTextColor(redColor);
+            applyTintedIcon(timeStatusView, android.R.drawable.ic_menu_recent_history, redColor, iconSizePx);
 
-                TextView timeStatusView = bannerView.findViewById(R.id.banner_time_status);
-                TextView onlineTagView = bannerView.findViewById(R.id.banner_online_tag);
+            String parsedLocation = LocationParser.parseSmartLocation(this, title, rawLocation, description);
+            applyTintedIcon(detailsView, android.R.drawable.ic_menu_mylocation, greyColor, iconSizePx);
+            setLocationText(detailsView, onlineTagView, parsedLocation, rawLocation, description);
 
-                titleView.setText(title);
-
-                int redColor = Color.parseColor("#8B1E2D");
-                int greyColor = Color.parseColor("#808080");
-                int iconSizePx = (int) (16 * getResources().getDisplayMetrics().density);
-
-                String timeStatus = NotificationTimeFormatter.getBannerTimeStatus(now, startTime, endTime);
-                timeStatusView.setText(timeStatus);
-                timeStatusView.setTextColor(redColor);
-
-                android.graphics.drawable.Drawable clockIcon = androidx.core.content.ContextCompat.getDrawable(this, android.R.drawable.ic_menu_recent_history);
-                if (clockIcon != null) {
-                    clockIcon = androidx.core.graphics.drawable.DrawableCompat.wrap(clockIcon).mutate();
-                    androidx.core.graphics.drawable.DrawableCompat.setTint(clockIcon, redColor);
-                    clockIcon.setBounds(0, 0, iconSizePx, iconSizePx);
-                    timeStatusView.setCompoundDrawables(clockIcon, null, null, null);
-                    timeStatusView.setCompoundDrawablePadding(16);
-                }
-
-                // Pass context to LocationParser
-                String parsedLocation = LocationParser.parseSmartLocation(this, title, rawLocation, description);
-
-                android.graphics.drawable.Drawable targetIcon = androidx.core.content.ContextCompat.getDrawable(this, android.R.drawable.ic_menu_mylocation);
-                if (targetIcon != null) {
-                    targetIcon = androidx.core.graphics.drawable.DrawableCompat.wrap(targetIcon).mutate();
-                    androidx.core.graphics.drawable.DrawableCompat.setTint(targetIcon, greyColor);
-                    targetIcon.setBounds(0, 0, iconSizePx, iconSizePx);
-                    detailsView.setCompoundDrawables(targetIcon, null, null, null);
-                    detailsView.setCompoundDrawablePadding(16);
-                }
-
-                if (parsedLocation.equals("Online")) {
-                    onlineTagView.setVisibility(View.VISIBLE);
-                    String searchString = (rawLocation + " " + description).toLowerCase();
-                    if (searchString.contains("zoom")) detailsView.setText("ZOOM MEETING");
-                    else if (searchString.contains("teams")) detailsView.setText("MICROSOFT TEAMS");
-                    else if (searchString.contains("meet.google")) detailsView.setText("GOOGLE MEET");
-                    else detailsView.setText(rawLocation.isEmpty() ? "ONLINE CLASS" : rawLocation.toUpperCase());
-                } else {
-                    onlineTagView.setVisibility(View.GONE);
-                    detailsView.setText(parsedLocation.equals("TBD") && !rawLocation.isEmpty() ? rawLocation : parsedLocation);
-                }
-
-            } catch (Exception e) {
-                e.printStackTrace();
-                titleView.setText(title);
-                detailsView.setText("Check schedule for details");
-            }
-        } else if (bannerView != null) {
-            bannerView.setVisibility(View.GONE);
+        } catch (Exception e) {
+            e.printStackTrace();
+            titleView.setText(title);
+            detailsView.setText("Check schedule for details");
         }
+    }
+
+    private void applyTintedIcon(TextView view, int drawableRes, int color, int sizePx) {
+        android.graphics.drawable.Drawable icon = androidx.core.content.ContextCompat.getDrawable(this, drawableRes);
+        if (icon != null) {
+            icon = androidx.core.graphics.drawable.DrawableCompat.wrap(icon).mutate();
+            androidx.core.graphics.drawable.DrawableCompat.setTint(icon, color);
+            icon.setBounds(0, 0, sizePx, sizePx);
+            view.setCompoundDrawables(icon, null, null, null);
+            view.setCompoundDrawablePadding(16);
+        }
+    }
+
+    private void setLocationText(TextView detailsView, TextView onlineTagView,
+                                  String parsedLocation, String rawLocation, String description) {
+        if (parsedLocation.equals("Online")) {
+            onlineTagView.setVisibility(View.VISIBLE);
+            detailsView.setText(resolveOnlineLabel(rawLocation, description));
+        } else {
+            onlineTagView.setVisibility(View.GONE);
+            detailsView.setText(parsedLocation.equals("TBD") && !rawLocation.isEmpty() ? rawLocation : parsedLocation);
+        }
+    }
+
+    private String resolveOnlineLabel(String rawLocation, String description) {
+        String search = (rawLocation + " " + description).toLowerCase();
+        if (search.contains("zoom")) return "ZOOM MEETING";
+        if (search.contains("teams")) return "MICROSOFT TEAMS";
+        if (search.contains("meet.google")) return "GOOGLE MEET";
+        return rawLocation.isEmpty() ? "ONLINE CLASS" : rawLocation.toUpperCase();
     }
 
     // Alert pop up and signout functionality

@@ -18,6 +18,11 @@ android {
         animationsDisabled = true
         unitTests.returnDefaultValues = true
         unitTests.includeAndroidResources = true
+        unitTests.all {
+            // Prevent JaCoCo's runtime instrumentation from breaking Robolectric's
+            // shadow class interception when "Run with Coverage" is used in Android Studio.
+            jvmArgs '-noverify'
+        }
     }
 
     defaultConfig {
