@@ -62,6 +62,7 @@ public class IndoorDirectionsActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        TextSizePreferences.apply(this);
         setContentView(R.layout.activity_indoor_directions);
 
         etFrom = findViewById(R.id.et_from_room);
@@ -115,6 +116,14 @@ public class IndoorDirectionsActivity extends AppCompatActivity {
         findViewById(R.id.card_building_mb).setOnClickListener(openBrowser);
         findViewById(R.id.card_building_lb).setOnClickListener(openBrowser);
         findViewById(R.id.card_building_ve).setOnClickListener(openBrowser);
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (TextSizePreferences.apply(this)) {
+            recreate();
+        }
     }
 
     // ── Room loading ──────────────────────────────────────────────────────────

@@ -14,6 +14,7 @@ import android.widget.TextView;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.google.android.material.bottomnavigation.BottomNavigationView;
+import com.google.android.material.switchmaterial.SwitchMaterial;
 
 public class AccessibilityActivity extends AppCompatActivity {
 
@@ -27,6 +28,7 @@ public class AccessibilityActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        TextSizePreferences.apply(this);
         setContentView(R.layout.activity_accessibility);
 
         Window window = getWindow();
@@ -89,24 +91,64 @@ public class AccessibilityActivity extends AppCompatActivity {
             reducedMobilityButton.setSelected(isReducedMobilityEnabled);
         });
 
+        SwitchMaterial textSizeSwitch = findViewById(R.id.switch_text_size_control);
         TextView textSizeValue = findViewById(R.id.txt_text_size_value);
         View zoomOut = findViewById(R.id.btn_text_zoom_out);
         View zoomIn = findViewById(R.id.btn_text_zoom_in);
 
+        currentTextSizePercent = TextSizePreferences.getTextSizePercent(this);
+        boolean isTextSizeEnabled = TextSizePreferences.isTextSizeEnabled(this);
+        textSizeSwitch.setChecked(isTextSizeEnabled);
+
         updateTextSizeLabel(textSizeValue);
+        updateTextSizeControlsState(zoomOut, zoomIn, textSizeValue, isTextSizeEnabled);
+
+        textSizeSwitch.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            TextSizePreferences.setTextSizeEnabled(this, isChecked);
+            if (!isChecked) {
+                currentTextSizePercent = 100;
+                TextSizePreferences.setTextSizePercent(this, currentTextSizePercent);
+                updateTextSizeLabel(textSizeValue);
+            }
+
+            updateTextSizeControlsState(zoomOut, zoomIn, textSizeValue, isChecked);
+            TextSizePreferences.apply(this);
+            recreate();
+        });
 
         zoomOut.setOnClickListener(v -> {
+            if (!textSizeSwitch.isChecked()) {
+                return;
+            }
             currentTextSizePercent = Math.max(TEXT_SIZE_MIN, currentTextSizePercent - TEXT_SIZE_STEP);
+            TextSizePreferences.setTextSizePercent(this, currentTextSizePercent);
             updateTextSizeLabel(textSizeValue);
+            TextSizePreferences.apply(this);
+            recreate();
         });
 
         zoomIn.setOnClickListener(v -> {
+            if (!textSizeSwitch.isChecked()) {
+                return;
+            }
             currentTextSizePercent = Math.min(TEXT_SIZE_MAX, currentTextSizePercent + TEXT_SIZE_STEP);
+            TextSizePreferences.setTextSizePercent(this, currentTextSizePercent);
             updateTextSizeLabel(textSizeValue);
+            TextSizePreferences.apply(this);
+            recreate();
         });
     }
 
     private void updateTextSizeLabel(TextView label) {
         label.setText(currentTextSizePercent + "%");
+    }
+
+    private void updateTextSizeControlsState(View zoomOut, View zoomIn, TextView textSizeValue, boolean enabled) {
+        zoomOut.setEnabled(enabled);
+        zoomIn.setEnabled(enabled);
+        float alpha = enabled ? 1f : 0.45f;
+        zoomOut.setAlpha(alpha);
+        zoomIn.setAlpha(alpha);
+        textSizeValue.setAlpha(alpha);
     }
 }

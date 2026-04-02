@@ -50,6 +50,7 @@ public class ScheduleViewer extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        TextSizePreferences.apply(this);
 
         Window window = getWindow();
         window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
@@ -109,6 +110,14 @@ public class ScheduleViewer extends AppCompatActivity {
         });
 
         findViewById(R.id.btn_back).setOnClickListener(v -> finish());
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (TextSizePreferences.apply(this)) {
+            recreate();
+        }
     }
 
     public void getCalendarEvents() {

@@ -76,6 +76,7 @@ public class GoogleCalendarAuthActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        TextSizePreferences.apply(this);
 
         calendarRepository = CalendarRepository.getInstance();
 
@@ -101,6 +102,14 @@ public class GoogleCalendarAuthActivity extends AppCompatActivity {
     protected void onDestroy() {
         super.onDestroy();
         executor.shutdownNow();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (TextSizePreferences.apply(this)) {
+            recreate();
+        }
     }
 
     // -------------------------------------------------------------------------

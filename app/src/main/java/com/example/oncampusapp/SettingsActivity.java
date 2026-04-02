@@ -14,9 +14,13 @@ import com.google.android.material.bottomnavigation.BottomNavigationView;
 
 public class SettingsActivity extends AppCompatActivity {
 
+    private int lastAppliedTextPercent;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        TextSizePreferences.apply(this);
+        lastAppliedTextPercent = getEffectiveTextPercent();
         setContentView(R.layout.activity_settings);
 
         Window window = getWindow();
@@ -53,5 +57,26 @@ public class SettingsActivity extends AppCompatActivity {
             }
             return id == R.id.nav_settings;
         });
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        int currentPercent = getEffectiveTextPercent();
+        if (currentPercent != lastAppliedTextPercent) {
+            lastAppliedTextPercent = currentPercent;
+            recreate();
+            return;
+        }
+
+        if (TextSizePreferences.apply(this)) {
+            recreate();
+        }
+    }
+
+    private int getEffectiveTextPercent() {
+        return TextSizePreferences.isTextSizeEnabled(this)
+                ? TextSizePreferences.getTextSizePercent(this)
+                : 100;
     }
 }

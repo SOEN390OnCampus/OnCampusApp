@@ -253,6 +253,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        TextSizePreferences.apply(this);
         WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
         getWindow().setStatusBarColor(Color.TRANSPARENT);
         launchPermissionRequest();
@@ -426,6 +427,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     @Override
     protected void onResume() {
         super.onResume();
+        if (TextSizePreferences.apply(this)) {
+            recreate();
+            return;
+        }
         bannerHandler.post(bannerRunnable);// Start the timer
 
         if (shouldStartOutdoorAfterIndoor && pendingCrossBuildingOutdoor) {

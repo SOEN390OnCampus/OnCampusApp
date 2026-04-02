@@ -81,6 +81,7 @@ public class AccountPage extends AppCompatActivity {
         repository = CalendarRepository.getInstance();
 
         super.onCreate(savedInstanceState);
+        TextSizePreferences.apply(this);
 
         // US-3.3 REQUIREMENT: Schedule the notification for the next class
         if (eventsJson != null && !eventsJson.isEmpty()) {
@@ -136,6 +137,10 @@ public class AccountPage extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
+        if (TextSizePreferences.apply(this)) {
+            recreate();
+            return;
+        }
         // Refresh data from global variables in case they changed
         eventsJson = CalendarEventManager.globalEventsJson;
         calendarListJson = CalendarEventManager.globalCalendarListJson;
