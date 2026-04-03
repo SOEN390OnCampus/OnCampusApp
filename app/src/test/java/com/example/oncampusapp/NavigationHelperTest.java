@@ -9,6 +9,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 
 import com.example.oncampusapp.navigation.NavigationHelper;
+import com.example.oncampusapp.navigation.Route;
 import com.example.oncampusapp.navigation.RouteTravelMode;
 import com.google.android.gms.maps.model.LatLng;
 
@@ -130,4 +131,48 @@ public class NavigationHelperTest {
         assertEquals(4, RouteTravelMode.values().length);
     }
 
+    // ── fetchRoute — early-exit when API key is invalid ───────────────────────
+
+    @Test
+    public void fetchRoute_nullApiKey_immediatelyCallsOnError() {
+        final Exception[] captured = {null};
+        NavigationHelper.fetchRoute(startPoint, destinationPoint, RouteTravelMode.WALK, null,
+                new NavigationHelper.RoutesCallback() {
+                    @Override public void onSuccess(Route route) {
+                        // Not called in this test case - we're testing early error exit
+                    }
+                    @Override public void onError(Exception e) { captured[0] = e; }
+                });
+        assertNotNull("onError should be called for null API key", captured[0]);
+        assertTrue(captured[0] instanceof IllegalArgumentException);
+    }
+
+    @Test
+    public void fetchRoute_emptyApiKey_immediatelyCallsOnError() {
+        final Exception[] captured = {null};
+        NavigationHelper.fetchRoute(startPoint, destinationPoint, RouteTravelMode.DRIVE, "",
+                new NavigationHelper.RoutesCallback() {
+                    @Override public void onSuccess(Route route) {
+                        // Not called in this test case - we're testing early error exit
+                    }
+                    @Override public void onError(Exception e) { captured[0] = e; }
+                });
+        assertNotNull("onError should be called for empty API key", captured[0]);
+        assertTrue(captured[0] instanceof IllegalArgumentException);
+    }
+
+    @Test
+    public void fetchRoute_nullApiKey_allTravelModes_callOnError() {
+        for (RouteTravelMode mode : RouteTravelMode.values()) {
+            final boolean[] errored = {false};
+            NavigationHelper.fetchRoute(startPoint, destinationPoint, mode, null,
+                    new NavigationHelper.RoutesCallback() {
+                        @Override public void onSuccess(Route route) {
+                            // Not called in this test case - we're testing early error exit
+                        }
+                        @Override public void onError(Exception e) { errored[0] = true; }
+                    });
+            assertTrue("Mode " + mode + " should error on null key", errored[0]);
+        }
+    }
 }

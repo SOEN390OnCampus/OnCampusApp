@@ -35,6 +35,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.example.oncampusapp.util.EspressoIdlingResource;
+
 public class IndoorMapActivity extends AppCompatActivity {
 
     private String crossBuildingStage = "";
@@ -570,7 +572,9 @@ public class IndoorMapActivity extends AppCompatActivity {
             btn.setBackgroundTintList(ColorStateList.valueOf(inactiveColor));
             btn.setOnClickListener(v -> {
                 v.setBackgroundTintList(ColorStateList.valueOf(activeColor));
+                EspressoIdlingResource.increment();
                 v.postDelayed(() -> {
+                    EspressoIdlingResource.decrement();
                     v.setBackgroundTintList(ColorStateList.valueOf(inactiveColor));
                     displayStep(currentStepIndex + 1);
                 }, 400);

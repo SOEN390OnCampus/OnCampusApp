@@ -6,6 +6,7 @@ import org.junit.Test;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
+import java.util.concurrent.CountDownLatch;
 import static org.junit.Assert.*;
 
 public class CalendarEventManagerTest {
@@ -75,6 +76,33 @@ public class CalendarEventManagerTest {
         JSONObject result = CalendarEventManager.findNextUpcomingEvent(mockJson);
 
         assertNull("Should ignore past events and return null", result);
+    }
+
+    @Test
+    public void testSetGlobalEventsJson_UpdatesField() {
+        CalendarEventManager.setGlobalEventsJson("test_value");
+        assertEquals("test_value", CalendarEventManager.globalEventsJson);
+        CalendarEventManager.setGlobalEventsJson(""); // clean up
+    }
+
+    @Test
+    public void testSetGlobalEventsJson_ThreadSafety() throws InterruptedException {
+        int threadCount = 10;
+        CountDownLatch latch = new CountDownLatch(threadCount);
+
+        for (int i = 0; i < threadCount; i++) {
+            final String value = "thread_" + i;
+            new Thread(() -> {
+                CalendarEventManager.setGlobalEventsJson(value);
+                latch.countDown();
+            }).start();
+        }
+
+        latch.await();
+        // After all threads complete, the field must hold exactly one of the written values (no corruption)
+        assertNotNull(CalendarEventManager.globalEventsJson);
+        assertTrue(CalendarEventManager.globalEventsJson.startsWith("thread_"));
+        CalendarEventManager.setGlobalEventsJson(""); // clean up
     }
 
     @Test
