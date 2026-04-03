@@ -491,6 +491,13 @@ public class RouteManager {
             currentDirectionIndex++;
             showCurrentDirection();
         } else {
+            if (activity.hasPendingFinalIndoorAfterOutdoor()) {
+                Button btnEndTrip = activity.findViewById(R.id.btn_end_trip);
+                if (btnEndTrip != null) {
+                    btnEndTrip.performClick();
+                    return;
+                }
+            }
             Toast.makeText(activity, "You are at the last step", Toast.LENGTH_SHORT).show();
         }
     }

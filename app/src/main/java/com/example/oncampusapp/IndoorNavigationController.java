@@ -157,17 +157,28 @@ public class IndoorNavigationController {
             Toast.makeText(activity, errorMessage, Toast.LENGTH_SHORT).show();
             return;
         }
+        boolean reducedMobilityEnabled = AccessibilityPreferences.isReducedMobilityEnabled(activity);
         new Thread(() -> {
             IndoorGraph graph = new IndoorGraph();
             try (InputStream is = activity.getResources().openRawResource(resId)) {
                 graph.load(is);
-                List<String> path = graph.shortestPath(fromNodeId, toNodeId);
+                List<String> path = computePath(graph, fromNodeId, toNodeId, reducedMobilityEnabled);
                 activity.runOnUiThread(() -> onSuccess.accept(path));
             } catch (Exception e) {
                 activity.runOnUiThread(() ->
                         Toast.makeText(activity, errorMessage, Toast.LENGTH_SHORT).show());
             }
         }).start();
+    }
+
+    static List<String> computePath(IndoorGraph graph,
+                                    String fromNodeId,
+                                    String toNodeId,
+                                    boolean reducedMobilityEnabled) {
+        if (reducedMobilityEnabled) {
+            return graph.shortestAccessiblePath(fromNodeId, toNodeId);
+        }
+        return graph.shortestPath(fromNodeId, toNodeId);
     }
 
     private List<IndoorNode> getDoorwayNodesForBuilding(String buildingId) {

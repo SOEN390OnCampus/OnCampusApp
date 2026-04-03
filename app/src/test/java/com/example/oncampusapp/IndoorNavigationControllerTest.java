@@ -9,10 +9,16 @@ import org.mockito.Answers;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
+import java.util.Arrays;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 import static org.junit.Assert.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
 public class IndoorNavigationControllerTest {
@@ -140,5 +146,35 @@ public class IndoorNavigationControllerTest {
         controller.setSearchSuggestionsAdapter(mockAdapter);
         controller.setSearchSuggestionsAdapter(null);
         assertNotNull(controller.getIndoorRoomMap());
+    }
+
+    @Test
+    public void computePath_reducedMobilityEnabled_usesAccessiblePath() {
+        IndoorGraph graph = mock(IndoorGraph.class);
+        List<String> expectedPath = Arrays.asList("A", "B", "C");
+
+        when(graph.shortestAccessiblePath("from", "to")).thenReturn(expectedPath);
+
+        List<String> result = IndoorNavigationController.computePath(
+                graph, "from", "to", true);
+
+        assertEquals(expectedPath, result);
+        verify(graph).shortestAccessiblePath("from", "to");
+        verify(graph, never()).shortestPath("from", "to");
+    }
+
+    @Test
+    public void computePath_reducedMobilityDisabled_usesNormalPath() {
+        IndoorGraph graph = mock(IndoorGraph.class);
+        List<String> expectedPath = Arrays.asList("X", "Y");
+
+        when(graph.shortestPath("from", "to")).thenReturn(expectedPath);
+
+        List<String> result = IndoorNavigationController.computePath(
+                graph, "from", "to", false);
+
+        assertEquals(expectedPath, result);
+        verify(graph).shortestPath("from", "to");
+        verify(graph, never()).shortestAccessiblePath("from", "to");
     }
 }

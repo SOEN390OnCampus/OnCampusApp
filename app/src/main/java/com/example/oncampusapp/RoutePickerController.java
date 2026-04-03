@@ -354,6 +354,7 @@ public class RoutePickerController {
             mMap.animateCamera(CameraUpdateFactory.newCameraPosition(
                     new CameraPosition.Builder(mMap.getCameraPosition()).tilt(0).zoom(16f).build()));
         }
+        activity.tryLaunchPendingFinalIndoorRoute();
     }
 
     private void setupBackPressHandler(Runnable closeRoutePicker) {

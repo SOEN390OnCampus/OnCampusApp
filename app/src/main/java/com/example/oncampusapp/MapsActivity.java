@@ -267,18 +267,24 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         routePickerController = new RoutePickerController(this, routeManager, indoorNavController, bannerManager);
         routePickerController.setup();
 
+        binding.bottomNav.setSelectedItemId(R.id.nav_home);
         binding.bottomNav.setOnItemSelectedListener(item -> {
-
             int id = item.getItemId();
-
             if (id == R.id.nav_home) {
-                Toast.makeText(this, "Home clicked", Toast.LENGTH_SHORT).show();
                 return true;
-            } else if (id == R.id.nav_account) {
+            }
+
+            if (id == R.id.nav_account) {
                 startActivity(new Intent(this, GoogleCalendarAuthActivity.class));
+                finish();
+                overridePendingTransition(0, 0);
                 return true;
-            } else if (id == R.id.nav_settings) {
-                Toast.makeText(this, "Settings clicked", Toast.LENGTH_SHORT).show();
+            }
+
+            if (id == R.id.nav_settings) {
+                startActivity(new Intent(this, SettingsActivity.class));
+                finish();
+                overridePendingTransition(0, 0);
                 return true;
             }
 
@@ -716,7 +722,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     private boolean isReducedMobilityEnabled() {
         return AccessibilityPreferences.isReducedMobilityEnabled(this);
-    
+    }
+
     public void checkAndDisplayNextEventBannerForTest() {
         bannerManager.checkAndDisplayNextEventBanner();
     }
@@ -734,6 +741,53 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         this.shouldStartOutdoorAfterIndoor = true;
     }
 
+    boolean hasPendingFinalIndoorAfterOutdoor() {
+        return pendingFinalIndoorAfterOutdoor;
+    }
+
+    boolean tryLaunchPendingFinalIndoorRoute() {
+        if (!pendingFinalIndoorAfterOutdoor) {
+            return false;
+        }
+
+        if (pendingCrossToDoor == null || pendingCrossToRoom == null
+                || pendingCrossToBuilding == null || pendingCrossToBuilding.isEmpty()) {
+            clearPendingCrossBuildingData();
+            return false;
+        }
+
+        indoorNavController.loadIndoorPath(
+                pendingCrossToBuilding,
+                pendingCrossToDoor.getId(),
+                pendingCrossToRoom.getId(),
+                path -> {
+                    if (isDestroyed() || isFinishing()) {
+                        return;
+                    }
+
+                    if (path == null || path.isEmpty()) {
+                        Toast.makeText(this,
+                                "No indoor path found to destination room.",
+                                Toast.LENGTH_LONG).show();
+                        return;
+                    }
+
+                    Intent intent = new Intent(this, IndoorMapActivity.class);
+                    intent.putExtra("BUILDING_ID", pendingCrossToBuilding);
+                    intent.putExtra("FLOOR_ID", pendingCrossToDoor.getFloorMenuId());
+                    intent.putExtra("FROM_NODE_ID", pendingCrossToDoor.getId());
+                    intent.putExtra("TO_NODE_ID", pendingCrossToRoom.getId());
+                    intent.putExtra("PATH_NODE_IDS", String.join(",", path));
+                    intent.putExtra("CROSS_BUILDING_STAGE", "FINAL_INDOOR");
+                    intent.putExtra("DISPLAY_DEST_LABEL", pendingCrossToRoom.getLabel());
+                    startActivity(intent);
+                    clearPendingCrossBuildingData();
+                },
+                "Error loading destination building graph.");
+
+        return true;
+    }
+
     private void clearPendingCrossBuildingData() {
         pendingCrossBuildingOutdoor   = false;
         pendingFinalIndoorAfterOutdoor = false;
@@ -744,5 +798,4 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         pendingCrossToBuilding        = null;
     }
 
-}
 }

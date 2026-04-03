@@ -1,5 +1,7 @@
 package com.example.oncampusapp;
 
+import android.widget.Button;
+
 import com.example.oncampusapp.navigation.RouteTravelMode;
 import com.google.android.gms.maps.model.LatLng;
 
@@ -394,5 +396,16 @@ public class RouteManagerTest {
         routeManager.setSelectedMode(RouteTravelMode.DRIVE);
         routeManager.setSelectedMode(RouteTravelMode.WALK);
         assertEquals(RouteTravelMode.WALK, routeManager.getSelectedMode());
+    }
+
+    @Test
+    public void navigateToNextDirection_pendingFinalIndoor_clicksEndTripButton() {
+        Button mockEndTripButton = mock(Button.class);
+        when(mockActivity.hasPendingFinalIndoorAfterOutdoor()).thenReturn(true);
+        when(mockActivity.findViewById(R.id.btn_end_trip)).thenReturn(mockEndTripButton);
+
+        routeManager.navigateToNextDirection();
+
+        verify(mockEndTripButton).performClick();
     }
 }
