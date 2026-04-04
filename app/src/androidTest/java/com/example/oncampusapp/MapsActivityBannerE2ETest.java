@@ -83,19 +83,15 @@ public class MapsActivityBannerE2ETest {
             }
         });
 
-        Thread.sleep(3000);
 
         // Verify banner button is shown
         onView(withId(R.id.banner_btn_go)).check(matches(isDisplayed()));
-        Thread.sleep(3000);
 
         // Click the banner directions button
         onView(withId(R.id.banner_btn_go)).perform(click());
-        Thread.sleep(4000);
 
         // Assert that route UI appeared
         onView(withId(R.id.route_picker_container)).check(matches(isDisplayed()));
-        Thread.sleep(4000);
 
         onView(withId(R.id.et_destination))
                 .check(matches(withText("Henry F. Hall Building")));
