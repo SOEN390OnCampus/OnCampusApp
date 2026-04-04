@@ -19,6 +19,7 @@ import org.robolectric.shadows.ShadowActivity;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 @RunWith(RobolectricTestRunner.class)
@@ -75,7 +76,6 @@ public class MapsActivityTest {
         ShadowActivity shadowActivity = Shadows.shadowOf(activity);
 
         // FIX 1: Clear any intents that were automatically fired during onCreate()
-        // (e.g., Permission request intents) so we have a clean slate to test navigation.
         shadowActivity.clearNextStartedActivities();
 
         BottomNavigationView bottomNav = activity.findViewById(R.id.bottom_nav);
@@ -83,7 +83,8 @@ public class MapsActivityTest {
 
         Intent actualIntent = shadowActivity.getNextStartedActivity();
 
-        assertTrue("No new activity should start since we are already on Home", actualIntent == null);
+        // Updated to use assertNull for better error reporting
+        assertNull("No new activity should start since we are already on Home", actualIntent);
         assertFalse("Activity should NOT finish", activity.isFinishing());
     }
 
