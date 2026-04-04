@@ -26,6 +26,7 @@ import com.google.android.gms.common.api.ApiException;
 import com.google.android.gms.tasks.Task;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.button.MaterialButton;
+import com.google.android.material.snackbar.BaseTransientBottomBar;
 import com.google.android.material.snackbar.Snackbar;
 
 import org.json.JSONArray;
@@ -270,7 +271,7 @@ public class GoogleCalendarAuthActivity extends AppCompatActivity {
         showLoading(false);
         setStatusText("Sign-in was cancelled. Tap the button to try again.", true);
         Snackbar.make(connectButton,
-                "Sign-in cancelled.", Snackbar.LENGTH_LONG).show();
+                "Sign-in cancelled.", BaseTransientBottomBar.LENGTH_LONG).show();
     }
 
     private void showCalendarFetchError(String detail) {

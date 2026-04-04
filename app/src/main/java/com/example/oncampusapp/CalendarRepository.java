@@ -13,6 +13,7 @@ import java.util.*;
 
 public class CalendarRepository {
 
+    private static final String UTF8 = "UTF-8";
     private static final String CALENDAR_LIST_URL =
             "https://www.googleapis.com/calendar/v3/users/me/calendarList";
 
@@ -68,7 +69,7 @@ public class CalendarRepository {
     protected String fetchCalendarList(String accessToken) throws Exception {
 
         return fetchUrl(
-                "https://www.googleapis.com/calendar/v3/users/me/calendarList",
+                CALENDAR_LIST_URL,
                 accessToken
         );
     }
@@ -97,12 +98,12 @@ public class CalendarRepository {
 
         String url =
                 "https://www.googleapis.com/calendar/v3/calendars/"
-                        + URLEncoder.encode(calendarId, "UTF-8")
+                        + URLEncoder.encode(calendarId, UTF8)
                         + "/events"
                         + "?singleEvents=true"
                         + "&orderBy=startTime"
-                        + "&timeMin=" + URLEncoder.encode(timeMin, "UTF-8")
-                        + "&timeMax=" + URLEncoder.encode(timeMax, "UTF-8");
+                        + "&timeMin=" + URLEncoder.encode(timeMin, UTF8)
+                        + "&timeMax=" + URLEncoder.encode(timeMax, UTF8);
 
         return fetchUrl(url, accessToken);
     }

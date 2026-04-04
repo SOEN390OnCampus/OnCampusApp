@@ -3,14 +3,11 @@ package com.example.oncampusapp.location;
 import android.Manifest;
 import android.content.Context;
 import android.content.pm.PackageManager;
-import android.location.Location;
 import android.os.Looper;
 
 import androidx.annotation.NonNull;
-import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 
-import com.example.oncampusapp.MapsActivity;
-import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationCallback;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationResult;
@@ -46,7 +43,7 @@ public class FusedLocationSource implements LocationSource {
                 .build();
 
         // Use the passed 'context' here instead of MapsActivity.this
-        if (ActivityCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+        if (ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
             client.requestLocationUpdates(locationRequest, locationCallback, Looper.getMainLooper());
         }
     }
