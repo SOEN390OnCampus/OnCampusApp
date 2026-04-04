@@ -37,7 +37,9 @@ import static org.mockito.Mockito.when;
 public class IndoorNavigationControllerTest {
 
     private MapsActivity activity;
+
     private ArrayAdapter<String> mockAdapter;
+
 
     private Map<String, IndoorNode> indoorRoomMap;
     private IndoorNavigationController controller;
