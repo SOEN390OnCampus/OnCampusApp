@@ -29,6 +29,8 @@ import java.util.List;
  */
 public class ShuttleHelper {
 
+    private static final String SHUTTLEHELPERSTR = "ShuttleHelper";
+
     // Concordia Shuttle Stop Locations
     public static final LatLng SHUTTLE_STOP_SGW = new LatLng(45.497163, -73.578535); // SGW Campus
     public static final LatLng SHUTTLE_STOP_LOY = new LatLng(45.458424, -73.638369); // Loyola Campus
@@ -56,7 +58,7 @@ public class ShuttleHelper {
             routeSgwToLoy = parseRoute(obj.getJSONArray("sgw_to_loy"));
             routeLoyToSgw = parseRoute(obj.getJSONArray("loy_to_sgw"));
         } catch (Exception e) {
-            Log.e("ShuttleHelper", "Failed to load shuttle routes from JSON", e);
+            Log.e(SHUTTLEHELPERSTR, "Failed to load shuttle routes from JSON", e);
             routeSgwToLoy = new ArrayList<>();
             routeLoyToSgw = new ArrayList<>();
         }
@@ -82,7 +84,7 @@ public class ShuttleHelper {
      */
     public static List<LatLng> getShuttleRoute(LatLng start, LatLng end) {
         if (routeSgwToLoy == null || routeLoyToSgw == null) {
-            Log.w("ShuttleHelper", "getShuttleRoute called before init()");
+            Log.w(SHUTTLEHELPERSTR, "getShuttleRoute called before init()");
             return new ArrayList<>();
         }
         if (start == null) return new ArrayList<>(routeSgwToLoy);
@@ -125,7 +127,7 @@ public class ShuttleHelper {
 
             @Override
             public void onError(Exception e) {
-                Log.w("ShuttleHelper", "Duration fetch failed, using fallback", e);
+                Log.w(SHUTTLEHELPERSTR, "Duration fetch failed, using fallback", e);
                 cb.onError(e);
             }
         });
@@ -143,7 +145,7 @@ public class ShuttleHelper {
             context.startActivity(browserIntent);
         } catch (Exception e) {
             Toast.makeText(context, "Unable to open shuttle timetable", Toast.LENGTH_SHORT).show();
-            Log.e("ShuttleHelper", "Error opening shuttle timetable", e);
+            Log.e(SHUTTLEHELPER, "Error opening shuttle timetable", e);
         }
     }
     
