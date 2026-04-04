@@ -116,4 +116,86 @@ public class AccountPageTest {
         // No crash expected — null check at top of method guards all view access
         m.invoke(activity);
     }
+    // ── setLocationText ───────────────────────────────────────────────────────
+
+    @Test
+    public void setLocationText_whenOnline_showsTagAndResolvesLabel() throws Exception {
+        // Setup raw views using the application context
+        android.content.Context context = androidx.test.core.app.ApplicationProvider.getApplicationContext();
+        android.widget.TextView detailsView = new android.widget.TextView(context);
+        android.widget.TextView onlineTagView = new android.widget.TextView(context);
+        onlineTagView.setVisibility(android.view.View.GONE);
+
+        Method setLocationText = AccountPage.class.getDeclaredMethod(
+                "setLocationText", android.widget.TextView.class, android.widget.TextView.class,
+                String.class, String.class, String.class);
+        setLocationText.setAccessible(true);
+
+        // Action: Call with "Online" as the parsed location
+        setLocationText.invoke(activity, detailsView, onlineTagView, "Online", "zoom.us", "");
+
+        // Assertion: Tag should be visible, and the text should be resolved to ZOOM MEETING
+        assertEquals(android.view.View.VISIBLE, onlineTagView.getVisibility());
+        assertEquals("ZOOM MEETING", detailsView.getText().toString());
+    }
+
+    @Test
+    public void setLocationText_whenPhysicalLocation_hidesTagAndShowsLocation() throws Exception {
+        android.content.Context context = androidx.test.core.app.ApplicationProvider.getApplicationContext();
+        android.widget.TextView detailsView = new android.widget.TextView(context);
+        android.widget.TextView onlineTagView = new android.widget.TextView(context);
+        onlineTagView.setVisibility(android.view.View.VISIBLE); // Start visible to ensure it gets hidden
+
+        Method setLocationText = AccountPage.class.getDeclaredMethod(
+                "setLocationText", android.widget.TextView.class, android.widget.TextView.class,
+                String.class, String.class, String.class);
+        setLocationText.setAccessible(true);
+
+        // Action: Call with a physical room
+        setLocationText.invoke(activity, detailsView, onlineTagView, "H-820", "", "");
+
+        // Assertion: Tag should be hidden, text should just be the room name
+        assertEquals(android.view.View.GONE, onlineTagView.getVisibility());
+        assertEquals("H-820", detailsView.getText().toString());
+    }
+
+    // ── populateCalendarList (UI Inflation without onCreate) ──────────────────
+
+    @Test
+    public void populateCalendarList_withValidJson_inflatesCalendarItems() throws Exception {
+        /* * JEDI TRICK: We can test the UI inflation WITHOUT calling onCreate() by
+         * manually setting the theme, inflating the layout, and calling setViews()!
+         */
+
+        // 1. Manually setup the UI environment
+        activity.setTheme(androidx.appcompat.R.style.Theme_AppCompat_Light);
+        activity.setContentView(R.layout.account_page);
+
+        // 2. Call setViews() via reflection to bind the XML elements to the Activity's private fields
+        Method setViewsMethod = AccountPage.class.getDeclaredMethod("setViews");
+        setViewsMethod.setAccessible(true);
+        setViewsMethod.invoke(activity);
+
+        // 3. Inject mock JSON directly into the private 'calendarListJson' field
+        String mockJson = "{ \"items\": [{\"id\": \"cal1\", \"summary\": \"Test Calendar\", \"backgroundColor\": \"#8B1E2D\"}] }";
+        java.lang.reflect.Field jsonField = AccountPage.class.getDeclaredField("calendarListJson");
+        jsonField.setAccessible(true);
+        jsonField.set(activity, mockJson);
+
+        // 4. Invoke the populate method
+        Method populateMethod = AccountPage.class.getDeclaredMethod("populateCalendarList");
+        populateMethod.setAccessible(true);
+        populateMethod.invoke(activity);
+
+        // 5. Assert the views were successfully generated and appended to the screen
+        android.widget.LinearLayout container = activity.findViewById(R.id.calendarListContainer);
+        assertEquals("Container should have exactly 1 calendar item inflated", 1, container.getChildCount());
+
+        android.widget.TextView nameText = container.getChildAt(0).findViewById(R.id.calendar_name);
+        assertEquals("Test Calendar", nameText.getText().toString());
+    }
+
+
+
+
 }

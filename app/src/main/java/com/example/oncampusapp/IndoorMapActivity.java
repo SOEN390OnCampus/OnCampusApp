@@ -250,14 +250,14 @@ public class IndoorMapActivity extends AppCompatActivity {
         List<NavigationStep> steps = new ArrayList<>();
 
         for (int f = 0; f < floorSequence.size(); f++) {
-            String currentFloorId = floorSequence.get(f);
-            List<IndoorNode> floorNodes = byFloor.get(currentFloorId);
+            String currentfloorId = floorSequence.get(f);
+            List<IndoorNode> floorNodes = byFloor.get(currentfloorId);
 
             if (isInvalidFloor(floorNodes)) continue;
 
-            addInitialStep(steps, currentFloorId);
-            processFloorNodes(steps, floorNodes, currentFloorId);
-            addTransitionStepIfNeeded(steps, f, currentFloorId);
+            addInitialStep(steps, currentfloorId);
+            processFloorNodes(steps, floorNodes, currentfloorId);
+            addTransitionStepIfNeeded(steps, f, currentfloorId);
         }
         addFinalStep(steps);
         return filterSteps(steps);
