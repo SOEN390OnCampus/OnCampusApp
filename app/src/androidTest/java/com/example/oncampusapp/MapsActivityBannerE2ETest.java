@@ -39,7 +39,7 @@ public class MapsActivityBannerE2ETest {
             );
 
     @Test
-    public void clickingBannerDirectionsButton_opensDirectionsFlow() throws Exception {
+    public void clickingBannerDirectionsButton_opensDirectionsFlow(){
         ActivityScenario<MapsActivity> scenario =
                 ActivityScenario.launch(MapsActivity.class);
 
@@ -82,20 +82,34 @@ public class MapsActivityBannerE2ETest {
                 throw new RuntimeException(e);
             }
         });
-
-        Thread.sleep(3000);
-
+        try {
+            Thread.sleep(3000);
+        } catch (InterruptedException e){
+            Thread.currentThread().interrupt();
+        }
         // Verify banner button is shown
         onView(withId(R.id.banner_btn_go)).check(matches(isDisplayed()));
-        Thread.sleep(3000);
+        try {
+            Thread.sleep(3000);
+        } catch (InterruptedException e){
+            Thread.currentThread().interrupt();
+        }
 
         // Click the banner directions button
         onView(withId(R.id.banner_btn_go)).perform(click());
-        Thread.sleep(4000);
+        try {
+            Thread.sleep(4000);
+        } catch (InterruptedException e){
+            Thread.currentThread().interrupt();
+        }
 
         // Assert that route UI appeared
         onView(withId(R.id.route_picker_container)).check(matches(isDisplayed()));
-        Thread.sleep(4000);
+        try {
+            Thread.sleep(4000);
+        } catch (InterruptedException e){
+            Thread.currentThread().interrupt();
+        }
 
         onView(withId(R.id.et_destination))
                 .check(matches(withText("Henry F. Hall Building")));
