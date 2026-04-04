@@ -348,12 +348,20 @@ public class RoutePickerController {
     }
 
     private void handleEndTrip() {
+
+        if (activity.isPoiNavigationActive()) {
+            activity.reloadForPoiExit();
+            return;
+        }
+
         routeManager.stopNavigation();
         toggleNavigationUI(false);
+
         if (mMap != null) {
             mMap.animateCamera(CameraUpdateFactory.newCameraPosition(
                     new CameraPosition.Builder(mMap.getCameraPosition()).tilt(0).zoom(16f).build()));
         }
+
         activity.tryLaunchPendingFinalIndoorRoute();
     }
 

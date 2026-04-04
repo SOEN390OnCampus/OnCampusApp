@@ -69,6 +69,8 @@
 
         <activity android:name=".ScheduleViewer" />
 
+        <activity android:name=".PoiActivity" />
+
         <activity android:name=".AccountPage" />
 
         <activity android:name=".SettingsActivity" />
