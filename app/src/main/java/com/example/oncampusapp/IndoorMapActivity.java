@@ -65,8 +65,6 @@ public class IndoorMapActivity extends AppCompatActivity {
     private List<IndoorNode> currentFloorNodes = new ArrayList<>();
     private IndoorMapView    mapView;
 
-    private BottomNavigationView bottomNav;
-
     private static final String TAG = "IndoorMapActivity";
 
     private static final String FLOOR = "Floor ";
@@ -185,7 +183,7 @@ public class IndoorMapActivity extends AppCompatActivity {
     }
 
     private void bottomNavSetup() {
-        bottomNav = findViewById(R.id.bottom_nav);
+        BottomNavigationView bottomNav = findViewById(R.id.bottom_nav);
         if (bottomNav != null) {
             bottomNav.setOnItemSelectedListener(item -> {
                 int itemId = item.getItemId();
@@ -252,14 +250,14 @@ public class IndoorMapActivity extends AppCompatActivity {
         List<NavigationStep> steps = new ArrayList<>();
 
         for (int f = 0; f < floorSequence.size(); f++) {
-            String floorId = floorSequence.get(f);
-            List<IndoorNode> floorNodes = byFloor.get(floorId);
+            String currentfloorId = floorSequence.get(f);
+            List<IndoorNode> floorNodes = byFloor.get(currentfloorId);
 
             if (isInvalidFloor(floorNodes)) continue;
 
-            addInitialStep(steps, floorId);
-            processFloorNodes(steps, floorNodes, floorId);
-            addTransitionStepIfNeeded(steps, f, floorId);
+            addInitialStep(steps, currentfloorId);
+            processFloorNodes(steps, floorNodes, currentfloorId);
+            addTransitionStepIfNeeded(steps, f, currentfloorId);
         }
         addFinalStep(steps);
         return filterSteps(steps);
