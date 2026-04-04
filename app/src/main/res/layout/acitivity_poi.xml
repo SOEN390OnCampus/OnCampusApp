@@ -73,5 +73,6 @@
         android:layout_height="wrap_content"
         android:layout_gravity="center_horizontal"
         android:layout_margin="16dp"
-        android:text="View More" />
+        android:text="View More"
+        android:visibility="invisible" />
 </LinearLayout>
