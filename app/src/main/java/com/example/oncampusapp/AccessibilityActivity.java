@@ -1,5 +1,6 @@
 package com.example.oncampusapp;
 
+import android.app.ActivityOptions;
 import android.content.Intent;
 import android.graphics.Color;
 import android.os.Bundle;
@@ -16,6 +17,9 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.switchmaterial.SwitchMaterial;
 
+import androidx.core.view.WindowCompat;
+import androidx.core.view.WindowInsetsControllerCompat;
+
 public class AccessibilityActivity extends AppCompatActivity {
 
     private int currentTextSizePercent = 100;
@@ -23,7 +27,6 @@ public class AccessibilityActivity extends AppCompatActivity {
     private static final int TEXT_SIZE_STEP = 10;
     private static final int TEXT_SIZE_MIN = 50;
     private static final int TEXT_SIZE_MAX = 200;
-    private boolean isReducedMobilityEnabled = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -32,13 +35,17 @@ public class AccessibilityActivity extends AppCompatActivity {
         setContentView(R.layout.activity_accessibility);
 
         Window window = getWindow();
-        window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
-        window.setStatusBarColor(Color.parseColor("#7A1C1C"));
+        WindowCompat.setDecorFitsSystemWindows(window, false);
+        WindowInsetsControllerCompat insetsController = new WindowInsetsControllerCompat(window, window.getDecorView());
+
+        insetsController.setAppearanceLightStatusBars(false);
+        window.setStatusBarColor(Color.TRANSPARENT);
+        window.getDecorView().setBackgroundColor(Color.parseColor("#7A1C1C"));
 
         ImageView backButton = findViewById(R.id.btn_back_accessibility);
         backButton.setOnClickListener(v -> {
+            ActivityOptions options = ActivityOptions.makeCustomAnimation(this, 0, 0);
             finish();
-            overridePendingTransition(0, 0);
         });
 
         setupInteractiveControls();
@@ -86,14 +93,15 @@ public class AccessibilityActivity extends AppCompatActivity {
 
         View reducedMobilityButton = findViewById(R.id.btn_reduced_mobility);
 
-        isReducedMobilityEnabled = AccessibilityPreferences.isReducedMobilityEnabled(this);
+        boolean isReducedMobilityEnabled = AccessibilityPreferences.isReducedMobilityEnabled(this);
         reducedMobilityButton.setSelected(isReducedMobilityEnabled);
 
         reducedMobilityButton.setOnClickListener(v -> {
-            isReducedMobilityEnabled = !isReducedMobilityEnabled;
-            reducedMobilityButton.setSelected(isReducedMobilityEnabled);
-            AccessibilityPreferences.setReducedMobilityEnabled(this, isReducedMobilityEnabled);
-            Log.d("ACCESSIBILITY", "Toggle clicked. New value = " + isReducedMobilityEnabled);
+            boolean currentValue = AccessibilityPreferences.isReducedMobilityEnabled(this);
+            boolean newValue = !currentValue;
+            reducedMobilityButton.setSelected(newValue);
+            AccessibilityPreferences.setReducedMobilityEnabled(this, newValue);
+            Log.d("ACCESSIBILITY", "Toggle clicked. New value = " + newValue);
         });
 
         SwitchMaterial textSizeSwitch = findViewById(R.id.switch_text_size_control);
