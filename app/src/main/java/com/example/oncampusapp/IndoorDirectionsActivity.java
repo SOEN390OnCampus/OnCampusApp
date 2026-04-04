@@ -1,7 +1,7 @@
 package com.example.oncampusapp;
-
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.util.Log;
 import android.util.Pair;
@@ -61,6 +61,7 @@ public class IndoorDirectionsActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        TextSizePreferences.apply(this);
         setContentView(R.layout.activity_indoor_directions);
 
         etFrom = findViewById(R.id.et_from_room);
@@ -114,6 +115,14 @@ public class IndoorDirectionsActivity extends AppCompatActivity {
         findViewById(R.id.card_building_mb).setOnClickListener(openBrowser);
         findViewById(R.id.card_building_lb).setOnClickListener(openBrowser);
         findViewById(R.id.card_building_ve).setOnClickListener(openBrowser);
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (TextSizePreferences.apply(this)) {
+            recreate();
+        }
     }
 
     // ── Room loading ──────────────────────────────────────────────────────────
@@ -237,7 +246,16 @@ public class IndoorDirectionsActivity extends AppCompatActivity {
                     return;
                 }
 
-                List<String> path = graph.shortestPath(fromNode.getId(), toNode.getId());
+                Log.d("ACCESSIBILITY", "IndoorDirections reduced mobility = " + isReducedMobilityEnabled());
+                List<String> path;
+
+                if (isReducedMobilityEnabled()) {
+                    Log.d("ACCESSIBILITY", "Using ACCESSIBLE indoor path");
+                    path = graph.shortestAccessiblePath(fromNode.getId(), toNode.getId());
+                } else {
+                    Log.d("ACCESSIBILITY", "Using NORMAL indoor path");
+                    path = graph.shortestPath(fromNode.getId(), toNode.getId());
+                }
 
                 runOnUiThread(() -> {
                     if (isDestroyed() || isFinishing()) return;
@@ -298,5 +316,9 @@ public class IndoorDirectionsActivity extends AppCompatActivity {
         if (imm != null && focus != null) {
             imm.hideSoftInputFromWindow(focus.getWindowToken(), 0);
         }
+    }
+
+    private boolean isReducedMobilityEnabled() {
+        return AccessibilityPreferences.isReducedMobilityEnabled(this);
     }
 }

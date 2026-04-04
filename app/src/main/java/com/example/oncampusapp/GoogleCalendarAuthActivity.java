@@ -76,6 +76,7 @@ public class GoogleCalendarAuthActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        TextSizePreferences.apply(this);
 
         calendarRepository = CalendarRepository.getInstance();
 
@@ -101,6 +102,14 @@ public class GoogleCalendarAuthActivity extends AppCompatActivity {
     protected void onDestroy() {
         super.onDestroy();
         executor.shutdownNow();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (TextSizePreferences.apply(this)) {
+            recreate();
+        }
     }
 
     // -------------------------------------------------------------------------
@@ -134,7 +143,9 @@ public class GoogleCalendarAuthActivity extends AppCompatActivity {
             }
 
             else if (id == R.id.nav_settings) {
-                Toast.makeText(this, "Settings clicked", Toast.LENGTH_SHORT).show();
+                Intent intent = new Intent(GoogleCalendarAuthActivity.this, SettingsActivity.class);
+                startActivity(intent);
+                finish();
                 return true;
             }
 

@@ -282,4 +282,71 @@ public class IndoorGraph {
         }
         return rooms;
     }
+
+
+ /**
+     * Computes an indoor route for reduced mobility users.
+     * Stair edges are excluded so the returned path avoids stairs.
+     */
+    public List<String> shortestAccessiblePath(String sourceId, String targetId) {
+        logNeighbors(sourceId);
+
+        if (!nodes.containsKey(sourceId) || !nodes.containsKey(targetId)) {
+            return Collections.emptyList();
+        }
+
+        Map<String, Double> dist = new HashMap<>();
+        Map<String, String> prev = new HashMap<>();
+        PriorityQueue<String> pq = new PriorityQueue<>(Comparator.comparingDouble(dist::get));
+
+        for (String node : nodes.keySet()) {
+            dist.put(node, Double.MAX_VALUE);
+        }
+
+        dist.put(sourceId, 0.0);
+        pq.add(sourceId);
+
+        while (!pq.isEmpty()) {
+            String current = pq.poll();
+
+            for (Edge edge : adj.getOrDefault(current, Collections.emptyList())) {
+                if (!isAccessibleEdge(current, edge, sourceId, targetId)) {
+                    continue;
+                }
+                relaxEdge(current, edge, targetId, dist, prev, pq);
+            }
+        }
+
+        return buildPath(sourceId, targetId, prev);
+    }
+    /**
+     * Returns true only for edges that are allowed in reduced mobility mode.
+     */
+    private boolean isAccessibleEdge(String currentId, Edge edge, String sourceId, String targetId) {
+        IndoorNode nextNode = nodes.get(edge.targetId);
+        if (nextNode == null) return false;
+
+        String edgeType = edge.type == null ? "" : edge.type.trim().toLowerCase();
+
+        //avoid stairs
+        if (edgeType.equals("stair") || edgeType.equals("stairs")) {
+            return false;
+        }
+
+        if (!edge.accessible) {
+            return false;
+        }
+
+        boolean isSourceOrTarget = edge.targetId.equals(sourceId) || edge.targetId.equals(targetId);
+        if (!isSourceOrTarget && !nextNode.isAccessible()) {
+            return false;
+        }
+
+        return true;
+    }
+
+
+
+    
 }
+

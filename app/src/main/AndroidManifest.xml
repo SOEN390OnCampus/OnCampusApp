@@ -71,6 +71,10 @@
 
         <activity android:name=".AccountPage" />
 
+        <activity android:name=".SettingsActivity" />
+
+        <activity android:name=".AccessibilityActivity" />
+
         <activity
             android:name=".IndoorMapActivity"
             android:exported="false"

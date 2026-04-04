@@ -86,6 +86,7 @@ public class IndoorMapActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        TextSizePreferences.apply(this);
         setContentView(R.layout.activity_indoor_map);
 
         buildingId        = getIntent().getStringExtra("BUILDING_ID");
@@ -139,7 +140,8 @@ public class IndoorMapActivity extends AppCompatActivity {
                     return true;
 
                 } else if (itemId == R.id.nav_settings) {
-                    // Add logic for settings page here later
+                    Intent settingsIntent = new Intent(IndoorMapActivity.this, SettingsActivity.class);
+                    startActivity(settingsIntent);
                     return true;
                 }
                 return false;
@@ -188,6 +190,14 @@ public class IndoorMapActivity extends AppCompatActivity {
                     displayStep(0);
                 });
             }).start();
+        }
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (TextSizePreferences.apply(this)) {
+            recreate();
         }
     }
 
