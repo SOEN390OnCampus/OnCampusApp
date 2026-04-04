@@ -19,6 +19,7 @@ import org.robolectric.shadows.ShadowActivity;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 
 @RunWith(RobolectricTestRunner.class)
@@ -102,7 +103,8 @@ public class AccessibilityActivityTest {
         reducedMobilityButton.performClick();
         boolean newState = reducedMobilityButton.isSelected();
 
-        assertTrue("Button selection state should toggle", initialState != newState);
+        // Updated to use assertNotEquals
+        assertNotEquals("Button selection state should toggle", initialState, newState);
     }
 
     @Test
@@ -112,7 +114,9 @@ public class AccessibilityActivityTest {
         boolean initialState = highContrastSwitch.isChecked();
         highContrastSwitch.performClick();
 
-        assertTrue("High contrast switch state should toggle", initialState != highContrastSwitch.isChecked());
+        // Updated to use assertNotEquals
+        assertNotEquals("High contrast switch state should toggle", initialState, highContrastSwitch.isChecked());
+
         // Note: Full verification would check HighContrastPreferences, but Robolectric
         // handles standard SharedPreferences automatically if your custom utility uses them.
     }
