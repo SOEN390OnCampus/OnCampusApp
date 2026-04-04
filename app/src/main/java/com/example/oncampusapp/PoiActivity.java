@@ -11,6 +11,8 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.google.android.material.bottomnavigation.BottomNavigationView;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -27,7 +29,29 @@ public class PoiActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.acitivity_poi);
+        setContentView(R.layout.activity_poi);
+
+        BottomNavigationView bottomNav = findViewById(R.id.bottom_nav);
+
+        bottomNav.setOnItemSelectedListener(item -> {
+            int id = item.getItemId();
+
+            if (id == R.id.nav_home) {
+                startActivity(new Intent(PoiActivity.this, MapsActivity.class));
+                finish();
+                return true;
+            } else if (id == R.id.nav_account) {
+                startActivity(new Intent(PoiActivity.this, GoogleCalendarAuthActivity.class));
+                finish();
+                return true;
+            } else if (id == R.id.nav_settings) {
+                startActivity(new Intent(PoiActivity.this, SettingsActivity.class));
+                finish();
+                return true;
+            }
+
+            return false;
+        });
 
         ImageButton btnBack = findViewById(R.id.btn_back);
         EditText etSearch = findViewById(R.id.et_search_poi);
