@@ -145,7 +145,7 @@ public class ShuttleHelper {
             context.startActivity(browserIntent);
         } catch (Exception e) {
             Toast.makeText(context, "Unable to open shuttle timetable", Toast.LENGTH_SHORT).show();
-            Log.e(SHUTTLEHELPER, "Error opening shuttle timetable", e);
+            Log.e(SHUTTLEHELPERSTR, "Error opening shuttle timetable", e);
         }
     }
     
