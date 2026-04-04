@@ -19,6 +19,7 @@ import org.robolectric.shadows.ShadowActivity;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 @RunWith(RobolectricTestRunner.class)
@@ -120,7 +121,8 @@ public class GoogleCalendarAuthActivityTest {
         ShadowActivity shadowActivity = Shadows.shadowOf(activity);
         Intent actualIntent = shadowActivity.getNextStartedActivity();
 
-        assertTrue("No new activity should be started", actualIntent == null);
+        // Updated to use assertNull
+        assertNull("No new activity should be started", actualIntent);
         assertFalse("Activity should NOT finish", activity.isFinishing());
     }
 }
