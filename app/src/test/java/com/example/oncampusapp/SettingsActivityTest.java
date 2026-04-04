@@ -19,6 +19,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertNull;
 
 @RunWith(RobolectricTestRunner.class)
 public class SettingsActivityTest {
@@ -121,7 +122,8 @@ public class SettingsActivityTest {
         ShadowActivity shadowActivity = Shadows.shadowOf(activity);
         Intent actualIntent = shadowActivity.getNextStartedActivity();
 
-        assertTrue("No new activity should be started", actualIntent == null);
+        // Use assertNull for better error reporting and cleaner syntax
+        assertNull("No new activity should be started", actualIntent);
         assertFalse("Activity should NOT finish", activity.isFinishing());
     }
 }
