@@ -25,9 +25,10 @@ import android.os.Looper;
 import android.util.Log;
 
 import androidx.annotation.Nullable;
-import androidx.core.app.ActivityCompat;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
+import androidx.core.content.ContextCompat;
+
 // This class is used to track the location of the user, specifically when they are inside a building
 public class LocationTrackingService extends Service {
 
@@ -135,7 +136,7 @@ public class LocationTrackingService extends Service {
                 .setPriority(NotificationCompat.PRIORITY_HIGH);
 
         NotificationManagerCompat notificationManager = NotificationManagerCompat.from(this);
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) {
             notificationManager.notify((int) System.currentTimeMillis(), builder.build());
         }
     }

@@ -65,9 +65,13 @@ public class IndoorMapActivity extends AppCompatActivity {
     private List<IndoorNode> currentFloorNodes = new ArrayList<>();
     private IndoorMapView    mapView;
 
+    private BottomNavigationView bottomNav;
+
     private static final String TAG = "IndoorMapActivity";
 
     private static final String FLOOR = "Floor ";
+
+    private String floorId;
 
     private String   buildingId;
     private String   fromNodeId;
@@ -89,26 +93,8 @@ public class IndoorMapActivity extends AppCompatActivity {
         TextSizePreferences.apply(this);
         setContentView(R.layout.activity_indoor_map);
 
-        buildingId        = getIntent().getStringExtra("BUILDING_ID");
-        String floorId    = getIntent().getStringExtra("FLOOR_ID");
-        fromNodeId        = getIntent().getStringExtra("FROM_NODE_ID");
-        toNodeId          = getIntent().getStringExtra("TO_NODE_ID");
-        String pathString = getIntent().getStringExtra("PATH_NODE_IDS");
-        crossBuildingStage = getIntent().getStringExtra("CROSS_BUILDING_STAGE");
-        if (crossBuildingStage == null) crossBuildingStage = "";
-
-        displayDestLabel = getIntent().getStringExtra("DISPLAY_DEST_LABEL");
-        if (displayDestLabel == null) displayDestLabel = "";
-
-        if (pathString != null && !pathString.isEmpty()) {
-            pathNodeIds = pathString.split(",");
-        }
-
-        if (buildingId == null || floorId == null) {
-            Toast.makeText(this, "Error loading floor plan", Toast.LENGTH_SHORT).show();
-            finish();
-            return;
-        }
+        readIntentExtras();
+        if (!validateInputs()) return;
 
         TextView tvTitle = findViewById(R.id.tv_floor_title);
         tvTitle.setText(buildingId + " FLOOR " + floorId);
@@ -120,33 +106,8 @@ public class IndoorMapActivity extends AppCompatActivity {
         displayedFloorId = floorId;
 
         setupBanner();
+        bottomNavSetup();
 
-        // --- Bottom Navigation Setup ---
-        BottomNavigationView bottomNav = findViewById(R.id.bottom_nav);
-        if (bottomNav != null) {
-            bottomNav.setOnItemSelectedListener(item -> {
-                int itemId = item.getItemId();
-
-                if (itemId == R.id.nav_home) {
-                    Intent homeIntent = new Intent(IndoorMapActivity.this, MapsActivity.class);
-                    // clear the back stack so pressing back doesn't return to the indoor map
-                    homeIntent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
-                    startActivity(homeIntent);
-                    return true;
-
-                } else if (itemId == R.id.nav_account) {
-                    Intent accountIntent = new Intent(IndoorMapActivity.this, GoogleCalendarAuthActivity.class);
-                    startActivity(accountIntent);
-                    return true;
-
-                } else if (itemId == R.id.nav_settings) {
-                    Intent settingsIntent = new Intent(IndoorMapActivity.this, SettingsActivity.class);
-                    startActivity(settingsIntent);
-                    return true;
-                }
-                return false;
-            });
-        }
         // ---------------------------------
 
         int jsonResId = getResources().getIdentifier(
@@ -190,6 +151,64 @@ public class IndoorMapActivity extends AppCompatActivity {
                     displayStep(0);
                 });
             }).start();
+        }
+    }
+
+    private void readIntentExtras() {
+        Intent intent = getIntent();
+
+        buildingId = intent.getStringExtra("BUILDING_ID");
+        floorId    = intent.getStringExtra("FLOOR_ID");
+        fromNodeId = intent.getStringExtra("FROM_NODE_ID");
+        toNodeId   = intent.getStringExtra("TO_NODE_ID");
+
+        String pathString = intent.getStringExtra("PATH_NODE_IDS");
+        crossBuildingStage = safeString(intent.getStringExtra("CROSS_BUILDING_STAGE"));
+        displayDestLabel   = safeString(intent.getStringExtra("DISPLAY_DEST_LABEL"));
+
+        if (pathString != null && !pathString.isEmpty()) {
+            pathNodeIds = pathString.split(",");
+        }
+    }
+
+    private String safeString(String value) {
+        return value == null ? "" : value;
+    }
+
+    private boolean validateInputs() {
+        if (buildingId == null || floorId == null) {
+            Toast.makeText(this, "Error loading floor plan", Toast.LENGTH_SHORT).show();
+            finish();
+            return false;
+        }
+        return true;
+    }
+
+    private void bottomNavSetup() {
+        bottomNav = findViewById(R.id.bottom_nav);
+        if (bottomNav != null) {
+            bottomNav.setOnItemSelectedListener(item -> {
+                int itemId = item.getItemId();
+
+                if (itemId == R.id.nav_home) {
+                    Intent homeIntent = new Intent(IndoorMapActivity.this, MapsActivity.class);
+                    // clear the back stack so pressing back doesn't return to the indoor map
+                    homeIntent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+                    startActivity(homeIntent);
+                    return true;
+
+                } else if (itemId == R.id.nav_account) {
+                    Intent accountIntent = new Intent(IndoorMapActivity.this, GoogleCalendarAuthActivity.class);
+                    startActivity(accountIntent);
+                    return true;
+
+                } else if (itemId == R.id.nav_settings) {
+                    Intent settingsIntent = new Intent(IndoorMapActivity.this, SettingsActivity.class);
+                    startActivity(settingsIntent);
+                    return true;
+                }
+                return false;
+            });
         }
     }
 

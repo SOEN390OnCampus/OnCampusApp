@@ -130,8 +130,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private TextView btnSgwLoy;
 
     private static final String CAMPUS = "campus";
-    private static final String sgw = "SGW";
-    private static final String loy = "LOY";
+    private static final String SGW = "SGW";
+    private static final String LOY = "LOY";
     private static final String TAG = "MapsActivity";
     private static final String KEY_NOTIFICATION_ID = "notification_id";
 
@@ -405,7 +405,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         // Tell the map to use our custom FusedLocationSource
         mMap.setLocationSource(myLocationSource);
 
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
             mMap.setMyLocationEnabled(true);
         }
 
@@ -420,12 +420,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         String savedCampus = sharedPref.getString(CAMPUS, "SGW");
         LatLng defaultLatLng;
 
-        if (savedCampus.equals(sgw)) {
+        if (savedCampus.equals(SGW)) {
             defaultLatLng = SGW_COORDS;
-            btnSgwLoy.setText(loy);
+            btnSgwLoy.setText(LOY);
         } else {
             defaultLatLng = LOY_COORDS;
-            btnSgwLoy.setText(sgw);
+            btnSgwLoy.setText(SGW);
         }
 
         // Move camera to the saved campus
@@ -491,20 +491,20 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         SharedPreferences sharedPref = getSharedPreferences("OnCampusPrefs", MODE_PRIVATE);
         SharedPreferences.Editor editor = sharedPref.edit();
 
-        if (currentText.equals(sgw)) {
-            btnSgwLoy.setText(loy);
+        if (currentText.equals(SGW)) {
+            btnSgwLoy.setText(LOY);
             moveMapToLocation(SGW_COORDS, 16f);
-            editor.putString(CAMPUS, sgw);
+            editor.putString(CAMPUS, SGW);
         } else {
-            btnSgwLoy.setText(sgw);
+            btnSgwLoy.setText(SGW);
             moveMapToLocation(LOY_COORDS, 16f);
-            editor.putString(CAMPUS, loy);
+            editor.putString(CAMPUS, LOY);
         }
         editor.apply();
     }
 
     private void goToCurrentLocation() {
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, 1);
         } else {
             mMap.setMyLocationEnabled(true);

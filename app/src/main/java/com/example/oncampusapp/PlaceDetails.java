@@ -7,6 +7,7 @@ public class PlaceDetails {
     private boolean accessibility;
 
     public PlaceDetails() {
+        // Intentionally left blank.
     }
 
     public String getName() {
