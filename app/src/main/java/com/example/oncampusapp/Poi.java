@@ -7,12 +7,14 @@ public class Poi {
     private final double longitude;
     private final double distanceKm;
 
-    public Poi(String name, String category, double latitude, double longitude, double distanceKm) {
+    private final String status;
+    public Poi(String name, String category, double latitude, double longitude, double distanceKm, String status) {
         this.name = name;
         this.category = category;
         this.latitude = latitude;
         this.longitude = longitude;
         this.distanceKm = distanceKm;
+        this.status = status;
     }
 
     public String getName() {
@@ -33,5 +35,9 @@ public class Poi {
 
     public double getDistanceKm() {
         return distanceKm;
+    }
+
+    public String getStatus() {
+        return status;
     }
 }

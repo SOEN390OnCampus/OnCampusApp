@@ -1,5 +1,7 @@
 package com.example.oncampusapp;
 
+import android.content.res.ColorStateList;
+import android.graphics.Color;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -39,6 +41,28 @@ public class PoiAdapter extends RecyclerView.Adapter<PoiAdapter.PoiViewHolder> {
         holder.txtName.setText(poi.getName());
         holder.txtDistance.setText(String.format(Locale.getDefault(), "%.2f KM", poi.getDistanceKm()));
 
+        switch (poi.getStatus()) {
+            case "Open":
+                holder.statusDot.setBackgroundTintList(
+                        ColorStateList.valueOf(Color.parseColor("#4CAF50"))); // green
+                break;
+
+            case "Almost_closed":
+                holder.statusDot.setBackgroundTintList(
+                        ColorStateList.valueOf(Color.parseColor("#FFC107"))); // yellow
+                break;
+
+            case "Closed":
+                holder.statusDot.setBackgroundTintList(
+                        ColorStateList.valueOf(Color.parseColor("#F44336"))); // red
+                break;
+
+            default:
+                holder.statusDot.setBackgroundTintList(
+                        ColorStateList.valueOf(Color.GRAY));
+                break;
+        }
+
         holder.itemView.setOnClickListener(v -> listener.onPoiClick(poi));
     }
 
@@ -50,11 +74,13 @@ public class PoiAdapter extends RecyclerView.Adapter<PoiAdapter.PoiViewHolder> {
     static class PoiViewHolder extends RecyclerView.ViewHolder {
         TextView txtName;
         TextView txtDistance;
+        View statusDot;
 
         public PoiViewHolder(@NonNull View itemView) {
             super(itemView);
             txtName = itemView.findViewById(R.id.txt_poi_name);
             txtDistance = itemView.findViewById(R.id.txt_poi_distance);
+            statusDot = itemView.findViewById(R.id.view_status_dot);
         }
     }
 }

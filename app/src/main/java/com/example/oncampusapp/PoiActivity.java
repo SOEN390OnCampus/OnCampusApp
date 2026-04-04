@@ -111,17 +111,17 @@ public class PoiActivity extends AppCompatActivity {
     // Temporary list but could be implemented with Google.
     private void loadSamplePois() {
         // Example SGW-ish coordinates
-        allPois.add(new Poi("Cafe Van Houtte", "Restaurants", 45.4958, -73.5785, 0.54));
-        allPois.add(new Poi("Ganadara", "Restaurants", 45.4961, -73.5791, 0.78));
-        allPois.add(new Poi("McDonalds", "Restaurants", 45.4970, -73.5795, 0.86));
-        allPois.add(new Poi("Kinton Ramen", "Restaurants", 45.4975, -73.5801, 1.02));
-        allPois.add(new Poi("Subway", "Restaurants", 45.4950, -73.5768, 1.22));
+        allPois.add(new Poi("Cafe Van Houtte", "Restaurants", 45.4958, -73.5785, 0.54, "Open"));
+        allPois.add(new Poi("Ganadara", "Restaurants", 45.4961, -73.5791, 0.78, "Open"));
+        allPois.add(new Poi("McDonalds", "Restaurants", 45.4970, -73.5795, 0.86,"Closed"));
+        allPois.add(new Poi("Kinton Ramen", "Restaurants", 45.4975, -73.5801, 1.02,"Open"));
+        allPois.add(new Poi("Subway", "Restaurants", 45.4950, -73.5768, 1.22,"Open"));
 
-        allPois.add(new Poi("Paragraphe Bookstore", "Bookstores", 45.4974, -73.5799, 0.65));
-        allPois.add(new Poi("Indigo", "Bookstores", 45.5000, -73.5710, 2.40));
+        allPois.add(new Poi("Paragraphe Bookstore", "Bookstores", 45.4974, -73.5799, 0.65,"Open"));
+        allPois.add(new Poi("Indigo", "Bookstores", 45.5000, -73.5710, 2.40,"Open"));
 
-        allPois.add(new Poi("Eaton Centre", "Shopping Centers", 45.5038, -73.5703, 1.90));
-        allPois.add(new Poi("Alexis Nihon", "Shopping Centers", 45.4898, -73.5819, 2.10));
+        allPois.add(new Poi("Eaton Centre", "Shopping Centers", 45.5038, -73.5703, 1.90,"Open"));
+        allPois.add(new Poi("Alexis Nihon", "Shopping Centers", 45.4898, -73.5819, 2.10,"Almost_closed"));
     }
 
     private void filterPois() {

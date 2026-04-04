@@ -15,6 +15,13 @@
         android:paddingEnd="16dp"
         android:paddingBottom="14dp">
 
+        <View
+            android:id="@+id/view_status_dot"
+            android:layout_width="10dp"
+            android:layout_height="10dp"
+            android:layout_marginEnd="10dp"
+            android:background="@drawable/status_dot" />
+
     <TextView
         android:id="@+id/txt_poi_name"
         android:layout_width="0dp"
