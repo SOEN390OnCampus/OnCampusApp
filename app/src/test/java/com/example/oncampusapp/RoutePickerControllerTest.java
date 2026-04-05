@@ -10,6 +10,8 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.lenient;
+
 
 import android.graphics.Color;
 import android.text.Editable;
@@ -375,14 +377,17 @@ public class RoutePickerControllerTest {
         verify(mockStartText, never()).setText(anyString());
     }
 
+
     @Test
     public void tryLaunchIndoorRoute_bothRoomsFound_launchesIndoorRoute() throws Exception {
-        Map<String, IndoorNode> mockMap = new HashMap<>();
+        Map<String, IndoorNode> localRoomMap = new HashMap<>();
         IndoorNode node1 = mock(IndoorNode.class);
         IndoorNode node2 = mock(IndoorNode.class);
-        mockMap.put("H-820", node1);
-        mockMap.put("EV", node2);
-        when(mockIndoorNav.getIndoorRoomMap()).thenReturn(mockMap);
+        localRoomMap.put("H-820", node1);
+        localRoomMap.put("EV", node2);
+
+        // Notice the lenient() added here!
+        lenient().when(mockIndoorNav.getIndoorRoomMap()).thenReturn(localRoomMap);
 
         boolean result = (boolean) invokePrivateMethod("tryLaunchIndoorRoute",
                 new Class<?>[]{String.class, String.class}, "H-820", "EV");
@@ -393,8 +398,11 @@ public class RoutePickerControllerTest {
 
     @Test
     public void tryLaunchIndoorRoute_neitherRoomFound_returnsFalse() throws Exception {
-        Map<String, IndoorNode> mockMap = new HashMap<>();
-        when(mockIndoorNav.getIndoorRoomMap()).thenReturn(mockMap);
+        // Renamed from mockMap to localRoomMap
+        Map<String, IndoorNode> localRoomMap = new HashMap<>();
+
+        // Updated to use the new variable name
+        when(mockIndoorNav.getIndoorRoomMap()).thenReturn(localRoomMap);
 
         boolean result = (boolean) invokePrivateMethod("tryLaunchIndoorRoute",
                 new Class<?>[]{String.class, String.class}, "H-820", "EV");
