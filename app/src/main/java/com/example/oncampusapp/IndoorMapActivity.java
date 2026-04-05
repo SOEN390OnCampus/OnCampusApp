@@ -70,10 +70,7 @@ public class IndoorMapActivity extends AppCompatActivity {
     private static final String FLOOR = "Floor ";
 
     private String floorId;
-
     private String   buildingId;
-    private String   fromNodeId;
-    private String   toNodeId;
     private String[] pathNodeIds;
 
     private IndoorGraph graph;
@@ -157,8 +154,6 @@ public class IndoorMapActivity extends AppCompatActivity {
 
         buildingId = intent.getStringExtra("BUILDING_ID");
         floorId    = intent.getStringExtra("FLOOR_ID");
-        fromNodeId = intent.getStringExtra("FROM_NODE_ID");
-        toNodeId   = intent.getStringExtra("TO_NODE_ID");
 
         String pathString = intent.getStringExtra("PATH_NODE_IDS");
         crossBuildingStage = safeString(intent.getStringExtra("CROSS_BUILDING_STAGE"));
