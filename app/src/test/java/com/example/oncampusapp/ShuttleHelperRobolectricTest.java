@@ -47,7 +47,7 @@ public class ShuttleHelperRobolectricTest {
         // Second call hits the "already initialised" early-return guard
         ShuttleHelper.init(context);
         // Verify that shuttle route retrieval still works after second init call
-        List<LatLng> route = ShuttleHelper.getShuttleRoute(NEAR_SGW, NEAR_LOY);
+        List<LatLng> route = ShuttleHelper.getShuttleRoute(NEAR_SGW);
         assertNotNull(route);
         assertFalse(route.isEmpty());
     }
@@ -56,14 +56,14 @@ public class ShuttleHelperRobolectricTest {
 
     @Test
     public void getShuttleRoute_afterInit_startNearSGW_returnsNonEmptyList() {
-        List<LatLng> route = ShuttleHelper.getShuttleRoute(NEAR_SGW, NEAR_LOY);
+        List<LatLng> route = ShuttleHelper.getShuttleRoute(NEAR_SGW);
         assertNotNull(route);
         assertFalse(route.isEmpty());
     }
 
     @Test
     public void getShuttleRoute_afterInit_startNearLOY_returnsNonEmptyList() {
-        List<LatLng> route = ShuttleHelper.getShuttleRoute(NEAR_LOY, NEAR_SGW);
+        List<LatLng> route = ShuttleHelper.getShuttleRoute(NEAR_LOY);
         assertNotNull(route);
         assertFalse(route.isEmpty());
     }
@@ -71,15 +71,15 @@ public class ShuttleHelperRobolectricTest {
     @Test
     public void getShuttleRoute_afterInit_nullStart_returnsSGWToLOYRoute() {
         // null start → defaults to SGW→LOY direction
-        List<LatLng> route = ShuttleHelper.getShuttleRoute(null, NEAR_LOY);
+        List<LatLng> route = ShuttleHelper.getShuttleRoute(null);
         assertNotNull(route);
         assertFalse(route.isEmpty());
     }
 
     @Test
     public void getShuttleRoute_sgwStart_returnsDifferentRouteToLOY() {
-        List<LatLng> sgwRoute = ShuttleHelper.getShuttleRoute(NEAR_SGW, NEAR_LOY);
-        List<LatLng> loyRoute = ShuttleHelper.getShuttleRoute(NEAR_LOY, NEAR_SGW);
+        List<LatLng> sgwRoute = ShuttleHelper.getShuttleRoute(NEAR_SGW);
+        List<LatLng> loyRoute = ShuttleHelper.getShuttleRoute(NEAR_LOY);
         assertNotNull(sgwRoute);
         assertNotNull(loyRoute);
         // The two directions should produce different polylines
@@ -88,8 +88,8 @@ public class ShuttleHelperRobolectricTest {
 
     @Test
     public void getShuttleRoute_afterInit_returnsNewListEachCall() {
-        List<LatLng> r1 = ShuttleHelper.getShuttleRoute(NEAR_SGW, NEAR_LOY);
-        List<LatLng> r2 = ShuttleHelper.getShuttleRoute(NEAR_SGW, NEAR_LOY);
+        List<LatLng> r1 = ShuttleHelper.getShuttleRoute(NEAR_SGW);
+        List<LatLng> r2 = ShuttleHelper.getShuttleRoute(NEAR_SGW);
         assertNotSame(r1, r2); // defensive copy via new ArrayList<>()
         assertEquals(r1, r2);
     }

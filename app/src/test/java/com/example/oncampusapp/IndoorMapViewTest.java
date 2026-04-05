@@ -89,7 +89,8 @@ public class IndoorMapViewTest {
         List<PointF> singlePoint = Arrays.asList(new PointF(10f, 10f));
         List<PointF> resultSingle = mapView.interpolateEvenPoints(singlePoint, 120f);
         assertEquals(1, resultSingle.size());
-        assertEquals(10f, resultSingle.get(0).x, 0.001);
+        float result = resultSingle.get(0).x;
+        assertEquals(10f, result, 0.001);
     }
 
     @Test
@@ -106,8 +107,10 @@ public class IndoorMapViewTest {
         List<PointF> result = mapView.interpolateEvenPoints(raw, 120f);
 
         assertEquals(1, result.size());
-        assertEquals(0f, result.get(0).x, 0.001);
-        assertEquals(0f, result.get(0).y, 0.001);
+        float x = result.get(0).x;
+        float y = result.get(0).y;
+        assertEquals(0f, x, 0.001);
+        assertEquals(0f, y, 0.001);
     }
 
     @Test
@@ -126,15 +129,24 @@ public class IndoorMapViewTest {
         assertEquals(3, result.size());
 
         // Start point
-        assertEquals(0f, result.get(0).x, 0.001);
-        assertEquals(0f, result.get(0).y, 0.001);
+        float x0 = result.get(0).x;
+        float y0 = result.get(0).y;
+
+        assertEquals(0f, x0, 0.001);
+        assertEquals(0f, y0, 0.001);
 
         // First interpolated dot
-        assertEquals(120f, result.get(1).x, 0.001);
-        assertEquals(0f, result.get(1).y, 0.001);
+        float x1 = result.get(1).x;
+        float y1 = result.get(1).y;
+
+        assertEquals(120f, x1, 0.001);
+        assertEquals(0f, y1, 0.001);
 
         // Second interpolated dot
-        assertEquals(240f, result.get(2).x, 0.001);
-        assertEquals(0f, result.get(2).y, 0.001);
+        float x2 = result.get(2).x;
+        float y2 = result.get(2).y;
+
+        assertEquals(240f, x2, 0.001);
+        assertEquals(0f, y2, 0.001);
     }
 }
