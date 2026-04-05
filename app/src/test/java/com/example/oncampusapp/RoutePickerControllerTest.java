@@ -6,6 +6,7 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
@@ -690,10 +691,14 @@ public class RoutePickerControllerTest {
 
     @Test
     public void startNavigation_nullDuration_setsFollowRouteText() throws Exception {
+        stubText(mockStartText, "Hall");
+        stubText(mockEndText, "Library");
         TextView mockInstruction = mock(TextView.class);
         injectField("txtNavInstruction", mockInstruction);
 
+        when(mockIndoorNav.getIndoorRoomMap()).thenReturn(new HashMap<>());
         when(mockRouteManager.getSelectedMode()).thenReturn(RouteTravelMode.WALK);
+        when(mockRouteManager.isPreviewActive()).thenReturn(true);
         when(mockRouteManager.getFirstRoutePoint()).thenReturn(null);
 
         stubToggleViews(
@@ -702,27 +707,33 @@ public class RoutePickerControllerTest {
                 mock(ImageButton.class), mock(TextView.class), mock(FrameLayout.class)
         );
 
-        try (MockedStatic<Toast> toastMock = mockStatic(Toast.class)) {
+        try (MockedStatic<BuildingLookup> buildingLookupMock = mockStatic(BuildingLookup.class);
+             MockedStatic<Toast> toastMock = mockStatic(Toast.class)) {
+            buildingLookupMock.when(() -> BuildingLookup.getLatLngFromBuildingName(anyString(), any()))
+                .thenReturn(null);
             toastMock.when(() -> Toast.makeText(any(), any(CharSequence.class), anyInt()))
                      .thenReturn(mock(Toast.class));
-            invokePrivateMethod("startNavigation",
-                    new Class<?>[]{String.class, String.class}, "Hall", "Library");
+            invokePrivateMethod("handleGoClick");
         }
 
         verify(mockRouteManager).removeStartDot();
         verify(mockRouteManager).startNavigationUpdates();
-        verify(mockInstruction).setText(anyString());
+        verify(mockInstruction).setText(contains("Follow the route"));
     }
 
     @Test
     public void startNavigation_withDuration_setsDurationText() throws Exception {
+        stubText(mockStartText, "Hall");
+        stubText(mockEndText, "Library");
         TextView mockInstruction = mock(TextView.class);
         TextView mockDuration    = mock(TextView.class);
         injectField("txtNavInstruction", mockInstruction);
         injectField("txtDuration",       mockDuration);
 
         when(mockDuration.getText()).thenReturn("15 mins");
+        when(mockIndoorNav.getIndoorRoomMap()).thenReturn(new HashMap<>());
         when(mockRouteManager.getSelectedMode()).thenReturn(RouteTravelMode.WALK);
+        when(mockRouteManager.isPreviewActive()).thenReturn(true);
         when(mockRouteManager.getFirstRoutePoint()).thenReturn(null);
 
         stubToggleViews(
@@ -731,14 +742,16 @@ public class RoutePickerControllerTest {
                 mock(ImageButton.class), mock(TextView.class), mock(FrameLayout.class)
         );
 
-        try (MockedStatic<Toast> toastMock = mockStatic(Toast.class)) {
+        try (MockedStatic<BuildingLookup> buildingLookupMock = mockStatic(BuildingLookup.class);
+             MockedStatic<Toast> toastMock = mockStatic(Toast.class)) {
+            buildingLookupMock.when(() -> BuildingLookup.getLatLngFromBuildingName(anyString(), any()))
+                .thenReturn(null);
             toastMock.when(() -> Toast.makeText(any(), any(CharSequence.class), anyInt()))
                      .thenReturn(mock(Toast.class));
-            invokePrivateMethod("startNavigation",
-                    new Class<?>[]{String.class, String.class}, "Hall", "Library");
+            invokePrivateMethod("handleGoClick");
         }
 
-        verify(mockInstruction).setText(anyString());
+        verify(mockInstruction).setText("15 mins (" + RouteTravelMode.WALK.getValue() + ")");
     }
 
     // ── applyPoiRoute ─────────────────────────────────────────────────────────
