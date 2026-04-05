@@ -18,6 +18,7 @@ public final class TextSizePreferences {
         // Utility class
     }
 
+    @SuppressWarnings("deprecation")
     public static boolean apply(Activity activity) {
         int percent = isTextSizeEnabled(activity) ? getTextSizePercent(activity) : DEFAULT_PERCENT;
         float targetScale = percent / 100f;
@@ -29,7 +30,8 @@ public final class TextSizePreferences {
         }
 
         configuration.fontScale = targetScale;
-        activity.applyOverrideConfiguration(configuration);
+
+        resources.updateConfiguration(configuration, resources.getDisplayMetrics());
         return true;
     }
 
