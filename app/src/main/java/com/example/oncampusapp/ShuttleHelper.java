@@ -110,7 +110,8 @@ public class ShuttleHelper {
      * @param cb     callback that receives (null, durationText) on success
      */
     public static void fetchDuration(LatLng start, String apiKey, ShuttleCallback cb) {
-        LatLng from, to;
+        LatLng from;
+        LatLng to;
         if (start == null || distanceBetween(start, SHUTTLE_STOP_SGW) <= distanceBetween(start, SHUTTLE_STOP_LOY)) {
             from = SHUTTLE_STOP_SGW;
             to   = SHUTTLE_STOP_LOY;

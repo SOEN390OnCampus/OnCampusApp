@@ -100,10 +100,7 @@ public class TextSizePreferencesTest {
     @Test
     public void testApply_whenDisabled_usesDefaultScale() {
         // Setup: Force the Activity's font scale to something random (e.g., 1.5)
-        Configuration config = activity.getResources().getConfiguration();
-        config.fontScale = 1.5f;
-        activity.getResources().updateConfiguration(config, activity.getResources().getDisplayMetrics());
-
+        activity.getResources().getConfiguration().fontScale = 1.5f;
         // Action: Run apply() while text sizing is disabled (default state)
         boolean didChange = TextSizePreferences.apply(activity);
 

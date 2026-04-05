@@ -11,7 +11,7 @@ import static org.junit.Assert.*;
 
 public class CalendarEventManagerTest {
 
-    private final long ONE_HOUR = 60 * 60 * 1000;
+    private static final long ONE_HOUR = 60 * 60 * 1000;
     private final SimpleDateFormat exactTimeFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX", Locale.getDefault());
 
     // Helper method to generate dynamic Google Calendar JSON

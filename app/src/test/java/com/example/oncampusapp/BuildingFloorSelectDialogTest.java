@@ -1,12 +1,11 @@
 package com.example.oncampusapp;
 
 import android.graphics.Color;
-import android.graphics.Point;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
-import android.view.Display;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.WindowMetrics;
 
 import androidx.fragment.app.FragmentActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -66,8 +65,6 @@ public class BuildingFloorSelectDialogTest {
                 recyclerView.getLayoutManager() instanceof LinearLayoutManager);
 
         // Verify the Adapter is attached
-        // Note: Even if the real res/raw/floor_menu.json is empty or fails to parse
-        // in the test environment, the adapter instance itself should still be created and set.
         assertNotNull("BuildingFloorAdapter should be attached to the RecyclerView",
                 recyclerView.getAdapter());
         assertTrue("Adapter should be of type BuildingFloorAdapter",
@@ -79,11 +76,10 @@ public class BuildingFloorSelectDialogTest {
         // Action: The layout modifications happen in onStart(), which was automatically
         // triggered by Robolectric during our setUp() phase.
 
-        // 1. Get the screen size of the simulated device
-        Display display = activity.getWindowManager().getDefaultDisplay();
-        Point size = new Point();
-        display.getSize(size);
-        int expectedWidth = (int) (size.x * 0.80);
+        // 1. Get the screen size of the simulated device using WindowMetrics
+        WindowMetrics windowMetrics = activity.getWindowManager().getCurrentWindowMetrics();
+        int screenWidth = windowMetrics.getBounds().width();
+        int expectedWidth = (int) (screenWidth * 0.80);
 
         // 2. Verify the Window dimensions
         int actualWidth = dialog.getDialog().getWindow().getAttributes().width;
@@ -115,11 +111,10 @@ public class BuildingFloorSelectDialogTest {
         // Execute the Runnable that was posted in onStart()
         ShadowLooper.runUiThreadTasks();
 
-        // Calculate expected max height (50% of display height)
-        Display display = activity.getWindowManager().getDefaultDisplay();
-        Point size = new Point();
-        display.getSize(size);
-        int expectedMaxHeight = (int) (size.y * 0.50);
+        // Calculate expected max height (50% of display height) using WindowMetrics
+        WindowMetrics windowMetrics = activity.getWindowManager().getCurrentWindowMetrics();
+        int screenHeight = windowMetrics.getBounds().height();
+        int expectedMaxHeight = (int) (screenHeight * 0.50);
 
         // Verify the window height was capped
         int actualHeightParam = dialog.getDialog().getWindow().getAttributes().height;
