@@ -54,7 +54,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="12dp"
-                android:text="@string/search"
+                android:text="@string/search_for_direction_building_room"
                 android:textColor="@android:color/darker_gray"
                 android:textSize="18sp" />
         </LinearLayout>
@@ -106,7 +106,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="45dp"
                         android:background="@drawable/rounded_edittext"
-                        android:hint="@string/search_or_tap_a_building"
+                        android:hint="@string/search_bar_hint"
                         android:inputType="textNoSuggestions"
                         android:maxLines="1"
                         android:paddingHorizontal="12dp"
@@ -130,7 +130,7 @@
                     android:layout_height="45dp"
                     android:layout_marginTop="8dp"
                     android:background="@drawable/rounded_edittext"
-                    android:hint="@string/search_or_tap_a_building"
+                    android:hint="@string/search_bar_hint"
                     android:inputType="textNoSuggestions"
                     android:maxLines="1"
                     android:paddingHorizontal="12dp"
