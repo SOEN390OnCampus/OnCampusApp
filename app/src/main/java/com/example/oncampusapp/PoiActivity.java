@@ -8,6 +8,7 @@ import android.widget.ImageButton;
 import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -24,7 +25,11 @@ public class PoiActivity extends AppCompatActivity {
     private final List<Poi> allPois = new ArrayList<>();
     private final List<Poi> visiblePois = new ArrayList<>();
 
-    private String currentCategory = "Restaurants";
+    private String currentCategory = "Restaurants"; // Default category
+    private String restaurantCategory = "Restaurants";
+    private String bookstoreCategory = "Bookstores";
+    private String shoppingCategory = "Shopping Centers";
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -82,25 +87,21 @@ public class PoiActivity extends AppCompatActivity {
         btnBack.setOnClickListener(v -> finish());
 
         tabRestaurants.setOnClickListener(v -> {
-            currentCategory = "Restaurants";
+            currentCategory = restaurantCategory;
             updateTabUI(tabRestaurants, tabBookstores, tabShopping);
             filterPois();
         });
 
         tabBookstores.setOnClickListener(v -> {
-            currentCategory = "Bookstores";
+            currentCategory = bookstoreCategory;
             updateTabUI(tabBookstores,tabRestaurants, tabShopping);
             filterPois();
         });
 
         tabShopping.setOnClickListener(v -> {
-            currentCategory = "Shopping Centers";
+            currentCategory = shoppingCategory;
             updateTabUI(tabShopping, tabRestaurants, tabBookstores);
             filterPois();
-        });
-
-        btnViewMore.setOnClickListener(v -> {
-            // for now this button does nothing so remove it if not needed.
         });
 
         etSearch.addTextChangedListener(new android.text.TextWatcher() {
@@ -115,17 +116,17 @@ public class PoiActivity extends AppCompatActivity {
     // Temporary list but could be implemented with Google.
     private void loadSamplePois() {
         // Example SGW-ish coordinates
-        allPois.add(new Poi("Cafe Van Houtte", "Restaurants", 45.4958, -73.5785, 0.54, "Open"));
-        allPois.add(new Poi("Ganadara", "Restaurants", 45.4961, -73.5791, 0.78, "Open"));
-        allPois.add(new Poi("McDonalds", "Restaurants", 45.4970, -73.5795, 0.86,"Closed"));
-        allPois.add(new Poi("Kinton Ramen", "Restaurants", 45.4975, -73.5801, 1.02,"Open"));
-        allPois.add(new Poi("Subway", "Restaurants", 45.4950, -73.5768, 1.22,"Open"));
+        allPois.add(new Poi("Cafe Van Houtte", restaurantCategory, 45.4958, -73.5785, 0.54, "Open"));
+        allPois.add(new Poi("Ganadara", restaurantCategory, 45.4961, -73.5791, 0.78, "Open"));
+        allPois.add(new Poi("McDonalds", restaurantCategory, 45.4970, -73.5795, 0.86,"Closed"));
+        allPois.add(new Poi("Kinton Ramen", restaurantCategory, 45.4975, -73.5801, 1.02,"Open"));
+        allPois.add(new Poi("Subway", restaurantCategory, 45.4950, -73.5768, 1.22,"Open"));
 
-        allPois.add(new Poi("Paragraphe Bookstore", "Bookstores", 45.4974, -73.5799, 0.65,"Open"));
-        allPois.add(new Poi("Indigo", "Bookstores", 45.5000, -73.5710, 2.40,"Open"));
+        allPois.add(new Poi("Paragraphe Bookstore", bookstoreCategory, 45.4974, -73.5799, 0.65,"Open"));
+        allPois.add(new Poi("Indigo", bookstoreCategory, 45.5000, -73.5710, 2.40,"Open"));
 
-        allPois.add(new Poi("Eaton Centre", "Shopping Centers", 45.5038, -73.5703, 1.90,"Open"));
-        allPois.add(new Poi("Alexis Nihon", "Shopping Centers", 45.4898, -73.5819, 2.10,"Almost_closed"));
+        allPois.add(new Poi("Eaton Centre", shoppingCategory, 45.5038, -73.5703, 1.90,"Open"));
+        allPois.add(new Poi("Alexis Nihon", shoppingCategory, 45.4898, -73.5819, 2.10,"Almost_closed"));
     }
 
     private void filterPois() {
@@ -151,11 +152,11 @@ public class PoiActivity extends AppCompatActivity {
     }
 
     private void updateTabUI(TextView selected, TextView... others){
-        selected.setTextColor(getResources().getColor(R.color.tab_selected));
+        selected.setTextColor(ContextCompat.getColor(this, R.color.tab_selected));
         selected.setBackgroundResource(R.drawable.tab_selected_bg);
 
         for (TextView tab : others){
-            tab.setTextColor(getResources().getColor(R.color.tab_unselected));
+            tab.setTextColor(ContextCompat.getColor(this, R.color.tab_unselected));
             tab.setBackgroundResource(R.drawable.tab_unselected_bg);
         }
     }

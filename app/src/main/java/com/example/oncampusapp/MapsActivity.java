@@ -133,6 +133,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private static final String SGW = "SGW";
     private static final String LOY = "LOY";
     private static final String TAG = "MapsActivity";
+    private static final String currentLocation = "Current Location";
     private static final String KEY_NOTIFICATION_ID = "notification_id";
 
     // Pending notification flag
@@ -639,8 +640,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         Intent intent = new Intent(this, MapsActivity.class);
         startActivity(intent);
         finish();
-        overridePendingTransition(0, 0);
-    }
+        }
 
     private boolean isPoiNavigationActive = false;
 
@@ -676,7 +676,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         fusedLocationClient.getLastLocation()
                 .addOnSuccessListener(this, location -> {
                     if (location == null) {
-                        //Toast.makeText(this, "Could not get current location", Toast.LENGTH_SHORT).show();
                         return;
                     }
 
@@ -685,7 +684,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
                     if (pendingPoiName != null && !pendingPoiName.isEmpty()) {
                         setPoiNavigationActive(true);
-                        routePickerController.openWithStartAndDestination("Current Location", pendingPoiName);
+                        routePickerController.openWithStartAndDestination(currentLocation, pendingPoiName);
 
                     }
 
@@ -699,7 +698,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                                 public void onSuccess(Route route) {
                                     runOnUiThread(() -> {
                                         if (pendingPoiName != null && !pendingPoiName.isEmpty()) {
-                                            routePickerController.openWithStartAndDestination("Current Location", pendingPoiName);
+                                            routePickerController.openWithStartAndDestination(currentLocation, pendingPoiName);
                                         }
 
                                         routeManager.drawRouteOnMap(
@@ -810,7 +809,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 return;
             }
             LatLng startCoords = new LatLng(location.getLatitude(), location.getLongitude());
-            routePickerController.openWithStartAndDestination("Current Location", destinationBuilding);
+            routePickerController.openWithStartAndDestination(currentLocation, destinationBuilding);
             NavigationHelper.fetchRoute(startCoords, destCoords,
                     routeManager.getSelectedMode(), BuildConfig.MAPS_API_KEY,
                     new NavigationHelper.RoutesCallback() {

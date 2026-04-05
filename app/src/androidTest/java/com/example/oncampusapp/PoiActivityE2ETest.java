@@ -16,6 +16,7 @@ import static androidx.test.espresso.matcher.ViewMatchers.withId;
 import static androidx.test.espresso.matcher.ViewMatchers.withText;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
 import android.app.Activity;
 import android.app.Instrumentation;
@@ -82,8 +83,9 @@ public class PoiActivityE2ETest {
 
         intending(hasComponent(MapsActivity.class.getName())).respondWith(result);
 
-        ActivityScenario.launch(PoiActivity.class);
+        ActivityScenario<PoiActivity> scenario = ActivityScenario.launch(PoiActivity.class);
 
+        onView(withText("Cafe Van Houtte")).check(matches(isDisplayed()));
         onView(withText("Cafe Van Houtte")).perform(click());
 
         intended(hasComponent(MapsActivity.class.getName()));
@@ -100,8 +102,10 @@ public class PoiActivityE2ETest {
 
         intending(hasComponent(MapsActivity.class.getName())).respondWith(result);
 
-        ActivityScenario.launch(PoiActivity.class);
+        ActivityScenario<PoiActivity> scenario = ActivityScenario.launch(PoiActivity.class);
+        assertNotNull(scenario);
 
+        onView(withId(R.id.bottom_nav)).check(matches(isDisplayed()));
         onView(withId(R.id.nav_home)).perform(click());
 
         intended(hasComponent(MapsActivity.class.getName()));
@@ -114,8 +118,10 @@ public class PoiActivityE2ETest {
 
         intending(hasComponent(GoogleCalendarAuthActivity.class.getName())).respondWith(result);
 
-        ActivityScenario.launch(PoiActivity.class);
+       ActivityScenario<PoiActivity> scenario = ActivityScenario.launch(PoiActivity.class);
+        assertNotNull(scenario);
 
+        onView(withId(R.id.bottom_nav)).check(matches(isDisplayed()));
         onView(withId(R.id.nav_account)).perform(click());
 
         intended(hasComponent(GoogleCalendarAuthActivity.class.getName()));
@@ -128,8 +134,10 @@ public class PoiActivityE2ETest {
 
         intending(hasComponent(SettingsActivity.class.getName())).respondWith(result);
 
-        ActivityScenario.launch(PoiActivity.class);
+        ActivityScenario<PoiActivity> scenario = ActivityScenario.launch(PoiActivity.class);
+        assertNotNull(scenario);
 
+        onView(withId(R.id.bottom_nav)).check(matches(isDisplayed()));
         onView(withId(R.id.nav_settings)).perform(click());
 
         intended(hasComponent(SettingsActivity.class.getName()));
