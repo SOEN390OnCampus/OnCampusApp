@@ -7,16 +7,19 @@ import java.util.List;
 public class Building {
     private String id;
 
-    public String name;
-    List<LatLng> polygon;
+    private String name;
 
-    boolean currentlyInside;
+
+
+    private List<LatLng> polygon;
+
+    private boolean currentlyInside;
 
     public Building(String id, String name, List<LatLng> polygon) {
         this.id = id;
-        this.name = name;
-        this.polygon = polygon;
-        currentlyInside = false;
+        this.setName(name);
+        this.setPolygon(polygon);
+        setCurrentlyInside(false);
     }
 
     public String getId() {
@@ -28,15 +31,35 @@ public class Building {
     }
 
     public LatLng getCenter() {
-        if (polygon == null || polygon.isEmpty()) {
+        if (getPolygon() == null || getPolygon().isEmpty()) {
             return null;
         }
         double latSum = 0;
         double lngSum = 0;
-        for (LatLng point : polygon) {
+        for (LatLng point : getPolygon()) {
             latSum += point.latitude;
             lngSum += point.longitude;
         }
-        return new LatLng(latSum / polygon.size(), lngSum / polygon.size());
+        return new LatLng(latSum / getPolygon().size(), lngSum / getPolygon().size());
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public List<LatLng> getPolygon() {
+        return polygon;
+    }
+
+    public void setPolygon(List<LatLng> polygon) {
+        this.polygon = polygon;
+    }
+
+    public boolean isCurrentlyInside() {
+        return currentlyInside;
+    }
+
+    public void setCurrentlyInside(boolean currentlyInside) {
+        this.currentlyInside = currentlyInside;
     }
 }

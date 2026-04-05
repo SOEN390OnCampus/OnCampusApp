@@ -72,20 +72,20 @@ public class PolygonTest {
         // user enters
         boolean entered = PolyUtil.containsLocation(insideBuilding, building_polygon, true);
 
-        if (!HBuilding.currentlyInside && entered) {
-            HBuilding.currentlyInside = true;
+        if (!HBuilding.isCurrentlyInside() && entered) {
+            HBuilding.setCurrentlyInside(true);
         }
 
-        assertTrue(HBuilding.currentlyInside);
+        assertTrue(HBuilding.isCurrentlyInside());
 
         // user exits
         boolean exited = PolyUtil.containsLocation(outsideBuilding, building_polygon, true);
 
-        if (HBuilding.currentlyInside && !exited) {
-            HBuilding.currentlyInside = false;
+        if (HBuilding.isCurrentlyInside() && !exited) {
+            HBuilding.setCurrentlyInside(false);
         }
 
-        assertFalse(HBuilding.currentlyInside);
+        assertFalse(HBuilding.isCurrentlyInside());
     }
 
     @Test
