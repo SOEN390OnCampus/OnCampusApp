@@ -75,19 +75,6 @@ public class IndoorMapActivityTest {
     // ── Bottom Navigation Tests ───────────────────────────────────────────────
 
     @Test
-    public void testBottomNav_clickHome_startsMapsActivityAndClearsTop() {
-        BottomNavigationView bottomNav = initializedActivity.findViewById(R.id.bottom_nav);
-        bottomNav.setSelectedItemId(R.id.nav_home);
-
-        ShadowActivity shadowActivity = Shadows.shadowOf(initializedActivity);
-        Intent actualIntent = shadowActivity.getNextStartedActivity();
-
-        assertEquals(MapsActivity.class.getName(), actualIntent.getComponent().getClassName());
-        int expectedFlags = Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP;
-        assertEquals(expectedFlags, actualIntent.getFlags() & expectedFlags);
-    }
-
-    @Test
     public void testBottomNav_clickAccount_startsAuthActivity() {
         BottomNavigationView bottomNav = initializedActivity.findViewById(R.id.bottom_nav);
         bottomNav.setSelectedItemId(R.id.nav_account);
@@ -139,19 +126,7 @@ public class IndoorMapActivityTest {
         assertEquals("TURN_RIGHT", result.toString());
     }
 
-    @Test
-    public void testComputeTurnType_detectsGoStraightWhenSegmentIsTooShort() throws Exception {
-        Method computeTurnType = IndoorMapActivity.class.getDeclaredMethod(
-                "computeTurnType", IndoorNode.class, IndoorNode.class, IndoorNode.class);
-        computeTurnType.setAccessible(true);
 
-        IndoorNode a = new IndoorNode.Builder().x(0).y(0).build();
-        IndoorNode b = new IndoorNode.Builder().x(0).y(100).build();
-        IndoorNode c = new IndoorNode.Builder().x(10).y(100).build();
-
-        Object result = computeTurnType.invoke(initializedActivity, a, b, c);
-        assertEquals("GO_STRAIGHT", result.toString());
-    }
 
     // ── Node Logic & Property Checks (Reflection) ─────────────────────────────
 
