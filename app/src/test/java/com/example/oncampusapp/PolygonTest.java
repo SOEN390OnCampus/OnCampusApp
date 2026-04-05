@@ -22,9 +22,9 @@ public class PolygonTest {
     LatLng insideBuilding;
     LatLng outsideBuilding;
 
-    List<LatLng> building_polygon;
+    List<LatLng> buildingPolygon;
 
-    Building HBuilding;
+    Building hBuilding;
 
     // Creates a mock polygon to test the rest of the methods with
     @Before
@@ -32,21 +32,21 @@ public class PolygonTest {
         insideBuilding = new LatLng(45.4970, -73.5790);
         outsideBuilding = new LatLng(45.4980, -73.5805);
 
-        building_polygon = Arrays.asList(
+        buildingPolygon = Arrays.asList(
                 new LatLng(45.4968, -73.5788),
                 new LatLng(45.4972, -73.5784),
                 new LatLng(45.4977, -73.5790),
                 new LatLng(45.4971, -73.5795)
         );
 
-        HBuilding = new Building("H", "Hall Building", building_polygon);
+        hBuilding = new Building("H", "Hall Building", buildingPolygon);
     }
 
 
     @Test
     public void userOutsidePolygon_returnsFalseEnteredPolygon() {
 
-        boolean result = PolyUtil.containsLocation(outsideBuilding, building_polygon, true);
+        boolean result = PolyUtil.containsLocation(outsideBuilding, buildingPolygon, true);
 
         assertFalse(result);
     }
@@ -54,7 +54,7 @@ public class PolygonTest {
     @Test
     public void buildingState_enteringBuilding() {
 
-        boolean entered = PolyUtil.containsLocation(insideBuilding, building_polygon, true);
+        boolean entered = PolyUtil.containsLocation(insideBuilding, buildingPolygon, true);
 
         assertTrue(entered);
     }
@@ -62,7 +62,7 @@ public class PolygonTest {
     @Test
     public void buildingState_exitBuilding() {
 
-        boolean entered = PolyUtil.containsLocation(outsideBuilding, building_polygon, true);
+        boolean entered = PolyUtil.containsLocation(outsideBuilding, buildingPolygon, true);
 
         assertFalse(entered);
     }
@@ -70,29 +70,27 @@ public class PolygonTest {
     @Test
     public void buildingState_switchStates() {
         // user enters
-        boolean entered = PolyUtil.containsLocation(insideBuilding, building_polygon, true);
+        boolean entered = PolyUtil.containsLocation(insideBuilding, buildingPolygon, true);
 
-        if (!HBuilding.isCurrentlyInside() && entered) {
-            HBuilding.setCurrentlyInside(true);
+        if (!hBuilding.isCurrentlyInside() && entered) {
+            hBuilding.setCurrentlyInside(true);
         }
 
-        assertTrue(HBuilding.isCurrentlyInside());
+        assertTrue(hBuilding.isCurrentlyInside());
 
         // user exits
-        boolean exited = PolyUtil.containsLocation(outsideBuilding, building_polygon, true);
+        boolean exited = PolyUtil.containsLocation(outsideBuilding, buildingPolygon, true);
 
-        if (HBuilding.isCurrentlyInside() && !exited) {
-            HBuilding.setCurrentlyInside(false);
+        if (hBuilding.isCurrentlyInside() && !exited) {
+            hBuilding.setCurrentlyInside(false);
         }
 
-        assertFalse(HBuilding.isCurrentlyInside());
+        assertFalse(hBuilding.isCurrentlyInside());
     }
 
     @Test
     public void buildingState_checkBuildingId() {
-        assertEquals("H", HBuilding.getId());
+        assertEquals("H", hBuilding.getId());
     }
-
-
 
 }
