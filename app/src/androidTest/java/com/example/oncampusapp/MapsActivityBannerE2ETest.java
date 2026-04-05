@@ -7,16 +7,9 @@ import static androidx.test.espresso.matcher.ViewMatchers.isDisplayed;
 import static androidx.test.espresso.matcher.ViewMatchers.withId;
 import static androidx.test.espresso.matcher.ViewMatchers.withText;
 
-import android.content.Intent;
-import android.view.View;
-
 import androidx.test.core.app.ActivityScenario;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.LargeTest;
-
-import com.example.oncampusapp.CalendarEventManager;
-import com.example.oncampusapp.MapsActivity;
-import com.example.oncampusapp.TestDateUtils;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -39,7 +32,7 @@ public class MapsActivityBannerE2ETest {
             );
 
     @Test
-    public void clickingBannerDirectionsButton_opensDirectionsFlow() throws Exception {
+    public void clickingBannerDirectionsButton_opensDirectionsFlow() {
         ActivityScenario<MapsActivity> scenario =
                 ActivityScenario.launch(MapsActivity.class);
 

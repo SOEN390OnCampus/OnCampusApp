@@ -20,6 +20,8 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.view.WindowCompat;
+import androidx.core.view.WindowInsetsControllerCompat;
 
 import com.google.android.gms.auth.GoogleAuthUtil;
 import com.google.android.gms.auth.api.signin.GoogleSignIn;
@@ -50,24 +52,24 @@ public class AccountPage extends AppCompatActivity {
     private LinearLayout calendarContainer;
 
     // --- Timer Variables for the Live Banner ---
-    private android.os.Handler timerHandler = new android.os.Handler();
+    private android.os.Handler timerHandler = new android.os.Handler(android.os.Looper.getMainLooper());
     private Runnable timerRunnable;
     private static final String TAG = "AccountPage";
 
     private static final String CALENDAR_SCOPE =
             "https://www.googleapis.com/auth/calendar.readonly";
 
-
-
     private GoogleSignInClient googleSignInClient;
-
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
 
         Window window = getWindow();
-        window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
-        window.setStatusBarColor(Color.parseColor("#7A1C1C"));
+        WindowCompat.setDecorFitsSystemWindows(window, false);
+        WindowInsetsControllerCompat insetsController =
+                new WindowInsetsControllerCompat(window, window.getDecorView());
+        insetsController.setAppearanceLightStatusBars(false);
+        window.getDecorView().setBackgroundColor(Color.parseColor("#7A1C1C"));
 
         calendarToken = getIntent().getStringExtra("calendar_token");
 
@@ -110,9 +112,9 @@ public class AccountPage extends AppCompatActivity {
             txtUserEmail.setText("Not signed in");
         }
 
-        btnRefresh.setOnClickListener(v -> {
-            showConnectDialog();
-        });
+        btnRefresh.setOnClickListener(v ->
+            showConnectDialog()
+        );
 
         // Populate the dynamic calendar list
         populateCalendarList();
