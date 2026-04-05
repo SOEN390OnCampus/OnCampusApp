@@ -1,10 +1,7 @@
 package com.example.oncampusapp;
 
 import static androidx.test.espresso.Espresso.onView;
-import static androidx.test.espresso.Espresso.pressBack;
 import static androidx.test.espresso.action.ViewActions.click;
-import static androidx.test.espresso.action.ViewActions.closeSoftKeyboard;
-import static androidx.test.espresso.action.ViewActions.replaceText;
 import static androidx.test.espresso.assertion.ViewAssertions.doesNotExist;
 import static androidx.test.espresso.assertion.ViewAssertions.matches;
 import static androidx.test.espresso.intent.Intents.intended;
@@ -23,11 +20,9 @@ import android.app.Instrumentation;
 
 import androidx.lifecycle.Lifecycle;
 import androidx.test.core.app.ActivityScenario;
-import androidx.test.espresso.Espresso;
 import androidx.test.espresso.intent.Intents;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 
-import org.hamcrest.CoreMatchers;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -83,7 +78,7 @@ public class PoiActivityE2ETest {
 
         intending(hasComponent(MapsActivity.class.getName())).respondWith(result);
 
-        ActivityScenario<PoiActivity> scenario = ActivityScenario.launch(PoiActivity.class);
+        ActivityScenario.launch(PoiActivity.class);
 
         onView(withText("Cafe Van Houtte")).check(matches(isDisplayed()));
         onView(withText("Cafe Van Houtte")).perform(click());

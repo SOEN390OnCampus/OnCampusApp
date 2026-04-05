@@ -63,7 +63,6 @@ public class PoiActivity extends AppCompatActivity {
         TextView tabRestaurants = findViewById(R.id.tab_restaurants);
         TextView tabBookstores = findViewById(R.id.tab_bookstores);
         TextView tabShopping = findViewById(R.id.tab_shopping);
-        Button btnViewMore = findViewById(R.id.btn_view_more);
         rvPois = findViewById(R.id.rv_pois);
 
         rvPois.setLayoutManager(new LinearLayoutManager(this));
