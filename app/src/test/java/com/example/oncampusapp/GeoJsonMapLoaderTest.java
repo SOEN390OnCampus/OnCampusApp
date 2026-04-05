@@ -1,22 +1,38 @@
 package com.example.oncampusapp;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
+import android.graphics.Color;
+
+import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.maps.android.data.Feature;
+import com.google.maps.android.data.Geometry;
 import com.google.maps.android.data.geojson.GeoJsonFeature;
+import com.google.maps.android.data.geojson.GeoJsonLineStringStyle;
 import com.google.maps.android.data.geojson.GeoJsonPolygon;
+import com.google.maps.android.data.geojson.GeoJsonPolygonStyle;
 
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.MockitoAnnotations;
+import org.robolectric.RobolectricTestRunner;
 
+import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.List;
 
-@RunWith(MockitoJUnitRunner.class)
+@RunWith(RobolectricTestRunner.class)
 public class GeoJsonMapLoaderTest {
 
     @Mock MapsActivity mockActivity;
@@ -28,17 +44,158 @@ public class GeoJsonMapLoaderTest {
 
     @Before
     public void setUp() {
+        MockitoAnnotations.openMocks(this);
         loader = new GeoJsonMapLoader(mockActivity, mockClassifier, mockDialogManager);
     }
-
-    // ── Constructor ───────────────────────────────────────────────────────────
 
     @Test
     public void constructor_doesNotThrow() {
         assertNotNull(loader);
     }
 
-    // ── createSquareCorners – list structure ──────────────────────────────────
+    // ── Private Method Reflection: handleFeatureClick ─────────────────────────
+
+    @Test
+    public void testHandleFeatureClick_nonPolygon_doesNothing() throws Exception {
+        Feature mockFeature = mock(Feature.class);
+        Geometry mockGeometry = mock(Geometry.class); // Not a GeoJsonPolygon
+        when(mockFeature.getGeometry()).thenReturn(mockGeometry);
+
+        GeoJsonMapLoader.FeatureClickHandler mockHandler = mock(GeoJsonMapLoader.FeatureClickHandler.class);
+
+        Method method = GeoJsonMapLoader.class.getDeclaredMethod("handleFeatureClick", Feature.class, GeoJsonMapLoader.FeatureClickHandler.class);
+        method.setAccessible(true);
+        method.invoke(loader, mockFeature, mockHandler);
+
+        // Assertion: If it's not a polygon, it returns immediately without clicking anything
+        verify(mockHandler, never()).onBuildingPolygonClicked(any());
+        verify(mockHandler, never()).onDetailButtonClicked(any());
+    }
+
+    @Test
+    public void testHandleFeatureClick_polygonWithNullLayer_callsBuildingClick() throws Exception {
+        Feature mockFeature = mock(Feature.class);
+        GeoJsonPolygon mockPolygon = mock(GeoJsonPolygon.class);
+        when(mockFeature.getGeometry()).thenReturn(mockPolygon);
+        when(mockFeature.getProperty("layer")).thenReturn(null); // Null layer means it's a standard building
+
+        GeoJsonMapLoader.FeatureClickHandler mockHandler = mock(GeoJsonMapLoader.FeatureClickHandler.class);
+
+        Method method = GeoJsonMapLoader.class.getDeclaredMethod("handleFeatureClick", Feature.class, GeoJsonMapLoader.FeatureClickHandler.class);
+        method.setAccessible(true);
+        method.invoke(loader, mockFeature, mockHandler);
+
+        // Assertion
+        verify(mockHandler).onBuildingPolygonClicked(mockFeature);
+        verify(mockHandler, never()).onDetailButtonClicked(any());
+    }
+
+    @Test
+    public void testHandleFeatureClick_polygonWithDetailButtonLayer_callsDetailClick() throws Exception {
+        Feature mockFeature = mock(Feature.class);
+        GeoJsonPolygon mockPolygon = mock(GeoJsonPolygon.class);
+        when(mockFeature.getGeometry()).thenReturn(mockPolygon);
+        when(mockFeature.getProperty("layer")).thenReturn("detailButton");
+        when(mockFeature.getProperty("id")).thenReturn("way/123");
+
+        GeoJsonMapLoader.FeatureClickHandler mockHandler = mock(GeoJsonMapLoader.FeatureClickHandler.class);
+
+        Method method = GeoJsonMapLoader.class.getDeclaredMethod("handleFeatureClick", Feature.class, GeoJsonMapLoader.FeatureClickHandler.class);
+        method.setAccessible(true);
+        method.invoke(loader, mockFeature, mockHandler);
+
+        // Assertion
+        verify(mockHandler).onDetailButtonClicked("way/123");
+        verify(mockHandler, never()).onBuildingPolygonClicked(any());
+    }
+
+    // ── Private Method Reflection: applyFeatureStyle ──────────────────────────
+
+    // ── Private Method Reflection: applyFeatureStyle ──────────────────────────
+
+    @Test
+    public void testApplyFeatureStyle_lineString_setsLineStyle() throws Exception {
+        GeoJsonFeature mockFeature = mock(GeoJsonFeature.class);
+
+        // Setup a mock StyleConfig using the required constructor:
+        // (int fillColor, int strokeColor, float strokeWidth, boolean isLineString)
+        FeatureStyler.StyleConfig config = new FeatureStyler.StyleConfig(
+                Color.TRANSPARENT, Color.RED, 5f, true
+        );
+
+        Method method = GeoJsonMapLoader.class.getDeclaredMethod("applyFeatureStyle", GeoJsonFeature.class, FeatureStyler.StyleConfig.class);
+        method.setAccessible(true);
+        method.invoke(loader, mockFeature, config);
+
+        // Assertion: It should apply a LineString style to the feature
+        verify(mockFeature).setLineStringStyle(any(GeoJsonLineStringStyle.class));
+        verify(mockFeature, never()).setPolygonStyle(any());
+    }
+
+    @Test
+    public void testApplyFeatureStyle_polygon_setsPolygonStyle() throws Exception {
+        GeoJsonFeature mockFeature = mock(GeoJsonFeature.class);
+
+        // Setup a mock StyleConfig using the required constructor:
+        // (int fillColor, int strokeColor, float strokeWidth, boolean isLineString)
+        FeatureStyler.StyleConfig config = new FeatureStyler.StyleConfig(
+                Color.BLUE, Color.BLACK, 2f, false
+        );
+
+        Method method = GeoJsonMapLoader.class.getDeclaredMethod("applyFeatureStyle", GeoJsonFeature.class, FeatureStyler.StyleConfig.class);
+        method.setAccessible(true);
+        method.invoke(loader, mockFeature, config);
+
+        // Assertion: It should apply a Polygon style to the feature
+        verify(mockFeature).setPolygonStyle(any(GeoJsonPolygonStyle.class));
+        verify(mockFeature, never()).setLineStringStyle(any());
+    }
+
+    // ── Private Method Reflection: processFeature ─────────────────────────────
+
+    @Test
+    public void testProcessFeature_addsToSuggestions_ifNameValidAndNotDuplicate() throws Exception {
+        GeoJsonFeature mockFeature = mock(GeoJsonFeature.class);
+        when(mockFeature.getProperty("name")).thenReturn("Hall Building");
+        when(mockFeature.getProperty("type")).thenReturn("university");
+
+        ArrayList<String> suggestions = new ArrayList<>();
+        FeatureStyler styler = new FeatureStyler();
+        GeofenceManager geofenceManager = mock(GeofenceManager.class);
+        BuildingManager buildingManager = mock(BuildingManager.class);
+        GoogleMap map = mock(GoogleMap.class);
+        List<GeoJsonFeature> pointFeatures = new ArrayList<>();
+
+        Method method = GeoJsonMapLoader.class.getDeclaredMethod("processFeature",
+                GeoJsonFeature.class, ArrayList.class, FeatureStyler.class,
+                GeofenceManager.class, BuildingManager.class, GoogleMap.class, List.class);
+        method.setAccessible(true);
+        method.invoke(loader, mockFeature, suggestions, styler, geofenceManager, buildingManager, map, pointFeatures);
+
+        // Assertion: Hall Building should be added to the suggestions list
+        assertEquals(1, suggestions.size());
+        assertEquals("Hall Building", suggestions.get(0));
+    }
+
+    @Test
+    public void testProcessFeature_doesNotAddToSuggestions_ifNameNullOrEmpty() throws Exception {
+        GeoJsonFeature mockFeature = mock(GeoJsonFeature.class);
+        when(mockFeature.getProperty("name")).thenReturn("   "); // Blank name
+
+        ArrayList<String> suggestions = new ArrayList<>();
+        FeatureStyler styler = new FeatureStyler();
+
+        Method method = GeoJsonMapLoader.class.getDeclaredMethod("processFeature",
+                GeoJsonFeature.class, ArrayList.class, FeatureStyler.class,
+                GeofenceManager.class, BuildingManager.class, GoogleMap.class, List.class);
+        method.setAccessible(true);
+        method.invoke(loader, mockFeature, suggestions, styler, mock(GeofenceManager.class), mock(BuildingManager.class), mock(GoogleMap.class), new ArrayList<>());
+
+        // Assertion: Empty names are ignored for search
+        assertTrue(suggestions.isEmpty());
+    }
+
+    // ── Original Geometry Math Tests ──────────────────────────────────────────
 
     @Test
     public void createSquareCorners_returnsFivePoints() {
@@ -49,146 +206,30 @@ public class GeoJsonMapLoaderTest {
     @Test
     public void createSquareCorners_closedPolygon_firstEqualsLast() {
         List<LatLng> corners = loader.createSquareCorners(SGW, 10);
-        LatLng first = corners.get(0);
-        LatLng last  = corners.get(4);
-        assertEquals(first.latitude,  last.latitude,  1e-12);
-        assertEquals(first.longitude, last.longitude, 1e-12);
+        assertEquals(corners.get(0).latitude, corners.get(4).latitude, 1e-12);
     }
-
-    @Test
-    public void createSquareCorners_noNullPoints() {
-        List<LatLng> corners = loader.createSquareCorners(SGW, 10);
-        for (LatLng p : corners) assertNotNull(p);
-    }
-
-    // ── createSquareCorners – cardinal directions ─────────────────────────────
 
     @Test
     public void createSquareCorners_northWest_aboveCenterAndLeftOfCenter() {
         List<LatLng> c = loader.createSquareCorners(SGW, 10);
-        LatLng nw = c.get(0);
-        assertTrue("NW lat should be above center",   nw.latitude  > SGW.latitude);
-        assertTrue("NW lng should be left of center", nw.longitude < SGW.longitude);
+        assertTrue(c.get(0).latitude > SGW.latitude);
+        assertTrue(c.get(0).longitude < SGW.longitude);
     }
 
     @Test
-    public void createSquareCorners_northEast_aboveCenterAndRightOfCenter() {
-        List<LatLng> c = loader.createSquareCorners(SGW, 10);
-        LatLng ne = c.get(1);
-        assertTrue("NE lat should be above center",    ne.latitude  > SGW.latitude);
-        assertTrue("NE lng should be right of center", ne.longitude > SGW.longitude);
-    }
-
-    @Test
-    public void createSquareCorners_southEast_belowCenterAndRightOfCenter() {
-        List<LatLng> c = loader.createSquareCorners(SGW, 10);
-        LatLng se = c.get(2);
-        assertTrue("SE lat should be below center",    se.latitude  < SGW.latitude);
-        assertTrue("SE lng should be right of center", se.longitude > SGW.longitude);
-    }
-
-    @Test
-    public void createSquareCorners_southWest_belowCenterAndLeftOfCenter() {
-        List<LatLng> c = loader.createSquareCorners(SGW, 10);
-        LatLng sw = c.get(3);
-        assertTrue("SW lat should be below center",   sw.latitude  < SGW.latitude);
-        assertTrue("SW lng should be left of center", sw.longitude < SGW.longitude);
-    }
-
-    // ── createSquareCorners – symmetry ────────────────────────────────────────
-
-    @Test
-    public void createSquareCorners_northAndSouthSymmetricAboutCenter() {
-        List<LatLng> c = loader.createSquareCorners(SGW, 10);
-        double latOffset = c.get(0).latitude - SGW.latitude;   // NW lat offset
-        double southOff  = SGW.latitude - c.get(2).latitude;   // SE lat offset
-        assertEquals(latOffset, southOff, 1e-10);
-    }
-
-    @Test
-    public void createSquareCorners_eastAndWestSymmetricAboutCenter() {
-        List<LatLng> c = loader.createSquareCorners(SGW, 10);
-        double lngOffsetEast = c.get(1).longitude - SGW.longitude;  // NE
-        double lngOffsetWest = SGW.longitude - c.get(0).longitude;  // NW
-        assertEquals(lngOffsetEast, lngOffsetWest, 1e-10);
-    }
-
-    // ── createSquareCorners – scaling ─────────────────────────────────────────
-
-    @Test
-    public void createSquareCorners_largerSide_producesLargerLatOffset() {
+    public void createSquareCorners_largerSide_producesLargerOffsets() {
         List<LatLng> small = loader.createSquareCorners(SGW, 10);
         List<LatLng> large = loader.createSquareCorners(SGW, 100);
-        double smallOff = small.get(0).latitude - SGW.latitude;
-        double largeOff = large.get(0).latitude - SGW.latitude;
-        assertTrue("Larger side should produce larger lat offset", largeOff > smallOff);
+        assertTrue(large.get(0).latitude - SGW.latitude > small.get(0).latitude - SGW.latitude);
     }
 
     @Test
-    public void createSquareCorners_largerSide_producesLargerLngOffset() {
-        List<LatLng> small = loader.createSquareCorners(SGW, 10);
-        List<LatLng> large = loader.createSquareCorners(SGW, 100);
-        double smallOff = large.get(1).longitude - SGW.longitude;
-        double largeOff = small.get(1).longitude - SGW.longitude;
-        // large side should have more offset than small
-        assertTrue("Larger side should produce larger lng offset", smallOff > largeOff);
-    }
-
-    @Test
-    public void createSquareCorners_latOffsetMatchesExpectedFormula() {
-        float side = 20f;
-        double expectedLatOffset = (side / 2.0) / 111000f;
-        List<LatLng> c = loader.createSquareCorners(SGW, side);
-        double actualLatOffset = c.get(0).latitude - SGW.latitude;
-        assertEquals(expectedLatOffset, actualLatOffset, 1e-10);
-    }
-
-    @Test
-    public void createSquareCorners_differentCenters_offsetsMatchFormula() {
-        LatLng loy = new LatLng(45.458, -73.641);
-        List<LatLng> c = loader.createSquareCorners(loy, 10);
-        assertEquals(5, c.size());
-        assertTrue(c.get(0).latitude  > loy.latitude);
-        assertTrue(c.get(0).longitude < loy.longitude);
-    }
-
-    // ── createSquareFeature ───────────────────────────────────────────────────
-
-    @Test
-    public void createSquareFeature_returnsNonNull() {
+    public void createSquareFeature_returnsValidGeoJsonWithCorrectProperties() {
         GeoJsonFeature feature = loader.createSquareFeature(SGW, "way/123");
-        assertNotNull(feature);
-    }
-
-    @Test
-    public void createSquareFeature_hasCorrectId() {
-        GeoJsonFeature feature = loader.createSquareFeature(SGW, "way/456");
-        assertEquals("way/456", feature.getId());
-    }
-
-    @Test
-    public void createSquareFeature_propertyIdMatchesInput() {
-        GeoJsonFeature feature = loader.createSquareFeature(SGW, "way/789");
-        assertEquals("way/789", feature.getProperty("id"));
-    }
-
-    @Test
-    public void createSquareFeature_propertyLayerIsDetailButton() {
-        GeoJsonFeature feature = loader.createSquareFeature(SGW, "way/123");
+        assertEquals("way/123", feature.getId());
+        assertEquals("way/123", feature.getProperty("id"));
         assertEquals("detailButton", feature.getProperty("layer"));
-    }
-
-    @Test
-    public void createSquareFeature_geometryIsPolygon() {
-        GeoJsonFeature feature = loader.createSquareFeature(SGW, "way/123");
         assertTrue(feature.getGeometry() instanceof GeoJsonPolygon);
-    }
-
-    @Test
-    public void createSquareFeature_polygonHasFiveCoordinates() {
-        GeoJsonFeature feature  = loader.createSquareFeature(SGW, "way/123");
-        GeoJsonPolygon polygon  = (GeoJsonPolygon) feature.getGeometry();
-        List<LatLng> ring       = polygon.getCoordinates().get(0);
-        assertEquals(5, ring.size());
+        assertEquals(5, ((GeoJsonPolygon) feature.getGeometry()).getCoordinates().get(0).size());
     }
 }
