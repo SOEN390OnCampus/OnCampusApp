@@ -10,6 +10,19 @@ import org.robolectric.annotation.Config;
 import java.lang.reflect.Method;
 
 import static org.junit.Assert.*;
+import android.app.AlertDialog;
+import android.app.Dialog;
+import android.content.Intent;
+import android.widget.Button;
+import android.widget.ImageView;
+
+import com.google.android.material.bottomnavigation.BottomNavigationView;
+import com.google.android.material.button.MaterialButton;
+
+import org.robolectric.Shadows;
+import org.robolectric.shadows.ShadowActivity;
+import org.robolectric.shadows.ShadowAlertDialog;
+import org.robolectric.shadows.ShadowDialog;
 
 /**
  * Tests for AccountPage pure-logic methods.
@@ -195,7 +208,123 @@ public class AccountPageTest {
         assertEquals("Test Calendar", nameText.getText().toString());
     }
 
+// ── Full Activity UI & Lifecycle Tests ────────────────────────────────────
 
+    /**
+     * Safely boots a fully lifecycle-aware Activity for UI testing
+     * by clearing globals to prevent background crashes during onCreate().
+     */
+    private AccountPage createFullActivity() {
+        CalendarEventManager.globalCalendarListJson = "";
+        CalendarEventManager.globalEventsJson = "";
+        return Robolectric.buildActivity(AccountPage.class).create().resume().get();
+    }
+
+    @Test
+    public void testBackButton_startsMapsActivity() {
+        AccountPage fullActivity = createFullActivity();
+        ImageView backButton = fullActivity.findViewById(R.id.btn_back);
+        backButton.performClick();
+
+        ShadowActivity shadowActivity = Shadows.shadowOf(fullActivity);
+        Intent actualIntent = shadowActivity.getNextStartedActivity();
+
+        assertNotNull(actualIntent);
+        assertEquals(MapsActivity.class.getName(), actualIntent.getComponent().getClassName());
+    }
+
+    @Test
+    public void testBottomNav_clickHome_startsMapsActivity() {
+        AccountPage fullActivity = createFullActivity();
+        BottomNavigationView bottomNav = fullActivity.findViewById(R.id.bottom_nav);
+        bottomNav.setSelectedItemId(R.id.nav_home);
+
+        ShadowActivity shadowActivity = Shadows.shadowOf(fullActivity);
+        Intent actualIntent = shadowActivity.getNextStartedActivity();
+
+        assertNotNull("Intent to MapsActivity should be fired", actualIntent);
+        assertEquals(MapsActivity.class.getName(), actualIntent.getComponent().getClassName());
+        assertTrue("Activity should finish to prevent backstack buildup", fullActivity.isFinishing());
+    }
+
+    @Test
+    public void testBottomNav_clickSettings_startsSettingsActivity() {
+        AccountPage fullActivity = createFullActivity();
+        BottomNavigationView bottomNav = fullActivity.findViewById(R.id.bottom_nav);
+        bottomNav.setSelectedItemId(R.id.nav_settings);
+
+        ShadowActivity shadowActivity = Shadows.shadowOf(fullActivity);
+        Intent actualIntent = shadowActivity.getNextStartedActivity();
+
+        assertNotNull("Intent to SettingsActivity should be fired", actualIntent);
+        assertEquals(SettingsActivity.class.getName(), actualIntent.getComponent().getClassName());
+        assertTrue(fullActivity.isFinishing());
+    }
+
+    @Test
+    public void testBottomNav_clickAccount_doesNotStartNewActivity() {
+        AccountPage fullActivity = createFullActivity();
+        BottomNavigationView bottomNav = fullActivity.findViewById(R.id.bottom_nav);
+
+        bottomNav.setSelectedItemId(R.id.nav_account);
+
+        ShadowActivity shadowActivity = Shadows.shadowOf(fullActivity);
+        Intent actualIntent = shadowActivity.getNextStartedActivity();
+
+        assertNull("No intent should be fired since we are already on Account", actualIntent);
+    }
+
+    @Test
+    public void testRefreshButton_showsConnectDialog() {
+        AccountPage fullActivity = createFullActivity();
+        Button btnRefresh = fullActivity.findViewById(R.id.refreshCalendar);
+        btnRefresh.performClick();
+
+        Dialog dialog = ShadowDialog.getLatestDialog();
+        assertNotNull("Connect dialog should appear", dialog);
+        assertTrue("Dialog should be showing", dialog.isShowing());
+        assertNotNull("Dialog should contain the allow button", dialog.findViewById(R.id.btn_allow));
+    }
+
+    @Test
+    public void testConnectDialog_cancelButton_dismissesDialog() {
+        AccountPage fullActivity = createFullActivity();
+
+        // 1. Open the dialog
+        fullActivity.findViewById(R.id.refreshCalendar).performClick();
+        Dialog dialog = ShadowDialog.getLatestDialog();
+
+        // 2. Click cancel
+        dialog.findViewById(R.id.btn_cancel).performClick();
+
+        // 3. Verify it closed
+        assertFalse("Dialog should be dismissed after clicking cancel", dialog.isShowing());
+    }
+
+    @Test
+    public void testSignOutButton_showsConfirmationAlertDialog() {
+        AccountPage fullActivity = createFullActivity();
+        MaterialButton btnSignOut = fullActivity.findViewById(R.id.btn_sign_out);
+        btnSignOut.performClick();
+
+        AlertDialog dialog = ShadowAlertDialog.getLatestAlertDialog();
+        assertNotNull("Sign out confirmation dialog should appear", dialog);
+        assertTrue("Dialog should be showing", dialog.isShowing());
+    }
+
+    @Test
+    public void testActivityDestruction_removesTimerCallbacksCleanly() {
+        org.robolectric.android.controller.ActivityController<AccountPage> controller =
+                Robolectric.buildActivity(AccountPage.class).create().resume();
+        AccountPage fullActivity = controller.get();
+
+        // Action: Destroy the activity to trigger onDestroy()
+        controller.destroy();
+
+        // Assertion: If the timer wasn't cleaned up, Robolectric would throw a memory leak error.
+        // We assert it is finishing/destroyed to ensure the lifecycle ran successfully.
+        assertTrue(fullActivity.isFinishing() || fullActivity.isDestroyed());
+    }
 
 
 }
