@@ -141,4 +141,43 @@ public class BuildingDialogManagerTest {
         assertTrue("Second dialog should be showing", secondDialog.isShowing());
         assertEquals("Manager should track the new dialog", secondDialog, manager.getCurrentBuildingDialog());
     }
+
+    @Test
+    public void testShowBuildingInfoDialog_scheduleAlwaysOpen_showsAlwaysOpenText() {
+        BuildingDetails mockDetails = Mockito.mock(BuildingDetails.class);
+        BuildingDetails.Schedule mockSchedule = Mockito.mock(BuildingDetails.Schedule.class);
+        when(mockDetails.getCode()).thenReturn("H");
+        when(mockDetails.getName()).thenReturn("Hall Building");
+        when(mockDetails.getSchedule()).thenReturn(mockSchedule);
+        when(mockSchedule.isAlwaysOpen()).thenReturn(true);
+
+        manager.showBuildingInfoDialog(mockDetails);
+
+        Dialog dialog = manager.getCurrentBuildingDialog();
+        View llOpeningHours = dialog.findViewById(R.id.layout_building_opening_hours);
+        TextView txtOpeningHours = dialog.findViewById(R.id.txt_building_opening_hours);
+
+        assertEquals("Opening hours should be visible", View.VISIBLE, llOpeningHours.getVisibility());
+        assertEquals(activity.getString(R.string.always_open), txtOpeningHours.getText().toString());
+    }
+
+    @Test
+    public void testShowBuildingInfoDialog_scheduleNotAlwaysOpen_showsScheduleText() {
+        BuildingDetails mockDetails = Mockito.mock(BuildingDetails.class);
+        BuildingDetails.Schedule mockSchedule = Mockito.mock(BuildingDetails.Schedule.class);
+        when(mockDetails.getCode()).thenReturn("H");
+        when(mockDetails.getName()).thenReturn("Hall Building");
+        when(mockDetails.getSchedule()).thenReturn(mockSchedule);
+        when(mockSchedule.isAlwaysOpen()).thenReturn(false);
+        when(mockSchedule.toString()).thenReturn("Mon-Fri 8am-10pm");
+
+        manager.showBuildingInfoDialog(mockDetails);
+
+        Dialog dialog = manager.getCurrentBuildingDialog();
+        View llOpeningHours = dialog.findViewById(R.id.layout_building_opening_hours);
+        TextView txtOpeningHours = dialog.findViewById(R.id.txt_building_opening_hours);
+
+        assertEquals("Opening hours should be visible", View.VISIBLE, llOpeningHours.getVisibility());
+        assertEquals("Mon-Fri 8am-10pm", txtOpeningHours.getText().toString());
+    }
 }
