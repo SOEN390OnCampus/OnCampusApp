@@ -55,7 +55,12 @@ import java.util.List;
 import java.util.Map;
 
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback {
-
+    public static final String EXTRA_OPEN_DIRECTIONS = "OPEN_DIRECTIONS";
+    public static final String EXTRA_OPEN_POI_ROUTE = "OPEN_POI_ROUTE";
+    public static final String EXTRA_POI_LAT = "POI_LAT";
+    public static final String EXTRA_POI_LNG = "POI_LNG";
+    public static final String EXTRA_POI_NAME = "POI_NAME";
+    public static final String EXTRA_NOTIFICATION_ID = "notification_id";
     private GoogleMap mMap;
     public static Map<String, Building> buildingsMap = new HashMap<>();
     private ActivityMapsBinding binding;
@@ -576,7 +581,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     private void handleNotificationDirectionsIntent(Intent intent) {
         if (intent == null) return;
-        if (!intent.getBooleanExtra("OPEN_DIRECTIONS", false)) return;
+        if (!intent.getBooleanExtra(EXTRA_OPEN_DIRECTIONS, false)) return;
         pendingNotificationDirections = true;
         tryGenerateDirectionsFromNotification();
     }
@@ -603,12 +608,13 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     }
 
     private void handleIncomingPoiIntent() {
-        Intent intent = getIntent();
-        if (intent == null || !intent.getBooleanExtra("OPEN_POI_ROUTE", false)) return;
+        Intent intent = getIntent(); // <-- Make sure you have this line!
 
-        double lat = intent.getDoubleExtra("POI_LAT", 0.0);
-        double lng = intent.getDoubleExtra("POI_LNG", 0.0);
-        String name = intent.getStringExtra("POI_NAME");
+        if (intent == null || !intent.getBooleanExtra(EXTRA_OPEN_POI_ROUTE, false)) return;
+
+        double lat = intent.getDoubleExtra(EXTRA_POI_LAT, 0.0);
+        double lng = intent.getDoubleExtra(EXTRA_POI_LNG, 0.0);
+        String name = intent.getStringExtra(EXTRA_POI_NAME);
 
         pendingPoiLatLng = new LatLng(lat, lng);
         pendingPoiName = name;
