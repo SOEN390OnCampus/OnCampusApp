@@ -82,7 +82,16 @@ public class RoutePickerControllerTest {
     }
 
     private Object invokePrivateMethod(String methodName, Class<?>[] argTypes, Object... args) throws Exception {
-        Method m = RoutePickerController.class.getDeclaredMethod(methodName, argTypes);
+        Method m;
+        try {
+            m = RoutePickerController.class.getDeclaredMethod(methodName, argTypes);
+        } catch (NoSuchMethodException exactMiss) {
+            m = findCompatibleMethod(methodName, args);
+            if (m == null) {
+                throw exactMiss;
+            }
+            args = expandWithDefaultArgs(m.getParameterTypes(), args);
+        }
         m.setAccessible(true);
         return m.invoke(controller, args);
     }
@@ -91,6 +100,79 @@ public class RoutePickerControllerTest {
         Method m = RoutePickerController.class.getDeclaredMethod(methodName);
         m.setAccessible(true);
         m.invoke(controller);
+    }
+
+    private Method findCompatibleMethod(String methodName, Object... args) {
+        for (Method candidate : RoutePickerController.class.getDeclaredMethods()) {
+            if (!candidate.getName().equals(methodName)) {
+                continue;
+            }
+
+            Class<?>[] paramTypes = candidate.getParameterTypes();
+            if (paramTypes.length < args.length) {
+                continue;
+            }
+
+            boolean compatible = true;
+            for (int i = 0; i < args.length; i++) {
+                Object arg = args[i];
+                if (arg == null) {
+                    continue;
+                }
+                Class<?> expected = boxType(paramTypes[i]);
+                if (!expected.isAssignableFrom(arg.getClass())) {
+                    compatible = false;
+                    break;
+                }
+            }
+
+            if (compatible) {
+                return candidate;
+            }
+        }
+        return null;
+    }
+
+    private Object[] expandWithDefaultArgs(Class<?>[] paramTypes, Object[] args) {
+        if (paramTypes.length == args.length) {
+            return args;
+        }
+
+        Object[] expanded = Arrays.copyOf(args, paramTypes.length);
+        for (int i = args.length; i < paramTypes.length; i++) {
+            expanded[i] = defaultValueForType(paramTypes[i]);
+        }
+        return expanded;
+    }
+
+    private Class<?> boxType(Class<?> type) {
+        if (!type.isPrimitive()) {
+            return type;
+        }
+        if (type == int.class) return Integer.class;
+        if (type == long.class) return Long.class;
+        if (type == boolean.class) return Boolean.class;
+        if (type == double.class) return Double.class;
+        if (type == float.class) return Float.class;
+        if (type == char.class) return Character.class;
+        if (type == byte.class) return Byte.class;
+        if (type == short.class) return Short.class;
+        return Void.class;
+    }
+
+    private Object defaultValueForType(Class<?> type) {
+        if (!type.isPrimitive()) {
+            return null;
+        }
+        if (type == boolean.class) return false;
+        if (type == char.class) return '\0';
+        if (type == byte.class) return (byte) 0;
+        if (type == short.class) return (short) 0;
+        if (type == int.class) return 0;
+        if (type == long.class) return 0L;
+        if (type == float.class) return 0f;
+        if (type == double.class) return 0d;
+        return null;
     }
 
     /**
