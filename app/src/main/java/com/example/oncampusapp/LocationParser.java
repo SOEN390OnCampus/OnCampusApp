@@ -20,6 +20,10 @@ public class LocationParser {
     private static final List<Map.Entry<String, String>> SORTED_BUILDINGS = new ArrayList<>();
     private static boolean isLoaded = false;
 
+    private LocationParser() {
+        // A private constructor to hide the implicit public one of this utility class
+    }
+
     // Lazy load the JSON only once
     private static void loadBuildingsIfNeeded(Context context) {
         if (isLoaded) return;

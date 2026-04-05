@@ -175,7 +175,6 @@ public class IndoorMapView extends View {
                 pos += needed;
                 result.add(new PointF(a.x + ux * pos, a.y + uy * pos));
                 needed = spacing;
-                carry  = 0f;
             }
             carry = segLen - pos;   // distance past the last dot on this segment
         }
