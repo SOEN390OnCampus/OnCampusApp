@@ -156,6 +156,10 @@ public class BuildingDetails {
         private String capitalize(String day) {
             return day.substring(0, 1).toUpperCase() + day.substring(1);
         }
+
+        public boolean isAlwaysOpen() {
+            return alwaysOpen;
+        }
     }
 
 }

@@ -42,8 +42,7 @@
     <string name="search_image">Search image</string>
     <string name="search">Search</string>
     <string name="swap_address_image">Swap address image</string>
-    <string name="select_or_input_starting_point">Select or input starting point...</string>
-    <string name="select_or_input_destination_point">Select or input destination point...</string>
+    <string name="search_bar_hint">Search, tap a building, or type a room no.</string>
     <string name="go">GO</string>
     <string name="hide_the_search_section">Hide the search section</string>
     <string name="this_building_has_direct_access_to_metro_via_tunnel">This building has direct access to metro via tunnel</string>
@@ -61,4 +60,6 @@
     <string name="confirm_sign_out_body">You will be signed out of your Google account.</string>
     <string name="cancel">Cancel</string>
     <string name="sign_out_failed_body">Sign-out failed. Please try again.</string>
+    <string name="search_for_direction_building_room">Search for direction (building/room)</string>
+    <string name="always_open">Always Open</string>
 </resources>

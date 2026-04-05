@@ -54,7 +54,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="12dp"
-                android:text="@string/search"
+                android:text="@string/search_for_direction_building_room"
                 android:textColor="@android:color/darker_gray"
                 android:textSize="18sp" />
         </LinearLayout>
@@ -106,7 +106,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="45dp"
                         android:background="@drawable/rounded_edittext"
-                        android:hint="@string/select_or_input_starting_point"
+                        android:hint="@string/search_bar_hint"
                         android:inputType="textNoSuggestions"
                         android:maxLines="1"
                         android:paddingHorizontal="12dp"
@@ -130,7 +130,7 @@
                     android:layout_height="45dp"
                     android:layout_marginTop="8dp"
                     android:background="@drawable/rounded_edittext"
-                    android:hint="@string/select_or_input_destination_point"
+                    android:hint="@string/search_bar_hint"
                     android:inputType="textNoSuggestions"
                     android:maxLines="1"
                     android:paddingHorizontal="12dp"
@@ -356,15 +356,17 @@
 
         <LinearLayout
             android:layout_width="wrap_content"
-            android:layout_height="191dp"
+            android:layout_height="wrap_content"
             android:gravity="center_horizontal"
             android:orientation="vertical"
-            android:padding="6dp">
+            android:padding="6dp"
+            android:weightSum="4">
 
             <ImageButton
                 android:id="@+id/btn_indoor_map"
                 android:layout_width="40dp"
                 android:layout_height="40dp"
+                android:layout_weight="1"
                 android:background="@drawable/bg_circle"
                 android:backgroundTint="@color/concordia_red"
                 android:contentDescription="@string/maps_info"
@@ -375,6 +377,8 @@
                 android:id="@+id/btn_poi"
                 android:layout_width="match_parent"
                 android:layout_height="40dp"
+                android:layout_weight="1"
+                android:layout_marginTop="4dp"
                 android:background="@drawable/bg_circle"
                 android:backgroundTint="@color/concordia_red"
                 android:contentDescription="@string/maps_info"
@@ -385,6 +389,7 @@
                 android:id="@+id/btn_campus_switch"
                 android:layout_width="40dp"
                 android:layout_height="40dp"
+                android:layout_weight="1"
                 android:layout_marginTop="4dp"
                 android:background="@android:drawable/presence_online"
                 android:backgroundTint="@color/concordia_red"
@@ -398,6 +403,7 @@
                 android:id="@+id/btn_location"
                 android:layout_width="40dp"
                 android:layout_height="40dp"
+                android:layout_weight="1"
                 android:layout_marginTop="4dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:contentDescription="@string/maps_current_location"
@@ -407,6 +413,7 @@
     </androidx.cardview.widget.CardView>
 
     <!-- TEMP: remove once calendar is in real nav -->
+
     <com.google.android.material.bottomnavigation.BottomNavigationView
         android:id="@+id/bottom_nav"
         android:layout_width="0dp"
@@ -415,9 +422,10 @@
         app:itemIconSize="28dp"
         app:itemIconTint="@android:color/white"
         app:itemTextColor="@android:color/white"
-        app:labelVisibilityMode="unlabeled"
+        app:labelVisibilityMode="labeled"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="1.0"
         app:layout_constraintStart_toStartOf="parent"
         app:menu="@menu/bottom_nav_menu" />
 

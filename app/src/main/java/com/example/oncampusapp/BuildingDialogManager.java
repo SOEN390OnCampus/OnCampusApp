@@ -103,7 +103,11 @@ public class BuildingDialogManager {
             llOpeningHours.setVisibility(View.GONE);
         } else {
             llOpeningHours.setVisibility(View.VISIBLE);
-            txtOpeningHours.setText(buildingDetails.getSchedule().toString());
+            if (buildingDetails.getSchedule().isAlwaysOpen()){
+                txtOpeningHours.setText(R.string.always_open);
+            } else {
+                txtOpeningHours.setText(buildingDetails.getSchedule().toString());
+            }
         }
         loadBuildingImage(imgBuilding, buildingDetails);
     }
