@@ -9,16 +9,32 @@ public class FeatureStyler {
     public static final int INVISIBLE_COLOR = 0x00000000; // Fully transparent
 
     public static class StyleConfig {
-        public int fillColor;
-        public int strokeColor;
-        public float strokeWidth;
-        public boolean isLineString; // true for tunnels, false for polygons
+        private int fillColor;
+        private int strokeColor;
+        private float strokeWidth;
+        private boolean isLineString; // true for tunnels, false for polygons
 
         public StyleConfig(int fillColor, int strokeColor, float strokeWidth, boolean isLineString) {
             this.fillColor = fillColor;
             this.strokeColor = strokeColor;
             this.strokeWidth = strokeWidth;
             this.isLineString = isLineString;
+        }
+
+        public int getFillColor() {
+            return fillColor;
+        }
+
+        public int getStrokeColor() {
+            return strokeColor;
+        }
+
+        public float getStrokeWidth() {
+            return strokeWidth;
+        }
+
+        public boolean isLineString() {
+            return isLineString;
         }
     }
 

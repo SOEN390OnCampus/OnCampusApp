@@ -8,11 +8,9 @@ import android.graphics.Typeface;
 import android.util.Log;
 
 import com.google.android.gms.maps.GoogleMap;
-import com.google.android.gms.maps.model.BitmapDescriptor;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.GroundOverlayOptions;
 import com.google.android.gms.maps.model.LatLng;
-import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.maps.android.data.Feature;
 import com.google.maps.android.data.Geometry;
 import com.google.maps.android.data.geojson.GeoJsonFeature;
@@ -122,16 +120,16 @@ public class GeoJsonMapLoader {
     }
 
     private void applyFeatureStyle(GeoJsonFeature feature, FeatureStyler.StyleConfig config) {
-        if (config.isLineString) {
+        if (config.isLineString()) {
             GeoJsonLineStringStyle lineStyle = new GeoJsonLineStringStyle();
-            lineStyle.setColor(config.strokeColor);
-            lineStyle.setWidth(config.strokeWidth);
+            lineStyle.setColor(config.getStrokeColor());
+            lineStyle.setWidth(config.getStrokeWidth());
             feature.setLineStringStyle(lineStyle);
         } else {
             GeoJsonPolygonStyle polyStyle = new GeoJsonPolygonStyle();
-            polyStyle.setFillColor(config.fillColor);
-            polyStyle.setStrokeColor(config.strokeColor);
-            polyStyle.setStrokeWidth(config.strokeWidth);
+            polyStyle.setFillColor(config.getFillColor());
+            polyStyle.setStrokeColor(config.getStrokeColor());
+            polyStyle.setStrokeWidth(config.getStrokeWidth());
             feature.setPolygonStyle(polyStyle);
         }
     }
