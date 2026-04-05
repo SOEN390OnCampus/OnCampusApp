@@ -70,7 +70,7 @@
         app:itemIconSize="28dp"
         app:itemIconTint="@android:color/white"
         app:itemTextColor="@android:color/white"
-        app:labelVisibilityMode="unlabeled"
+        app:labelVisibilityMode="labeled"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"

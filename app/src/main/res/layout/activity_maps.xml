@@ -413,6 +413,7 @@
     </androidx.cardview.widget.CardView>
 
     <!-- TEMP: remove once calendar is in real nav -->
+
     <com.google.android.material.bottomnavigation.BottomNavigationView
         android:id="@+id/bottom_nav"
         android:layout_width="0dp"
@@ -421,9 +422,10 @@
         app:itemIconSize="28dp"
         app:itemIconTint="@android:color/white"
         app:itemTextColor="@android:color/white"
-        app:labelVisibilityMode="unlabeled"
+        app:labelVisibilityMode="labeled"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="1.0"
         app:layout_constraintStart_toStartOf="parent"
         app:menu="@menu/bottom_nav_menu" />
 
