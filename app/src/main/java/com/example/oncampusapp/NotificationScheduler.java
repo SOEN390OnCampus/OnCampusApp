@@ -12,6 +12,10 @@ import java.util.Locale;
 
 public class NotificationScheduler {
 
+    private NotificationScheduler() {
+        // Used to hide implicit public constructor of utility class
+    }
+
     public static void scheduleClassNotification(Context context, JSONObject nextEvent) {
         if (nextEvent == null) return;
 

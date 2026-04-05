@@ -76,8 +76,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     public ILocationProvider fusedLocationClient;
     private FusedLocationSource myLocationSource;
 
-    private static final int LOCATION_PERMISSION_REQUEST_CODE = 1;
-
     private ActivityResultLauncher<String[]> locationPermissionRequest;
     private TextView btnSgwLoy;
 
@@ -801,11 +799,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             Log.e(TAG, "Failed to handle banner directions click", e);
             Toast.makeText(this, "Failed to open directions", Toast.LENGTH_SHORT).show();
         }
-    }
-
-
-    private boolean isReducedMobilityEnabled() {
-        return AccessibilityPreferences.isReducedMobilityEnabled(this);
     }
 
     public void checkAndDisplayNextEventBannerForTest() {
