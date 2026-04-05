@@ -112,10 +112,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private final java.util.Map<String, IndoorNode> indoorRoomMap = new java.util.LinkedHashMap<>();
     private ArrayAdapter<String> searchSuggestionsAdapter;
 
-
-
-
-
     public GoogleMap getMap() {
         return this.mMap;
     }
