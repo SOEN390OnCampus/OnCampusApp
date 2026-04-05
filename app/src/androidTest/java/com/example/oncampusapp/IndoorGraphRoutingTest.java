@@ -11,20 +11,22 @@ public class IndoorGraphRoutingTest {
 
     private IndoorGraph graph;
 
-    private static final String TEST_GRAPH_JSON = "{\n" +
-            "  \"nodes\": [\n" +
-            "    {\"id\":\"A\",      \"label\":\"Room A\", \"type\":\"room\",      \"floor\":\"1\", \"buildingId\":\"H\", \"x\":0, \"y\":0, \"accessible\":true},\n" +
-            "    {\"id\":\"STAIRS\", \"label\":\"\",        \"type\":\"staircase\", \"floor\":\"1\", \"buildingId\":\"H\", \"x\":1, \"y\":0, \"accessible\":false},\n" +
-            "    {\"id\":\"ELEV\",   \"label\":\"\",        \"type\":\"elevator\",  \"floor\":\"1\", \"buildingId\":\"H\", \"x\":0, \"y\":1, \"accessible\":true},\n" +
-            "    {\"id\":\"B\",      \"label\":\"Room B\", \"type\":\"room\",      \"floor\":\"2\", \"buildingId\":\"H\", \"x\":1, \"y\":1, \"accessible\":true}\n" +
-            "  ],\n" +
-            "  \"edges\": [\n" +
-            "    {\"source\":\"A\",      \"target\":\"STAIRS\", \"weight\":1, \"type\":\"stair\",    \"accessible\":false},\n" +
-            "    {\"source\":\"STAIRS\", \"target\":\"B\",      \"weight\":1, \"type\":\"stair\",    \"accessible\":false},\n" +
-            "    {\"source\":\"A\",      \"target\":\"ELEV\",   \"weight\":2, \"type\":\"elevator\", \"accessible\":true},\n" +
-            "    {\"source\":\"ELEV\",   \"target\":\"B\",      \"weight\":2, \"type\":\"elevator\", \"accessible\":true}\n" +
-            "  ]\n" +
-            "}";
+    private static final String TEST_GRAPH_JSON = """
+    {
+      "nodes": [
+        {"id":"A",      "label":"Room A", "type":"room",      "floor":"1", "buildingId":"H", "x":0, "y":0, "accessible":true},
+        {"id":"STAIRS", "label":"",        "type":"staircase", "floor":"1", "buildingId":"H", "x":1, "y":0, "accessible":false},
+        {"id":"ELEV",   "label":"",        "type":"elevator",  "floor":"1", "buildingId":"H", "x":0, "y":1, "accessible":true},
+        {"id":"B",      "label":"Room B", "type":"room",      "floor":"2", "buildingId":"H", "x":1, "y":1, "accessible":true}
+      ],
+      "edges": [
+        {"source":"A",      "target":"STAIRS", "weight":1, "type":"stair",    "accessible":false},
+        {"source":"STAIRS", "target":"B",      "weight":1, "type":"stair",    "accessible":false},
+        {"source":"A",      "target":"ELEV",   "weight":2, "type":"elevator", "accessible":true},
+        {"source":"ELEV",   "target":"B",      "weight":2, "type":"elevator", "accessible":true}
+      ]
+    }
+    """;
 
     @Before
     public void setUp() throws Exception {

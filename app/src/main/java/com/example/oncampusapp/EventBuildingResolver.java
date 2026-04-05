@@ -6,6 +6,10 @@ import java.util.Map;
 
 public class EventBuildingResolver {
 
+    private EventBuildingResolver() {
+        // private constructor to hide implicit public constructor of this utility class
+    }
+
     public static String extractBuildingNameFromEvent(
             JSONObject event,
             Map<String, BuildingDetails> buildingDetailsMap

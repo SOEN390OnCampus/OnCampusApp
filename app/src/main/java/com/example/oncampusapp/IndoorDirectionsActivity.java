@@ -38,6 +38,8 @@ import java.util.Map;
  */
 public class IndoorDirectionsActivity extends AppCompatActivity {
 
+    private static final String ACCESSIBILITY = "ACCESSIBILITY";
+
     // ── Room data loaded from all building JSONs ──────────────────────────────
 
     /** label → full IndoorNode (holds id, buildingId, floorMenuId, …) */
@@ -246,14 +248,14 @@ public class IndoorDirectionsActivity extends AppCompatActivity {
                     return;
                 }
 
-                Log.d("ACCESSIBILITY", "IndoorDirections reduced mobility = " + isReducedMobilityEnabled());
+                Log.d(ACCESSIBILITY, "IndoorDirections reduced mobility = " + isReducedMobilityEnabled());
                 List<String> path;
 
                 if (isReducedMobilityEnabled()) {
-                    Log.d("ACCESSIBILITY", "Using ACCESSIBLE indoor path");
+                    Log.d(ACCESSIBILITY, "Using ACCESSIBLE indoor path");
                     path = graph.shortestAccessiblePath(fromNode.getId(), toNode.getId());
                 } else {
-                    Log.d("ACCESSIBILITY", "Using NORMAL indoor path");
+                    Log.d(ACCESSIBILITY, "Using NORMAL indoor path");
                     path = graph.shortestPath(fromNode.getId(), toNode.getId());
                 }
 

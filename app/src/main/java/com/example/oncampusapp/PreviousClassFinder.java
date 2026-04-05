@@ -10,6 +10,10 @@ import java.util.Locale;
 
 public class PreviousClassFinder {
 
+    private static final String START = "start";
+
+    private static final String DATETIME = "dateTime";
+
     public static JSONObject findPreviousClass(String eventsJson, JSONObject targetClass) {
         try {
             JSONArray events = new JSONArray(eventsJson);
@@ -18,7 +22,7 @@ public class PreviousClassFinder {
                     new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX", Locale.getDefault());
 
             long targetStart = format.parse(
-                    targetClass.getJSONObject("start").getString("dateTime")
+                    targetClass.getJSONObject(START).getString(DATETIME)
             ).getTime();
 
             JSONObject bestPrevious = null;
@@ -27,12 +31,12 @@ public class PreviousClassFinder {
             for (int i = 0; i < events.length(); i++) {
                 JSONObject event = events.getJSONObject(i);
 
-                if (!event.has("start") || !event.has("end")) continue;
-                if (!event.getJSONObject("start").has("dateTime")) continue;
-                if (!event.getJSONObject("end").has("dateTime")) continue;
+                if (!event.has(START) || !event.has("end")) continue;
+                if (!event.getJSONObject(START).has(DATETIME)) continue;
+                if (!event.getJSONObject("end").has(DATETIME)) continue;
 
                 long eventEnd = format.parse(
-                        event.getJSONObject("end").getString("dateTime")
+                        event.getJSONObject("end").getString(DATETIME)
                 ).getTime();
 
                 if (eventEnd <= targetStart && eventEnd > latestEnd) {
