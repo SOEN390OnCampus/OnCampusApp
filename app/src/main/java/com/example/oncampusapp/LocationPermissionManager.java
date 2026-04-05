@@ -54,12 +54,11 @@ public class LocationPermissionManager {
             permissionsToRequest.add(Manifest.permission.ACCESS_FINE_LOCATION);
             permissionsToRequest.add(Manifest.permission.ACCESS_COARSE_LOCATION);
         }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            if (ContextCompat.checkSelfPermission(activity, Manifest.permission.POST_NOTIFICATIONS)
-                    != PackageManager.PERMISSION_GRANTED) {
-                permissionsToRequest.add(Manifest.permission.POST_NOTIFICATIONS);
-            }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
+                && ContextCompat.checkSelfPermission(activity, Manifest.permission.POST_NOTIFICATIONS)  != PackageManager.PERMISSION_GRANTED) {
+            permissionsToRequest.add(Manifest.permission.POST_NOTIFICATIONS);
         }
+
         if (!permissionsToRequest.isEmpty()) {
             requestMultiplePermissionsLauncher.launch(permissionsToRequest.toArray(new String[0]));
         }
