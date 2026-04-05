@@ -310,7 +310,7 @@ public class IndoorGraph {
             String current = pq.poll();
 
             for (Edge edge : adj.getOrDefault(current, Collections.emptyList())) {
-                if (!isAccessibleEdge(current, edge, sourceId, targetId)) {
+                if (!isAccessibleEdge(edge, sourceId, targetId)) {
                     continue;
                 }
                 relaxEdge(current, edge, targetId, dist, prev, pq);
@@ -322,7 +322,7 @@ public class IndoorGraph {
     /**
      * Returns true only for edges that are allowed in reduced mobility mode.
      */
-    private boolean isAccessibleEdge(String currentId, Edge edge, String sourceId, String targetId) {
+    private boolean isAccessibleEdge(Edge edge, String sourceId, String targetId) {
         IndoorNode nextNode = nodes.get(edge.targetId);
         if (nextNode == null) return false;
 
