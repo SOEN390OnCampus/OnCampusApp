@@ -38,27 +38,21 @@ import org.json.JSONObject;
 public class AccountPage extends AppCompatActivity {
 
     private ImageView backButton;
-
     private String eventsJson;
     private String calendarListJson;
     private String calendarToken;
-
     private View itemView;
-
     private String bgColor;
-
     private BottomNavigationView bottomNav;
-
     private Button btnRefresh;
-
     private CalendarRepository repository;
-
     private LinearLayout calendarContainer;
 
     // --- Timer Variables for the Live Banner ---
     private android.os.Handler timerHandler = new android.os.Handler(android.os.Looper.getMainLooper());
     private Runnable timerRunnable;
     private static final String TAG = "AccountPage";
+    private static final String OPENS_DIRECTIONS = "OPEN_DIRECTIONS";
 
     private static final String CALENDAR_SCOPE =
             "https://www.googleapis.com/auth/calendar.readonly";
@@ -418,6 +412,21 @@ public class AccountPage extends AppCompatActivity {
             String parsedLocation = LocationParser.parseSmartLocation(this, title, rawLocation, description);
             applyTintedIcon(detailsView, android.R.drawable.ic_menu_mylocation, greyColor, iconSizePx);
             setLocationText(detailsView, onlineTagView, parsedLocation, rawLocation, description);
+
+            View goButton = bannerView.findViewById(R.id.banner_btn_go);
+
+            if (goButton != null) {
+                goButton.setOnClickListener(v -> {
+                    Intent intent = new Intent(AccountPage.this, MapsActivity.class);
+                    intent.putExtra(OPENS_DIRECTIONS, true);
+                    startActivity(intent);
+                });
+            }
+            bannerView.setOnClickListener(v -> { // The whole banner is clickable
+                Intent intent = new Intent(AccountPage.this, MapsActivity.class);
+                intent.putExtra(OPENS_DIRECTIONS, true);
+                startActivity(intent);
+            });
 
         } catch (Exception e) {
             e.printStackTrace();
