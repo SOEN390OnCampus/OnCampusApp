@@ -760,9 +760,15 @@ public class RouteManagerTest {
         when(details.getDepartureStopLocation()).thenReturn(new LatLng(10, 10));
         when(details.getArrivalStopLocation()).thenReturn(new LatLng(11, 11));
 
+        // Extract list creation OUTSIDE the assertThrows lambda
+        List<LatLng> path = Arrays.asList(new LatLng(10, 10));
+        String duration = "10 mins";
+        List<Step> steps = Arrays.asList(transitStep);
+
         // Action: assert throws NPE because CameraUpdateFactory is unmocked in Robolectric
         assertThrows(NullPointerException.class, () -> {
-            routeManager.drawRouteOnMap(Arrays.asList(new LatLng(10, 10)), "10 mins", Arrays.asList(transitStep));
+            // Only one single invocation exists inside the lambda now!
+            routeManager.drawRouteOnMap(path, duration, steps);
         });
 
         // Verify map successfully added the transit-colored line prior to the camera movement crash
