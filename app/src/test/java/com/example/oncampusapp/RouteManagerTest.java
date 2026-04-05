@@ -574,15 +574,19 @@ public class RouteManagerTest {
             routeManager.initiateRoutePreview("A", "B");
         }
     }
-
     @Test
     public void drawRouteOnMap_emptyPath_throwsException() {
         GoogleMap map = mock(GoogleMap.class);
         routeManager.setMap(map);
 
-        // Expect the IllegalStateException from LatLngBounds.Builder
+        // Extract the lists outside the assertThrows lambda
+        List<LatLng> emptyPath = new ArrayList<>();
+        List<Step> emptySteps = new ArrayList<>();
+        String duration = "10 mins";
+
+        // Now the lambda only contains the single method invocation
         assertThrows(IllegalStateException.class, () -> {
-            routeManager.drawRouteOnMap(new ArrayList<>(), "10 mins", new ArrayList<>());
+            routeManager.drawRouteOnMap(emptyPath, duration, emptySteps);
         });
 
         // Ensure the map was never touched before the crash
