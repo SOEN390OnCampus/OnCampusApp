@@ -6,6 +6,7 @@ import static org.junit.Assert.assertNotNull;
 import android.widget.EditText;
 import android.widget.TextView;
 
+import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.material.bottomnavigation.BottomNavigationView;
@@ -131,5 +132,36 @@ public class PoiActivityTest {
 
         assertEquals(MapsActivity.class.getName(),
                 Shadows.shadowOf(activity).getNextStartedActivity().getComponent().getClassName());
+    }
+
+    @Test
+    public void defaultTab_isRestaurantsSelected() {
+        ActivityController<PoiActivity> controller =
+                Robolectric.buildActivity(PoiActivity.class).setup();
+        PoiActivity activity = controller.get();
+
+        TextView tabRestaurants = activity.findViewById(R.id.tab_restaurants);
+
+        int expectedColor = ContextCompat.getColor(activity, R.color.tab_selected);
+
+        assertEquals(expectedColor, tabRestaurants.getCurrentTextColor());
+    }
+
+    @Test
+    public void clickingBookstores_updatesSelectedTab() {
+        ActivityController<PoiActivity> controller =
+                Robolectric.buildActivity(PoiActivity.class).setup();
+        PoiActivity activity = controller.get();
+
+        TextView tabRestaurants = activity.findViewById(R.id.tab_restaurants);
+        TextView tabBookstores = activity.findViewById(R.id.tab_bookstores);
+
+        tabBookstores.performClick();
+
+        int selectedColor = ContextCompat.getColor(activity, R.color.tab_selected);
+        int unselectedColor = ContextCompat.getColor(activity, R.color.tab_unselected);
+
+        assertEquals(selectedColor, tabBookstores.getCurrentTextColor());
+        assertEquals(unselectedColor, tabRestaurants.getCurrentTextColor());
     }
 }

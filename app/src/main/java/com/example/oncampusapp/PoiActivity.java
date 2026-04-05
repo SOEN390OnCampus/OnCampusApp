@@ -65,6 +65,7 @@ public class PoiActivity extends AppCompatActivity {
 
         loadSamplePois();
         filterPois();
+        updateTabUI(tabRestaurants, tabBookstores, tabShopping);
 
         adapter = new PoiAdapter(visiblePois, poi -> {
             Intent intent = new Intent(PoiActivity.this, MapsActivity.class);
@@ -82,16 +83,19 @@ public class PoiActivity extends AppCompatActivity {
 
         tabRestaurants.setOnClickListener(v -> {
             currentCategory = "Restaurants";
+            updateTabUI(tabRestaurants, tabBookstores, tabShopping);
             filterPois();
         });
 
         tabBookstores.setOnClickListener(v -> {
             currentCategory = "Bookstores";
+            updateTabUI(tabBookstores,tabRestaurants, tabShopping);
             filterPois();
         });
 
         tabShopping.setOnClickListener(v -> {
             currentCategory = "Shopping Centers";
+            updateTabUI(tabShopping, tabRestaurants, tabBookstores);
             filterPois();
         });
 
@@ -143,6 +147,16 @@ public class PoiActivity extends AppCompatActivity {
 
         if (adapter != null) {
             adapter.notifyDataSetChanged();
+        }
+    }
+
+    private void updateTabUI(TextView selected, TextView... others){
+        selected.setTextColor(getResources().getColor(R.color.tab_selected));
+        selected.setBackgroundResource(R.drawable.tab_selected_bg);
+
+        for (TextView tab : others){
+            tab.setTextColor(getResources().getColor(R.color.tab_unselected));
+            tab.setBackgroundResource(R.drawable.tab_unselected_bg);
         }
     }
 }
