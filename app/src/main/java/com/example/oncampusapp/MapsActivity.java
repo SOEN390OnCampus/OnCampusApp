@@ -55,7 +55,12 @@ import java.util.List;
 import java.util.Map;
 
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback {
-
+    public static final String EXTRA_OPEN_DIRECTIONS = "OPEN_DIRECTIONS";
+    public static final String EXTRA_OPEN_POI_ROUTE = "OPEN_POI_ROUTE";
+    public static final String EXTRA_POI_LAT = "POI_LAT";
+    public static final String EXTRA_POI_LNG = "POI_LNG";
+    public static final String EXTRA_POI_NAME = "POI_NAME";
+    public static final String EXTRA_NOTIFICATION_ID = "notification_id";
     private GoogleMap mMap;
     public static Map<String, Building> buildingsMap = new HashMap<>();
     private ActivityMapsBinding binding;

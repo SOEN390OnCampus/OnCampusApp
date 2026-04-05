@@ -1,5 +1,7 @@
 package com.example.oncampusapp;
 
+import android.Manifest;
+import android.app.Application;
 import android.app.NotificationManager;
 import android.content.Context;
 import android.content.Intent;
@@ -14,8 +16,11 @@ import org.junit.runner.RunWith;
 import org.mockito.Mockito;
 import org.robolectric.Robolectric;
 import org.robolectric.RobolectricTestRunner;
+import org.robolectric.RuntimeEnvironment;
 import org.robolectric.Shadows;
+import org.robolectric.android.controller.ActivityController;
 import org.robolectric.shadows.ShadowActivity;
+import org.robolectric.shadows.ShadowApplication;
 import org.robolectric.shadows.ShadowNotificationManager;
 
 import java.lang.reflect.Field;
@@ -32,15 +37,15 @@ import static org.junit.Assert.assertTrue;
 @RunWith(RobolectricTestRunner.class)
 public class MapsActivityTest {
 
+    private ActivityController<MapsActivity> controller;
     private MapsActivity activity;
 
     @Before
     public void setUp() {
         // Build the activity. We stop at create() because calling resume()
         // triggers complex Google Maps API calls and permissions checks.
-        activity = Robolectric.buildActivity(MapsActivity.class)
-                .create()
-                .get();
+        controller = Robolectric.buildActivity(MapsActivity.class);
+        activity = controller.create().get();
     }
 
     @Test
@@ -157,6 +162,17 @@ public class MapsActivityTest {
     }
 
     @Test
+    public void testOnResume_StartsBannerManager() throws Exception {
+        EventBannerManager mockBannerManager = Mockito.mock(EventBannerManager.class);
+        setPrivateField(activity, "bannerManager", mockBannerManager);
+
+        // Trigger lifecycle method directly
+        invokePrivateMethod(activity, "onResume");
+
+        Mockito.verify(mockBannerManager, Mockito.times(1)).start();
+    }
+
+    @Test
     public void testReloadForPoiExit_StartsNewActivityAndFinishes() {
         ShadowActivity shadowActivity = Shadows.shadowOf(activity);
 
@@ -166,6 +182,55 @@ public class MapsActivityTest {
         assertNotNull(actualIntent);
         assertEquals(MapsActivity.class.getName(), actualIntent.getComponent().getClassName());
         assertTrue("Activity should finish to reload", activity.isFinishing());
+    }
+
+    // ==========================================
+    // Permissions Tests (NEW)
+    // ==========================================
+
+    @Test
+    public void testLocationPermissions_Granted_EnablesMyLocation() throws Exception {
+        Application application = RuntimeEnvironment.getApplication();
+        ShadowApplication shadowApp = Shadows.shadowOf(application);
+
+        // Grant location permission
+        shadowApp.grantPermissions(Manifest.permission.ACCESS_FINE_LOCATION);
+
+        com.google.android.gms.maps.GoogleMap mockMap = Mockito.mock(com.google.android.gms.maps.GoogleMap.class);
+        com.google.android.gms.maps.UiSettings mockUiSettings = Mockito.mock(com.google.android.gms.maps.UiSettings.class);
+        Mockito.when(mockMap.getUiSettings()).thenReturn(mockUiSettings);
+
+        LocationPermissionManager mockPermManager = Mockito.mock(LocationPermissionManager.class);
+        setPrivateField(activity, "locationPermManager", mockPermManager);
+        setPrivateField(activity, "geoJsonMapLoader", Mockito.mock(GeoJsonMapLoader.class));
+
+        activity.onMapReady(mockMap);
+
+        // Verify map enables location layer when permission is granted
+        Mockito.verify(mockMap).setMyLocationEnabled(true);
+        Mockito.verify(mockPermManager).enableMyLocation();
+    }
+
+    @Test
+    public void testLocationPermissions_Denied_DoesNotEnableMyLocation() throws Exception {
+        Application application = RuntimeEnvironment.getApplication();
+        ShadowApplication shadowApp = Shadows.shadowOf(application);
+
+        // Deny location permission explicitly
+        shadowApp.denyPermissions(Manifest.permission.ACCESS_FINE_LOCATION);
+
+        com.google.android.gms.maps.GoogleMap mockMap = Mockito.mock(com.google.android.gms.maps.GoogleMap.class);
+        com.google.android.gms.maps.UiSettings mockUiSettings = Mockito.mock(com.google.android.gms.maps.UiSettings.class);
+        Mockito.when(mockMap.getUiSettings()).thenReturn(mockUiSettings);
+
+        LocationPermissionManager mockPermManager = Mockito.mock(LocationPermissionManager.class);
+        setPrivateField(activity, "locationPermManager", mockPermManager);
+        setPrivateField(activity, "geoJsonMapLoader", Mockito.mock(GeoJsonMapLoader.class));
+
+        activity.onMapReady(mockMap);
+
+        // Verify map does NOT enable location layer when permission is denied
+        Mockito.verify(mockMap, Mockito.never()).setMyLocationEnabled(true);
     }
 
     // ==========================================
@@ -182,16 +247,34 @@ public class MapsActivityTest {
     @Test
     public void testHandleIncomingPoiIntent_ValidIntent_ExtractsData() throws Exception {
         Intent poiIntent = new Intent();
-        poiIntent.putExtra("OPEN_POI_ROUTE", true);
-        poiIntent.putExtra("POI_LAT", 45.497);
-        poiIntent.putExtra("POI_LNG", -73.579);
-        poiIntent.putExtra("POI_NAME", "Tim Hortons");
+        poiIntent.putExtra(MapsActivity.EXTRA_OPEN_POI_ROUTE, true);
+        poiIntent.putExtra(MapsActivity.EXTRA_POI_LAT, 45.497);
+        poiIntent.putExtra(MapsActivity.EXTRA_POI_LNG, -73.579);
+        poiIntent.putExtra(MapsActivity.EXTRA_POI_NAME, "Tim Hortons");
 
         activity.setIntent(poiIntent);
         invokePrivateMethod(activity, "handleIncomingPoiIntent");
 
         String name = (String) getPrivateField(activity, "pendingPoiName");
         assertEquals("Tim Hortons", name);
+    }
+
+    @Test
+    public void testHandleIncomingPoiIntent_WithValidIntent_SetsLatLngCorrectly() throws Exception {
+        Intent poiIntent = new Intent();
+        poiIntent.putExtra(MapsActivity.EXTRA_OPEN_POI_ROUTE, true);
+        poiIntent.putExtra(MapsActivity.EXTRA_POI_LAT, 45.497);
+        poiIntent.putExtra(MapsActivity.EXTRA_POI_LNG, -73.579);
+
+        activity.setIntent(poiIntent);
+        invokePrivateMethod(activity, "handleIncomingPoiIntent");
+
+        com.google.android.gms.maps.model.LatLng latLng =
+                (com.google.android.gms.maps.model.LatLng) getPrivateField(activity, "pendingPoiLatLng");
+
+        assertNotNull("LatLng should be set", latLng);
+        assertEquals(45.497, latLng.latitude, 0.0001);
+        assertEquals(-73.579, latLng.longitude, 0.0001);
     }
 
     @Test
@@ -206,12 +289,12 @@ public class MapsActivityTest {
     @Test
     public void testHandleIncomingPoiIntent_MissingBooleanFlag_DoesNothing() throws Exception {
         Intent poiIntent = new Intent();
-        poiIntent.putExtra("POI_NAME", "Tim Hortons"); // Missing OPEN_POI_ROUTE
+        poiIntent.putExtra(MapsActivity.EXTRA_POI_NAME, "Tim Hortons"); // Missing OPEN_POI_ROUTE
 
         activity.setIntent(poiIntent);
         invokePrivateMethod(activity, "handleIncomingPoiIntent");
 
-        assertNull("Should abort if OPEN_POI_ROUTE is not true", getPrivateField(activity, "pendingPoiName"));
+        assertNull("Should abort if EXTRA_OPEN_POI_ROUTE is not true", getPrivateField(activity, "pendingPoiName"));
     }
 
     // ==========================================
@@ -233,12 +316,12 @@ public class MapsActivityTest {
         assertEquals(1, shadowManager.getAllNotifications().size());
 
         Intent intent = new Intent();
-        intent.putExtra("notification_id", 123);
+        intent.putExtra(MapsActivity.EXTRA_NOTIFICATION_ID, 123);
 
         // Action
         invokePrivateMethod(activity, "cancelNotificationIfPresent", Intent.class, intent);
 
-        // Assertion: The list of active notifications should now be empty (or not contain ID 123)
+        // Assertion: The list of active notifications should now be empty
         assertEquals("Notification should be removed from the manager", 0, shadowManager.getAllNotifications().size());
     }
 
@@ -260,7 +343,7 @@ public class MapsActivityTest {
     @Test
     public void testOnNewIntent_SetsIntentAndHandlesNotifications() {
         Intent newIntent = new Intent();
-        newIntent.putExtra("OPEN_DIRECTIONS", true);
+        newIntent.putExtra(MapsActivity.EXTRA_OPEN_DIRECTIONS, true);
 
         activity.onNewIntent(newIntent);
 
