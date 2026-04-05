@@ -88,7 +88,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private static final String SGW = "SGW";
     private static final String LOY = "LOY";
     private static final String TAG = "MapsActivity";
-    private static final String CURRENT_LOCATION = "Current Location";
+    private static final String CURRENT_LOCATION = RoutePickerController.CURRENT_LOCATION;
     private static final String KEY_NOTIFICATION_ID = "notification_id";
 
     // Pending notification flag
@@ -619,80 +619,13 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private void openRouteToPoi() {
         if (pendingPoiLatLng == null) return;
 
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
                 != PackageManager.PERMISSION_GRANTED) {
             Toast.makeText(this, "Location permission is required", Toast.LENGTH_SHORT).show();
             return;
         }
 
-        fusedLocationClient.getLastLocation()
-                .addOnSuccessListener(this, location -> {
-                    if (location == null) {
-                        return;
-                    }
-
-                    LatLng startCoords = new LatLng(location.getLatitude(), location.getLongitude());
-                    LatLng destCoords = pendingPoiLatLng;
-
-                    if (pendingPoiName != null && !pendingPoiName.isEmpty()) {
-                        setPoiNavigationActive(true);
-                        routePickerController.openWithStartAndDestination(CURRENT_LOCATION, pendingPoiName);
-
-                    }
-
-                    NavigationHelper.fetchRoute(
-                            startCoords,
-                            destCoords,
-                            routeManager.getSelectedMode(),
-                            BuildConfig.MAPS_API_KEY,
-                            new NavigationHelper.RoutesCallback() {
-                                @Override
-                                public void onSuccess(Route route) {
-                                    runOnUiThread(() -> {
-                                        if (pendingPoiName != null && !pendingPoiName.isEmpty()) {
-                                            routePickerController.openWithStartAndDestination(CURRENT_LOCATION, pendingPoiName);
-                                        }
-
-                                        routeManager.drawRouteOnMap(
-                                                route.getPoints(),
-                                                route.getDuration(),
-                                                route.getSteps()
-                                        );
-
-                                        // start actual navigation
-                                        routeManager.startNavigationUpdates();
-                                        routePickerController.toggleNavigationUI(true);
-
-                                        TextView txtNavInstruction = findViewById(R.id.txt_nav_instruction);
-                                        TextView txtDuration = findViewById(R.id.txt_duration);
-
-                                        if (txtNavInstruction != null && txtDuration != null) {
-                                            String instructionText;
-                                            if (txtDuration.getText() != null && txtDuration.getText().length() > 0) {
-                                                instructionText = txtDuration.getText() + " (" +
-                                                        routeManager.getSelectedMode().getValue() + ")";
-                                            } else {
-                                                instructionText = "Follow the route (" +
-                                                        routeManager.getSelectedMode().getValue() + ")";
-                                            }
-                                            txtNavInstruction.setText(instructionText);
-                                        }
-
-                                        Toast.makeText(MapsActivity.this, "Navigation Started", Toast.LENGTH_SHORT).show();
-                                    });
-                                }
-
-                                @Override
-                                public void onError(Exception e) {
-                                    Log.e(TAG, "Failed to load POI route", e);
-                                    runOnUiThread(() ->
-                                            Toast.makeText(MapsActivity.this,
-                                                    "Failed to load POI route",
-                                                    Toast.LENGTH_SHORT).show());
-                                }
-                            }
-                    );
-                });
+        routePickerController.startPoiNavigation(fusedLocationClient, pendingPoiLatLng, pendingPoiName);
     }
 
     private void tryGenerateDirectionsFromNotification() {

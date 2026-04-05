@@ -25,6 +25,7 @@ import androidx.test.platform.app.InstrumentationRegistry;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeMatcher;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -50,6 +51,8 @@ public class GoogleCalendarAuthE2ETest {
         editor.apply();
     }
 
+
+
     @Test
     public void googleCalendarAuthE2ETest() {
         try (ActivityScenario<AccountPage> scenario = ActivityScenario.launch(AccountPage.class)) {
@@ -59,9 +62,14 @@ public class GoogleCalendarAuthE2ETest {
             onView(allOf(withId(R.id.btn_allow), withText("Allow"), isDisplayed()))
                     .perform(click());
 
-            scenario.onActivity(activity -> assertNotNull(activity));
+            // Replaced lambda with method reference
+            scenario.onActivity(Assert::assertNotNull);
         }
     }
+
+
+
+
 
     @Ignore("Requires a live Google OAuth token — skipped in CI/automated runs")
     @Test

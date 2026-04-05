@@ -65,7 +65,7 @@ public class BuildingClassifierTest {
 
         Building building = new Building("B", "Test", polygon);
 
-        assertEquals(3, building.polygon.size());
+        assertEquals(3, building.getPolygon().size());
     }
 
     @Test
@@ -78,7 +78,7 @@ public class BuildingClassifierTest {
         Building building = new Building("H123", "Hall Building", polygon);
 
         assertEquals("H123", building.getId());
-        assertEquals("Hall Building", building.name);
-        assertEquals(polygon, building.polygon);
+        assertEquals("Hall Building", building.getName());
+        assertEquals(polygon, building.getPolygon());
     }
 }

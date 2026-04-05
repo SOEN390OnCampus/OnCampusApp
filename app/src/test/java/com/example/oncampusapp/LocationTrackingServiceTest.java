@@ -125,7 +125,7 @@ public class LocationTrackingServiceTest {
 
         // Use the required constructor: String, String, List<LatLng>
         Building testBuilding = new Building("H", "Hall Building", squarePolygon);
-        testBuilding.currentlyInside = false; // User starts OUTSIDE
+        testBuilding.setCurrentlyInside(false); // User starts OUTSIDE
 
         MapsActivity.buildingsMap.put("H", testBuilding);
 
@@ -134,7 +134,7 @@ public class LocationTrackingServiceTest {
         service.triggerLocationUpdate(insideLocation);
 
         // Assertion 1: State flag should be updated
-        assertTrue("Building state should update to inside", testBuilding.currentlyInside);
+        assertTrue("Building state should update to inside", testBuilding.isCurrentlyInside());
 
         // Assertion 2: Verify the notification was sent
         assertNotificationSentWithText("You have entered Hall Building");
@@ -152,7 +152,7 @@ public class LocationTrackingServiceTest {
 
         // Use the constructor and set user to INSIDE
         Building testBuilding = new Building("MB", "MB Building", squarePolygon);
-        testBuilding.currentlyInside = true;
+        testBuilding.setCurrentlyInside(true);
 
         MapsActivity.buildingsMap.put("MB", testBuilding);
 
@@ -161,7 +161,7 @@ public class LocationTrackingServiceTest {
         service.triggerLocationUpdate(outsideLocation);
 
         // Assertion 1: State flag should be updated
-        assertFalse("Building state should update to outside", testBuilding.currentlyInside);
+        assertFalse("Building state should update to outside", testBuilding.isCurrentlyInside());
 
         // Assertion 2: Verify the notification was sent
         assertNotificationSentWithText("You have exited MB Building");
@@ -179,7 +179,7 @@ public class LocationTrackingServiceTest {
 
         // User is ALREADY inside
         Building testBuilding = new Building("CC", "CC Building", squarePolygon);
-        testBuilding.currentlyInside = true;
+        testBuilding.setCurrentlyInside(true);
 
         MapsActivity.buildingsMap.put("CC", testBuilding);
 

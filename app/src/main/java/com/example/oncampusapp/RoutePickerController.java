@@ -24,11 +24,16 @@ import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
+import com.example.oncampusapp.location.ILocationProvider;
+import com.example.oncampusapp.navigation.NavigationHelper;
+import com.example.oncampusapp.navigation.Route;
 import com.example.oncampusapp.navigation.RouteTravelMode;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.LatLng;
+
+import android.util.Log;
 
 import java.util.Arrays;
 import java.util.List;
@@ -40,6 +45,9 @@ import java.util.List;
  * and MapsActivity.toggleNavigationUI().
  */
 public class RoutePickerController {
+
+    public static final String CURRENT_LOCATION = "Current Location";
+    private static final String TAG = "RoutePickerController";
 
     private final MapsActivity activity;
     private final RouteManager routeManager;
@@ -391,6 +399,66 @@ public class RoutePickerController {
         routeManager.initiateRoutePreview(
                 startDestinationText.getText().toString().trim(),
                 endDestinationText.getText().toString().trim());
+    }
+
+    // ── POI navigation ──────────────────────────────────────────────────────
+
+    public void startPoiNavigation(ILocationProvider fusedLocationClient,
+                                   LatLng pendingPoiLatLng,
+                                   String pendingPoiName) {
+        fusedLocationClient.getLastLocation()
+                .addOnSuccessListener(activity, location -> {
+                    if (location == null) return;
+
+                    LatLng startCoords = new LatLng(location.getLatitude(), location.getLongitude());
+
+                    if (pendingPoiName != null && !pendingPoiName.isEmpty()) {
+                        activity.setPoiNavigationActive(true);
+                        openWithStartAndDestination(CURRENT_LOCATION, pendingPoiName);
+                    }
+
+                    NavigationHelper.fetchRoute(
+                            startCoords,
+                            pendingPoiLatLng,
+                            routeManager.getSelectedMode(),
+                            BuildConfig.MAPS_API_KEY,
+                            new NavigationHelper.RoutesCallback() {
+                                @Override
+                                public void onSuccess(Route route) {
+                                    activity.runOnUiThread(() -> applyPoiRoute(route, pendingPoiName));
+                                }
+
+                                @Override
+                                public void onError(Exception e) {
+                                    Log.e(TAG, "Failed to load POI route", e);
+                                    activity.runOnUiThread(() ->
+                                            Toast.makeText(activity,
+                                                    "Failed to load POI route",
+                                                    Toast.LENGTH_SHORT).show());
+                                }
+                            }
+                    );
+                });
+    }
+
+    private void applyPoiRoute(Route route, String pendingPoiName) {
+        if (pendingPoiName != null && !pendingPoiName.isEmpty()) {
+            openWithStartAndDestination(CURRENT_LOCATION, pendingPoiName);
+        }
+
+        routeManager.drawRouteOnMap(route.getPoints(), route.getDuration(), route.getSteps());
+        routeManager.startNavigationUpdates();
+        toggleNavigationUI(true);
+
+        if (txtNavInstruction != null && txtDuration != null) {
+            CharSequence durationText = txtDuration.getText();
+            String instructionText = (durationText != null && durationText.length() > 0)
+                    ? durationText + " (" + routeManager.getSelectedMode().getValue() + ")"
+                    : "Follow the route (" + routeManager.getSelectedMode().getValue() + ")";
+            txtNavInstruction.setText(instructionText);
+        }
+
+        Toast.makeText(activity, "Navigation Started", Toast.LENGTH_SHORT).show();
     }
 
     // ── Navigation UI toggling ───────────────────────────────────────────────

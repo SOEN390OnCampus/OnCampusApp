@@ -144,21 +144,21 @@ public class LocationTrackingService extends Service {
     // Checks whether user is still inside the building
     private void checkUserInsideBuildings(LatLng userLocation) {
         for (Building building : MapsActivity.buildingsMap.values()) {
-            if (building.polygon == null) continue;
+            if (building.getPolygon() == null) continue;
 
-            boolean userWasInside = building.currentlyInside;
-            boolean userIsCurrentlyInside = PolyUtil.containsLocation(userLocation, building.polygon, true);
+            boolean userWasInside = building.isCurrentlyInside();
+            boolean userIsCurrentlyInside = PolyUtil.containsLocation(userLocation, building.getPolygon(), true);
 
-            building.currentlyInside = userIsCurrentlyInside;
+            building.setCurrentlyInside(userIsCurrentlyInside);
 
             if (!userWasInside && userIsCurrentlyInside) {
-                Log.d("Building", "Entered " + building.name);
-                sendNotification("You have entered " + building.name);
+                Log.d("Building", "Entered " + building.getName());
+                sendNotification("You have entered " + building.getName());
             }
 
             else if (userWasInside && !userIsCurrentlyInside) {
-                Log.d("Building", "Exited " + building.name);
-                sendNotification("You have exited " + building.name);
+                Log.d("Building", "Exited " + building.getName());
+                sendNotification("You have exited " + building.getName());
             }
         }
     }

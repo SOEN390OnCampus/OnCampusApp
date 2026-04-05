@@ -63,7 +63,7 @@ public class BuildingManagementUnitTest {
         Building building1 = makeBuildingWithCenter("1", "Hall", new LatLng(0, 0));
         buildingManager.addBuilding(building1);
 
-        building1.currentlyInside = true;
+        building1.setCurrentlyInside(true);
         Building result = buildingManager.getCurrentBuilding();
 
         assertNotNull(result);
@@ -78,8 +78,8 @@ public class BuildingManagementUnitTest {
         buildingManager.addBuilding(building1);
         buildingManager.addBuilding(building2);
 
-        building1.currentlyInside = true;
-        building2.currentlyInside = true;
+        building1.setCurrentlyInside(true);
+        building2.setCurrentlyInside(true);
 
         Building result = buildingManager.getCurrentBuilding();
 
@@ -92,7 +92,7 @@ public class BuildingManagementUnitTest {
         Building building1 = makeBuildingWithCenter("1", "Hall", new LatLng(0, 0));
         buildingManager.addBuilding(building1);
 
-        building1.currentlyInside = false;
+        building1.setCurrentlyInside(false);
 
         assertNull(buildingManager.getCurrentBuilding());
     }

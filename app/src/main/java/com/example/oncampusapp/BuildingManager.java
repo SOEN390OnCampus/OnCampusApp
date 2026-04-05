@@ -15,7 +15,7 @@ public class BuildingManager {
      */
     public Building getCurrentBuilding() {
         for (Building building : buildingsMap.values()) {
-            if (building.currentlyInside) {
+            if (building.isCurrentlyInside()) {
                 return building;
             }
         }

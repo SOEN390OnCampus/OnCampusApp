@@ -230,6 +230,44 @@ public class GeoJsonMapLoaderTest {
     }
 
     @Test
+    public void testHandleFeatureClick_polygonWithUnknownLayer_doesNothing() throws Exception {
+        Feature mockFeature = mock(Feature.class);
+        GeoJsonPolygon mockPolygon = mock(GeoJsonPolygon.class);
+        when(mockFeature.getGeometry()).thenReturn(mockPolygon);
+        when(mockFeature.getProperty("layer")).thenReturn("someOtherLayer");
+
+        GeoJsonMapLoader.FeatureClickHandler mockHandler = mock(GeoJsonMapLoader.FeatureClickHandler.class);
+
+        Method method = GeoJsonMapLoader.class.getDeclaredMethod("handleFeatureClick",
+                Feature.class, GeoJsonMapLoader.FeatureClickHandler.class);
+        method.setAccessible(true);
+        method.invoke(loader, mockFeature, mockHandler);
+
+        verify(mockHandler, never()).onBuildingPolygonClicked(any());
+        verify(mockHandler, never()).onDetailButtonClicked(any());
+    }
+
+    @Test
+    public void testProcessFeature_doesNotAddDuplicateName() throws Exception {
+        GeoJsonFeature mockFeature = mock(GeoJsonFeature.class);
+        when(mockFeature.getProperty("name")).thenReturn("Hall Building");
+        when(mockFeature.getProperty("type")).thenReturn("university");
+
+        ArrayList<String> suggestions = new ArrayList<>();
+        suggestions.add("Hall Building"); // already present
+
+        Method method = GeoJsonMapLoader.class.getDeclaredMethod("processFeature",
+                GeoJsonFeature.class, ArrayList.class, FeatureStyler.class,
+                GeofenceManager.class, BuildingManager.class, GoogleMap.class, List.class);
+        method.setAccessible(true);
+        method.invoke(loader, mockFeature, suggestions, new FeatureStyler(),
+                mock(GeofenceManager.class), mock(BuildingManager.class),
+                mock(GoogleMap.class), new ArrayList<>());
+
+        assertEquals(1, suggestions.size());
+    }
+
+    @Test
     public void createSquareFeature_returnsValidGeoJsonWithCorrectProperties() {
         GeoJsonFeature feature = loader.createSquareFeature(SGW, "way/123");
         assertEquals("way/123", feature.getId());

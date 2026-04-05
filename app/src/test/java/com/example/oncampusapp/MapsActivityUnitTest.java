@@ -83,8 +83,8 @@ public class MapsActivityUnitTest {
         Building retrievedBuilding = MapsActivity.buildingsMap.get("test_id_123");
         assertNotNull("Retrieved building should not be null", retrievedBuilding);
         assertEquals("Building ID should match", "test_id_123", retrievedBuilding.getId());
-        assertEquals("Building name should match", "Test Building", retrievedBuilding.name);
-        assertEquals("Building coordinates should match", 3, retrievedBuilding.polygon.size());
+        assertEquals("Building name should match", "Test Building", retrievedBuilding.getName());
+        assertEquals("Building coordinates should match", 3, retrievedBuilding.getPolygon().size());
     }
 
     @Test
@@ -127,7 +127,7 @@ public class MapsActivityUnitTest {
 
             assertNotNull("Building missing for id " + id, retrieved);
             assertEquals(id, retrieved.getId());
-            assertEquals("Building " + i, retrieved.name);
+            assertEquals("Building " + i, retrieved.getName());
         }
     }
 
@@ -145,10 +145,10 @@ public class MapsActivityUnitTest {
         Building building = new Building("hall123", "Hall Building", coordinates);
 
         assertEquals("Building ID should be set correctly", "hall123", building.getId());
-        assertEquals("Building name should be set correctly", "Hall Building", building.name);
-        assertNotNull("Building polygon should not be null", building.polygon);
-        assertEquals("Building polygon should have correct size", 2, building.polygon.size());
-        assertFalse("currentlyInside should be false by default", building.currentlyInside);
+        assertEquals("Building name should be set correctly", "Hall Building", building.getName());
+        assertNotNull("Building polygon should not be null", building.getPolygon());
+        assertEquals("Building polygon should have correct size", 2, building.getPolygon().size());
+        assertFalse("currentlyInside should be false by default", building.isCurrentlyInside());
     }
 
     @Test
@@ -156,7 +156,7 @@ public class MapsActivityUnitTest {
         Building building = new Building("empty_id", "Empty Building", new ArrayList<>());
 
         assertNotNull("Building should be created", building);
-        assertTrue("Polygon should be empty", building.polygon.isEmpty());
+        assertTrue("Polygon should be empty", building.getPolygon().isEmpty());
     }
 
     @Test
@@ -164,20 +164,20 @@ public class MapsActivityUnitTest {
         Building building = new Building(null, "Null ID Building", new ArrayList<>());
 
         assertNull("Building ID should be null", building.getId());
-        assertEquals("Building name should still be set", "Null ID Building", building.name);
+        assertEquals("Building name should still be set", "Null ID Building", building.getName());
     }
 
     @Test
     public void testBuilding_CurrentlyInsideField_CanBeModified() {
         Building building = new Building("test_id", "Test Building", new ArrayList<>());
 
-        assertFalse("currentlyInside should start as false", building.currentlyInside);
+        assertFalse("currentlyInside should start as false", building.isCurrentlyInside());
 
-        building.currentlyInside = true;
-        assertTrue("currentlyInside should be updated to true", building.currentlyInside);
+        building.setCurrentlyInside(true);
+        assertTrue("currentlyInside should be updated to true", building.isCurrentlyInside());
 
-        building.currentlyInside = false;
-        assertFalse("currentlyInside should be updated back to false", building.currentlyInside);
+        building.setCurrentlyInside(false);
+        assertFalse("currentlyInside should be updated back to false", building.isCurrentlyInside());
     }
 
     // ==========================================

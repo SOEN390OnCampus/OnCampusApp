@@ -13,6 +13,7 @@ import android.widget.Spinner;
 import android.widget.TextView;
 import android.util.Log;
 import androidx.appcompat.app.AppCompatActivity;
+import android.app.Activity;
 
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.switchmaterial.SwitchMaterial;
@@ -47,23 +48,23 @@ public class AccessibilityActivity extends AppCompatActivity {
 
         BottomNavigationView bottomNav = findViewById(R.id.bottom_nav);
         bottomNav.setSelectedItemId(R.id.nav_settings);
+
         bottomNav.setOnItemSelectedListener(item -> {
             int id = item.getItemId();
+            Intent intent = null;
+
             if (id == R.id.nav_home) {
-                startActivity(new Intent(this, MapsActivity.class));
-                finish();
-                overridePendingTransition(0, 0);
-                return true;
+                intent = new Intent(this, MapsActivity.class);
+            } else if (id == R.id.nav_account) {
+                intent = new Intent(this, GoogleCalendarAuthActivity.class);
+            } else if (id == R.id.nav_settings) {
+                intent = new Intent(this, SettingsActivity.class);
             }
-            if (id == R.id.nav_account) {
-                startActivity(new Intent(this, GoogleCalendarAuthActivity.class));
+
+            if (intent != null) {
+                startActivity(intent);
                 finish();
-                overridePendingTransition(0, 0);
-                return true;
-            }
-            if (id == R.id.nav_settings) {
-                startActivity(new Intent(this, SettingsActivity.class));
-                finish();
+                // 2. Use the old method here. The warning is now suppressed.
                 overridePendingTransition(0, 0);
                 return true;
             }
