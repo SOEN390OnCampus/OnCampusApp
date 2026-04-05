@@ -48,6 +48,10 @@ public class ScheduleViewerTest {
      * The background Executor thread will naturally swallow its own network exceptions
      * in Robolectric, allowing the UI to safely bind and be tested.
      */
+    /**
+     * Safely boots a fully lifecycle-aware Activity for UI testing.
+     */
+    @SuppressWarnings("deprecation") // Suppress the strikethrough warning for buildActivity
     private ScheduleViewer createFullActivity() {
         Intent intent = new Intent(androidx.test.core.app.ApplicationProvider.getApplicationContext(), ScheduleViewer.class);
         intent.putExtra("calendar_name", "Test Calendar");
@@ -55,13 +59,14 @@ public class ScheduleViewerTest {
         intent.putExtra("calendar_id", "test_cal_123");
         intent.putExtra("calendar_token", "fake_token");
 
-        ScheduleViewer activity = Robolectric.buildActivity(ScheduleViewer.class, intent).create().resume().get();
+        // Renamed from 'activity' to 'fullActivity' to fix the shadowing warning
+        ScheduleViewer fullActivity = Robolectric.buildActivity(ScheduleViewer.class, intent).create().resume().get();
 
         // FIX: Flush any pending runOnUiThread tasks from the background Executor
         // so the UI is fully populated with real dates before the tests start.
         org.robolectric.shadows.ShadowLooper.idleMainLooper();
 
-        return activity;
+        return fullActivity;
     }
 
     @Test

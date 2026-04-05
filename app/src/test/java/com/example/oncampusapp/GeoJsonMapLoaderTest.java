@@ -206,7 +206,12 @@ public class GeoJsonMapLoaderTest {
     @Test
     public void createSquareCorners_closedPolygon_firstEqualsLast() {
         List<LatLng> corners = loader.createSquareCorners(SGW, 10);
-        assertEquals(corners.get(0).latitude, corners.get(4).latitude, 1e-12);
+
+        // Explicitly define our baseline (expected) and our computed result (actual)
+        double expectedLatitude = corners.get(0).latitude;
+        double actualLatitude = corners.get(4).latitude;
+
+        assertEquals(expectedLatitude, actualLatitude, 1e-12);
     }
 
     @Test
