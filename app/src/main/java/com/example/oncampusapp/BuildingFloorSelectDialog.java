@@ -54,18 +54,13 @@ public class BuildingFloorSelectDialog extends DialogFragment {
     public void onStart() {
         super.onStart();
         if (getDialog() != null && getDialog().getWindow() != null) {
-            int screenWidth;
-            int screenHeight;
+            int screenWidth = 0;
+            int screenHeight = 0;
 
-            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                 WindowMetrics windowMetrics = requireActivity().getWindowManager().getCurrentWindowMetrics();
                 screenWidth = windowMetrics.getBounds().width();
                 screenHeight = windowMetrics.getBounds().height();
-            } else {
-                Point size = new Point();
-                requireActivity().getWindowManager().getDefaultDisplay().getSize(size);
-                screenWidth = size.x;
-                screenHeight = size.y;
             }
             int width = (int) (screenWidth * 0.80);
             int maxHeight = (int) (screenHeight * 0.50);

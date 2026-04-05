@@ -37,16 +37,11 @@ public class AccessibilityActivity extends AppCompatActivity {
         Window window = getWindow();
         WindowCompat.setDecorFitsSystemWindows(window, false);
         WindowInsetsControllerCompat insetsController = new WindowInsetsControllerCompat(window, window.getDecorView());
-
         insetsController.setAppearanceLightStatusBars(false);
-        window.setStatusBarColor(Color.TRANSPARENT);
         window.getDecorView().setBackgroundColor(Color.parseColor("#7A1C1C"));
 
         ImageView backButton = findViewById(R.id.btn_back_accessibility);
-        backButton.setOnClickListener(v -> {
-            ActivityOptions options = ActivityOptions.makeCustomAnimation(this, 0, 0);
-            finish();
-        });
+        backButton.setOnClickListener(v -> finish());
 
         setupInteractiveControls();
 
