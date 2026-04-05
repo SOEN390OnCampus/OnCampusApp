@@ -356,15 +356,17 @@
 
         <LinearLayout
             android:layout_width="wrap_content"
-            android:layout_height="191dp"
+            android:layout_height="wrap_content"
             android:gravity="center_horizontal"
             android:orientation="vertical"
-            android:padding="6dp">
+            android:padding="6dp"
+            android:weightSum="4">
 
             <ImageButton
                 android:id="@+id/btn_indoor_map"
                 android:layout_width="40dp"
                 android:layout_height="40dp"
+                android:layout_weight="1"
                 android:background="@drawable/bg_circle"
                 android:backgroundTint="@color/concordia_red"
                 android:contentDescription="@string/maps_info"
@@ -375,6 +377,8 @@
                 android:id="@+id/btn_poi"
                 android:layout_width="match_parent"
                 android:layout_height="40dp"
+                android:layout_weight="1"
+                android:layout_marginTop="4dp"
                 android:background="@drawable/bg_circle"
                 android:backgroundTint="@color/concordia_red"
                 android:contentDescription="@string/maps_info"
@@ -385,6 +389,7 @@
                 android:id="@+id/btn_campus_switch"
                 android:layout_width="40dp"
                 android:layout_height="40dp"
+                android:layout_weight="1"
                 android:layout_marginTop="4dp"
                 android:background="@android:drawable/presence_online"
                 android:backgroundTint="@color/concordia_red"
@@ -398,6 +403,7 @@
                 android:id="@+id/btn_location"
                 android:layout_width="40dp"
                 android:layout_height="40dp"
+                android:layout_weight="1"
                 android:layout_marginTop="4dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:contentDescription="@string/maps_current_location"
