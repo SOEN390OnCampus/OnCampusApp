@@ -76,11 +76,6 @@ public class IndoorMapActivityTest {
         return constructor.newInstance(type, title, subtitle, floorId);
     }
 
-    private void setPrivateField(Object target, String fieldName, Object value) throws Exception {
-        Field field = target.getClass().getDeclaredField(fieldName);
-        field.setAccessible(true);
-        field.set(target, value);
-    }
 
     // ── Lifecycle & Intent Validation Tests ───────────────────────────────────
 
