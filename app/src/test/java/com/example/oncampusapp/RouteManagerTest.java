@@ -1,14 +1,18 @@
 package com.example.oncampusapp;
 
 import android.graphics.Color;
+import android.os.Looper;
+import android.view.View;
 import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
+import android.widget.TextView;
 
 import com.example.oncampusapp.navigation.Direction;
 import com.example.oncampusapp.navigation.RouteTravelMode;
 import com.example.oncampusapp.location.ILocationProvider;
 import com.google.android.gms.location.LocationCallback;
+import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.model.Circle;
 import com.google.android.gms.maps.model.LatLng;
@@ -19,7 +23,7 @@ import com.google.android.gms.maps.model.PolylineOptions;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.Mockito;
+import org.mockito.ArgumentCaptor;
 import org.robolectric.Robolectric;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.shadows.ShadowToast;
@@ -28,8 +32,8 @@ import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.Map;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
@@ -49,13 +53,26 @@ public class RouteManagerTest {
         routeManager = new RouteManager(activity);
     }
 
-    /** * Helper method to use Reflection to set private fields in RouteManager
+    /**
+     * Helper method to use Reflection to set private fields in RouteManager
      * without needing to trigger complex public methods to populate them.
      */
     private void setPrivateField(Object target, String fieldName, Object value) throws Exception {
         Field field = target.getClass().getDeclaredField(fieldName);
         field.setAccessible(true);
         field.set(target, value);
+    }
+
+    // ── Getters & Setters Tests ───────────────────────────────────────────────
+
+    @Test
+    public void testGettersAndSetters() {
+        Marker[] mockMarkers = new Marker[]{mock(Marker.class), mock(Marker.class)};
+        routeManager.setShuttleMarkers(mockMarkers);
+        assertArrayEquals(mockMarkers, routeManager.getShuttleMarkers());
+
+        routeManager.setSelectedMode(RouteTravelMode.TRANSIT);
+        assertEquals(RouteTravelMode.TRANSIT, routeManager.getSelectedMode());
     }
 
     // ── Original State & Logic Tests ──────────────────────────────────────────
@@ -75,6 +92,8 @@ public class RouteManagerTest {
 
     @Test
     public void parseDuration_formatsCorrectly() {
+        assertEquals(0, RouteManager.parseDurationToMinutes(""));
+        assertEquals(0, RouteManager.parseDurationToMinutes(null));
         assertEquals(15, RouteManager.parseDurationToMinutes("15 mins"));
         assertEquals(90, RouteManager.parseDurationToMinutes("1 hour 30 mins"));
         assertEquals(75, RouteManager.parseDurationToMinutes("1 HOUR 15 MINS"));
@@ -83,10 +102,30 @@ public class RouteManagerTest {
     @Test
     public void checkForInsideRooms_handlesLogic() {
         assertTrue(RouteManager.checkForInsideRooms("Hall Building"));
+        assertTrue(RouteManager.checkForInsideRooms("Loyola Campus"));
         assertFalse(RouteManager.checkForInsideRooms("H-867"));
+        assertFalse(RouteManager.checkForInsideRooms("MB-2.130"));
     }
 
     // ── UI Integration Tests ──────────────────────────────────────────────────
+
+    @Test
+    public void initiateRoutePreview_emptyNames_returnsEarlyWithoutToast() {
+        routeManager.initiateRoutePreview("", "H-867");
+        assertNull("Should return early without toasting", ShadowToast.getTextOfLatestToast());
+
+        routeManager.initiateRoutePreview("H-867", "");
+        assertNull("Should return early without toasting", ShadowToast.getTextOfLatestToast());
+    }
+
+    @Test
+    public void initiateRoutePreview_emptyBuildingsMap_showsLoadingToast() {
+        routeManager.setBuildingsMap(new HashMap<>()); // Empty map simulates loading state
+
+        routeManager.initiateRoutePreview("Hall Building", "Loyola Campus");
+
+        assertEquals("Map is still loading, please wait", ShadowToast.getTextOfLatestToast());
+    }
 
     @Test
     public void initiateRoutePreview_withUnknownBuilding_showsToast() {
@@ -96,8 +135,7 @@ public class RouteManagerTest {
 
         routeManager.initiateRoutePreview("Unknown Building", "H-867");
 
-        String latestToast = ShadowToast.getTextOfLatestToast();
-        assertEquals("Could not find: \"Unknown Building\"", latestToast);
+        assertEquals("Could not find: \"Unknown Building\"", ShadowToast.getTextOfLatestToast());
     }
 
     @Test
@@ -110,6 +148,7 @@ public class RouteManagerTest {
         routeManager.setTransportButtons(mockBtnWalk, mockBtnShuttle, mockBtnGo);
         routeManager.setSelectedMode(RouteTravelMode.SHUTTLE);
 
+        // Coordinates close to each other (SGW)
         LatLng sgw1 = new LatLng(45.4972, -73.5790);
         LatLng sgw2 = new LatLng(45.4960, -73.5780);
 
@@ -118,6 +157,17 @@ public class RouteManagerTest {
         assertTrue(didSwitch);
         assertEquals(RouteTravelMode.WALK, routeManager.getSelectedMode());
         assertEquals("Both locations are on the same campus — switched to walking", ShadowToast.getTextOfLatestToast());
+    }
+
+    @Test
+    public void applySameCampusCheck_walkMode_doesNothing() {
+        routeManager.setSelectedMode(RouteTravelMode.WALK);
+        LatLng sgw1 = new LatLng(45.4972, -73.5790);
+        LatLng sgw2 = new LatLng(45.4960, -73.5780);
+
+        boolean didSwitch = routeManager.applySameCampusCheck(sgw1, sgw2);
+
+        assertFalse("Should not apply campus check if not in Shuttle mode", didSwitch);
     }
 
     @Test
@@ -157,6 +207,12 @@ public class RouteManagerTest {
 
         assertNotNull("Should return the polyline created by the map", result);
         verify(mockMap, times(1)).addPolyline(any(PolylineOptions.class));
+    }
+
+    @Test
+    public void testDrawSegmentPolyline_nullOrEmptyPath_returnsNull() {
+        assertNull(routeManager.drawSegmentPolyline(null, true));
+        assertNull(routeManager.drawSegmentPolyline(new ArrayList<>(), true));
     }
 
     @Test
@@ -201,7 +257,39 @@ public class RouteManagerTest {
         verify(walkFrom, times(1)).remove();
     }
 
+    @Test
+    public void testRemoveStartDot() throws Exception {
+        Circle mockCircle = mock(Circle.class);
+        setPrivateField(routeManager, "startDot", mockCircle);
+
+        routeManager.removeStartDot();
+
+        verify(mockCircle, times(1)).remove();
+
+        // Ensure it doesn't crash if called again when already null
+        routeManager.removeStartDot();
+        verify(mockCircle, times(1)).remove(); // Count shouldn't go up
+    }
+
     // ── Navigation State Machine Tests ────────────────────────────────────────
+
+    @Test
+    public void testStartNavigationUpdates_requestsLocation() {
+        ILocationProvider mockProvider = mock(ILocationProvider.class);
+        routeManager.setLocationClient(mockProvider);
+
+        routeManager.startNavigationUpdates();
+
+        // Verify requestLocationUpdates was called with correct parameters
+        ArgumentCaptor<LocationRequest> requestCaptor = ArgumentCaptor.forClass(LocationRequest.class);
+        verify(mockProvider, times(1)).requestLocationUpdates(
+                requestCaptor.capture(),
+                any(LocationCallback.class),
+                eq(Looper.getMainLooper())
+        );
+
+        assertNotNull(requestCaptor.getValue());
+    }
 
     @Test
     public void testStopNavigation_removesLocationUpdates() throws Exception {
@@ -240,6 +328,51 @@ public class RouteManagerTest {
 
         // Assertion
         assertEquals("You are at the first step", ShadowToast.getTextOfLatestToast());
+    }
+
+    @Test
+    public void testUpdateRouteProgress_nullOrEmptyPoints_doesNothing() throws Exception {
+        LatLng location = new LatLng(0, 0);
+
+        // Null check
+        setPrivateField(routeManager, "currentRoutePoints", null);
+        routeManager.updateRouteProgress(location); // Should not crash
+
+        // Empty check
+        setPrivateField(routeManager, "currentRoutePoints", new ArrayList<>());
+        routeManager.updateRouteProgress(location); // Should not crash
+    }
+
+    @Test
+    public void testUpdateRouteProgress_whenArrived_showsToast() throws Exception {
+        // Setup destination
+        LatLng dest = new LatLng(45.4972, -73.5790);
+        List<LatLng> points = new ArrayList<>(Arrays.asList(new LatLng(45.4970, -73.5780), dest));
+
+        setPrivateField(routeManager, "currentRoutePoints", points);
+
+        // Add a dummy polyline to bypass the routePolylines emptiness check
+        routeManager.getRoutePolylines().add(mock(Polyline.class));
+
+        // Simulate user arriving EXACTLY at the destination
+        routeManager.updateRouteProgress(dest);
+
+        assertEquals("You have arrived!", ShadowToast.getTextOfLatestToast());
+    }
+
+    @Test
+    public void testGetFirstRoutePoint() throws Exception {
+        // Test null
+        assertNull(routeManager.getFirstRoutePoint());
+
+        // Test Empty
+        setPrivateField(routeManager, "currentRoutePoints", new ArrayList<>());
+        assertNull(routeManager.getFirstRoutePoint());
+
+        // Test Populated
+        LatLng firstPoint = new LatLng(10, 10);
+        setPrivateField(routeManager, "currentRoutePoints", new ArrayList<>(Arrays.asList(firstPoint, new LatLng(20, 20))));
+        assertEquals(firstPoint, routeManager.getFirstRoutePoint());
     }
 
     @Test
