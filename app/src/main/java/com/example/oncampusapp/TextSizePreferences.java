@@ -29,7 +29,7 @@ public final class TextSizePreferences {
         }
 
         configuration.fontScale = targetScale;
-        resources.updateConfiguration(configuration, resources.getDisplayMetrics());
+        activity.applyOverrideConfiguration(configuration);
         return true;
     }
 
