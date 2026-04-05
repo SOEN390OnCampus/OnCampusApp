@@ -1,5 +1,6 @@
 package com.example.oncampusapp;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -7,6 +8,8 @@ import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+
+import java.lang.reflect.Method;
 
 import android.view.View;
 import android.widget.TextView;
@@ -230,6 +233,41 @@ public class EventBannerManagerTest {
         manager.checkAndDisplayNextEventBanner();
 
         verify(mockBannerView).setVisibility(View.VISIBLE);
+    }
+
+    // ── resolveOnlineLabel (private static) ──────────────────────────────────
+
+    @Test
+    public void resolveOnlineLabel_zoom_returnsZoomMeeting() throws Exception {
+        assertEquals("ZOOM MEETING", invokeResolveOnlineLabel("zoom.us/meeting", ""));
+    }
+
+    @Test
+    public void resolveOnlineLabel_teams_returnsMicrosoftTeams() throws Exception {
+        assertEquals("MICROSOFT TEAMS", invokeResolveOnlineLabel("teams.microsoft.com", ""));
+    }
+
+    @Test
+    public void resolveOnlineLabel_googleMeet_returnsGoogleMeet() throws Exception {
+        assertEquals("GOOGLE MEET", invokeResolveOnlineLabel("", "join at meet.google.com/abc"));
+    }
+
+    @Test
+    public void resolveOnlineLabel_emptyLocation_returnsOnlineClass() throws Exception {
+        assertEquals("ONLINE CLASS", invokeResolveOnlineLabel("", ""));
+    }
+
+    @Test
+    public void resolveOnlineLabel_nonEmptyLocation_returnsUppercase() throws Exception {
+        assertEquals("ONLINE ROOM", invokeResolveOnlineLabel("Online Room", "no platform hint"));
+    }
+
+    private static String invokeResolveOnlineLabel(String rawLocation, String description)
+            throws Exception {
+        Method method = EventBannerManager.class.getDeclaredMethod(
+                "resolveOnlineLabel", String.class, String.class);
+        method.setAccessible(true);
+        return (String) method.invoke(null, rawLocation, description);
     }
 
     // ── helpers ───────────────────────────────────────────────────────────────
