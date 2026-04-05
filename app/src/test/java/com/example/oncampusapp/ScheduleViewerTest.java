@@ -12,7 +12,9 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
@@ -47,9 +49,6 @@ public class ScheduleViewerTest {
      * Safely boots a fully lifecycle-aware Activity for UI testing.
      * The background Executor thread will naturally swallow its own network exceptions
      * in Robolectric, allowing the UI to safely bind and be tested.
-     */
-    /**
-     * Safely boots a fully lifecycle-aware Activity for UI testing.
      */
     @SuppressWarnings("deprecation") // Suppress the strikethrough warning for buildActivity
     private ScheduleViewer createFullActivity() {
@@ -137,12 +136,13 @@ public class ScheduleViewerTest {
         activity.setTheme(androidx.appcompat.R.style.Theme_AppCompat_Light);
 
         Method createEventBox = ScheduleViewer.class.getDeclaredMethod(
-                "createEventBox", String.class, String.class, String.class, String.class, String.class);
+                "createEventBox", String.class, String.class, String.class, String.class, String.class, ViewGroup.class);
         createEventBox.setAccessible(true);
+        FrameLayout dummyParent = new FrameLayout(activity);
 
         // Action: Invoke the private method. "Building - Room 101" should split to "Room 101"
         View eventView = (View) createEventBox.invoke(
-                activity, "Lecture", "Building - Room 101", "2023-10-23T10:00:00Z", "2023-10-23T11:00:00Z", "1");
+                activity, "Lecture", "Building - Room 101", "2023-10-23T10:00:00Z", "2023-10-23T11:00:00Z", "1", dummyParent);
 
         assertNotNull(eventView);
         TextView titleView = eventView.findViewById(R.id.event_title);
