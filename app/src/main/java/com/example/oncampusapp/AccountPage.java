@@ -47,8 +47,6 @@ public class AccountPage extends AppCompatActivity {
 
     private CalendarRepository repository;
 
-    private String email;
-
     private LinearLayout calendarContainer;
 
     // --- Timer Variables for the Live Banner ---
@@ -71,7 +69,6 @@ public class AccountPage extends AppCompatActivity {
         window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
         window.setStatusBarColor(Color.parseColor("#7A1C1C"));
 
-        email = getIntent().getStringExtra("email");
         calendarToken = getIntent().getStringExtra("calendar_token");
 
         // Pull from global variables instead of Intent to avoid TransactionTooLargeException/DeadObjectException
@@ -359,10 +356,10 @@ public class AccountPage extends AppCompatActivity {
 
     // --- The Banner UI Math & Injection Logic ---
     private void refreshBannerUI() {
-        String eventsJson = CalendarEventManager.globalEventsJson;
-        if (eventsJson == null || eventsJson.isEmpty()) return;
+        String localEventsJson = CalendarEventManager.globalEventsJson;
+        if (localEventsJson == null || localEventsJson.isEmpty()) return;
 
-        JSONObject nextClass = CalendarEventManager.findNextUpcomingEvent(eventsJson);
+        JSONObject nextClass = CalendarEventManager.findNextUpcomingEvent(localEventsJson);
         View bannerView = findViewById(R.id.included_banner);
         if (bannerView == null) return;
 

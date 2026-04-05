@@ -13,6 +13,10 @@ public class CalendarEventManager {
     public static String globalCalendarListJson = "";
     private static final String DATE_TIME_KEY = "dateTime";
 
+    private CalendarEventManager() {
+        // private implicit constructor for this utility class
+    }
+
     public static synchronized void setGlobalEventsJson(String json) {
         globalEventsJson = json;
     }

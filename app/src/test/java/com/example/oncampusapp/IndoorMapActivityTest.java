@@ -258,6 +258,46 @@ public class IndoorMapActivityTest {
     // ── JSON Parsing Tests ────────────────────────────────────────────────────
 
     @Test
+    public void testComputeTurnType_detectsGoStraightWhenSegmentIsTooShort() throws Exception {
+        IndoorMapActivity activity = Robolectric.buildActivity(IndoorMapActivity.class).get();
+        Method computeTurnType = IndoorMapActivity.class.getDeclaredMethod(
+                "computeTurnType", IndoorNode.class, IndoorNode.class, IndoorNode.class);
+        computeTurnType.setAccessible(true);
+
+        // Setup: Move DOWN 100px, but the next turn is only 10px long (Below the 80px threshold)
+        IndoorNode a = new IndoorNode.Builder().x(0).y(0).build();
+        IndoorNode b = new IndoorNode.Builder().x(0).y(100).build();
+        IndoorNode c = new IndoorNode.Builder().x(10).y(100).build();
+
+        Object result = computeTurnType.invoke(activity, a, b, c);
+        assertEquals("Should ignore short jaggies and say go straight", "GO_STRAIGHT", result.toString());
+    }
+
+    // ── Bottom Navigation Tests ───────────────────────────────────────────────
+
+    @Test
+    public void testBottomNav_clickHome_startsMapsActivityAndClearsTop() {
+        Intent validIntent = new Intent(context, IndoorMapActivity.class);
+        validIntent.putExtra("BUILDING_ID", "H");
+        validIntent.putExtra("FLOOR_ID", "8");
+        IndoorMapActivity activity = Robolectric.buildActivity(IndoorMapActivity.class, validIntent).create().get();
+
+        BottomNavigationView bottomNav = activity.findViewById(R.id.bottom_nav);
+        bottomNav.setSelectedItemId(R.id.nav_home);
+
+        ShadowActivity shadowActivity = Shadows.shadowOf(activity);
+        Intent actualIntent = shadowActivity.getNextStartedActivity();
+
+        assertEquals(MapsActivity.class.getName(), actualIntent.getComponent().getClassName());
+
+        // Ensure the CLEAR_TOP and SINGLE_TOP flags were added to prevent backstack buildup
+        int expectedFlags = Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP;
+        assertEquals(expectedFlags, actualIntent.getFlags() & expectedFlags);
+    }
+
+    // ── Your Existing JSON Parsing Tests ──────────────────────────────────────
+
+    @Test
     public void testLoadNodesForFloor_handlesStandardAndMBBasements() throws Exception {
         IndoorMapActivity activity = Robolectric.buildActivity(IndoorMapActivity.class).get();
         Resources mockResources = Mockito.mock(Resources.class);

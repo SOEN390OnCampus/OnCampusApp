@@ -7,4 +7,8 @@
     <color name="header_bar_background">#8B1E2D</color>
     <color name="step_confirm_active">#4CAF50</color>
     <color name="step_confirm_inactive">#99FFFFFF</color>
+    <color name="separator">#BDBDBD</color>
+    <color name="tab_unselected">#9E9E9E</color>
+    <color name="tab_selected">#000000</color>
+
 </resources>

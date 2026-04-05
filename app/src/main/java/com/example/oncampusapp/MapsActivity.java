@@ -140,6 +140,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     // Cross-building navigation state
     private boolean pendingCrossBuildingOutdoor = false;
+    private LatLng pendingPoiLatLng;
+    private String pendingPoiName;
     private IndoorNode pendingCrossToDoor;
     private IndoorNode pendingCrossToRoom;
     private String pendingCrossFromBuilding;
@@ -153,6 +155,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     // Indoor room data – populated in background once map is ready
     private final java.util.Map<String, IndoorNode> indoorRoomMap = new java.util.LinkedHashMap<>();
     private ArrayAdapter<String> searchSuggestionsAdapter;
+
 
 
 
@@ -224,6 +227,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         // ViewBinding: inflate, then set content view ONCE
         binding = ActivityMapsBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
+
+        // Poi methods when user clicks on the button
+        handleIncomingPoiIntent();
 
         // Preload shuttle route data from bundled JSON
         ShuttleHelper.init(this);
@@ -364,7 +370,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 return;
             }
 
-            NavigationHelper.fetchRoute(startCoords, destCoords, RouteTravelMode.WALK,
+            NavigationHelper.fetchRoute(startCoords, destCoords, routeManager.getSelectedMode(),
                     BuildConfig.MAPS_API_KEY,
                     new NavigationHelper.RoutesCallback() {
                         @Override
@@ -477,11 +483,22 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         if (!mapIdlingResource.isIdleNow())
             mapIdlingResource.decrement();
 
+        ImageButton btnPoi = findViewById(R.id.btn_poi);
+        btnPoi.setOnClickListener(v -> {
+            Intent intent = new Intent(MapsActivity.this, PoiActivity.class);
+            startActivity(intent);
+        });
+
         ImageButton btnIndoorMap = findViewById(R.id.btn_indoor_map);
         btnIndoorMap.setOnClickListener(v -> {
             BuildingFloorSelectDialog dialog = new BuildingFloorSelectDialog();
             dialog.show(getSupportFragmentManager(), "BuildingFloorSelectDialog");
         });
+
+        // start the route of the poi if pending
+        if (pendingPoiLatLng != null) {
+            openRouteToPoi();
+        }
 
         tryGenerateDirectionsFromNotification();
     }
@@ -611,6 +628,120 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         if (!intent.getBooleanExtra("OPEN_DIRECTIONS", false)) return;
         pendingNotificationDirections = true;
         tryGenerateDirectionsFromNotification();
+    }
+
+    /*
+     Methods + boolean variable for POI
+     */
+
+    // Temp fix for exit navigation for POI.
+    public void reloadForPoiExit() {
+        Intent intent = new Intent(this, MapsActivity.class);
+        startActivity(intent);
+        finish();
+        overridePendingTransition(0, 0);
+    }
+
+    private boolean isPoiNavigationActive = false;
+
+    public boolean isPoiNavigationActive() {
+        return isPoiNavigationActive;
+    }
+
+    public void setPoiNavigationActive(boolean active) {
+        isPoiNavigationActive = active;
+    }
+
+    private void handleIncomingPoiIntent() {
+        Intent intent = getIntent();
+        if (intent == null || !intent.getBooleanExtra("OPEN_POI_ROUTE", false)) return;
+
+        double lat = intent.getDoubleExtra("POI_LAT", 0.0);
+        double lng = intent.getDoubleExtra("POI_LNG", 0.0);
+        String name = intent.getStringExtra("POI_NAME");
+
+        pendingPoiLatLng = new LatLng(lat, lng);
+        pendingPoiName = name;
+    }
+
+    private void openRouteToPoi() {
+        if (pendingPoiLatLng == null) return;
+
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
+                != PackageManager.PERMISSION_GRANTED) {
+            Toast.makeText(this, "Location permission is required", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        fusedLocationClient.getLastLocation()
+                .addOnSuccessListener(this, location -> {
+                    if (location == null) {
+                        //Toast.makeText(this, "Could not get current location", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+
+                    LatLng startCoords = new LatLng(location.getLatitude(), location.getLongitude());
+                    LatLng destCoords = pendingPoiLatLng;
+
+                    if (pendingPoiName != null && !pendingPoiName.isEmpty()) {
+                        setPoiNavigationActive(true);
+                        routePickerController.openWithStartAndDestination("Current Location", pendingPoiName);
+
+                    }
+
+                    NavigationHelper.fetchRoute(
+                            startCoords,
+                            destCoords,
+                            routeManager.getSelectedMode(),
+                            BuildConfig.MAPS_API_KEY,
+                            new NavigationHelper.RoutesCallback() {
+                                @Override
+                                public void onSuccess(Route route) {
+                                    runOnUiThread(() -> {
+                                        if (pendingPoiName != null && !pendingPoiName.isEmpty()) {
+                                            routePickerController.openWithStartAndDestination("Current Location", pendingPoiName);
+                                        }
+
+                                        routeManager.drawRouteOnMap(
+                                                route.getPoints(),
+                                                route.getDuration(),
+                                                route.getSteps()
+                                        );
+
+                                        // start actual navigation
+                                        routeManager.startNavigationUpdates();
+                                        routePickerController.toggleNavigationUI(true);
+
+                                        TextView txtNavInstruction = findViewById(R.id.txt_nav_instruction);
+                                        TextView txtDuration = findViewById(R.id.txt_duration);
+
+                                        if (txtNavInstruction != null && txtDuration != null) {
+                                            String instructionText;
+                                            if (txtDuration.getText() != null && txtDuration.getText().length() > 0) {
+                                                instructionText = txtDuration.getText() + " (" +
+                                                        routeManager.getSelectedMode().getValue() + ")";
+                                            } else {
+                                                instructionText = "Follow the route (" +
+                                                        routeManager.getSelectedMode().getValue() + ")";
+                                            }
+                                            txtNavInstruction.setText(instructionText);
+                                        }
+
+                                        Toast.makeText(MapsActivity.this, "Navigation Started", Toast.LENGTH_SHORT).show();
+                                    });
+                                }
+
+                                @Override
+                                public void onError(Exception e) {
+                                    Log.e(TAG, "Failed to load POI route", e);
+                                    runOnUiThread(() ->
+                                            Toast.makeText(MapsActivity.this,
+                                                    "Failed to load POI route",
+                                                    Toast.LENGTH_SHORT).show());
+                                }
+                            }
+                    );
+                });
     }
 
     private void tryGenerateDirectionsFromNotification() {
