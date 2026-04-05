@@ -146,7 +146,7 @@ public class GeoJsonMapLoader {
                                         GeofenceManager geofenceManager,
                                         BuildingManager buildingManager,
                                         GoogleMap map) {
-        Geometry geometry = feature.getGeometry();
+        Geometry<?> geometry = feature.getGeometry();
         if (!(geometry instanceof GeoJsonPolygon)) return;
 
         GeoJsonPolygon polygon = (GeoJsonPolygon) geometry;

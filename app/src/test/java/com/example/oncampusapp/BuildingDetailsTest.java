@@ -33,7 +33,7 @@ public class BuildingDetailsTest {
         BuildingDetails.Schedule schedule = new BuildingDetails.Schedule();
         String str = schedule.toString();
         assertTrue(str.contains("\n"));
-        assertFalse(str.equals("Always Open"));
+        assertNotEquals("Always Open", str);
     }
 
     // ── alwaysOpen path ───────────────────────────────────────────────────────

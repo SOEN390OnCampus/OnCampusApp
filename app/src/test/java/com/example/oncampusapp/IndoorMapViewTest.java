@@ -89,7 +89,8 @@ public class IndoorMapViewTest {
         List<PointF> singlePoint = Arrays.asList(new PointF(10f, 10f));
         List<PointF> resultSingle = mapView.interpolateEvenPoints(singlePoint, 120f);
         assertEquals(1, resultSingle.size());
-        assertEquals(10f, resultSingle.get(0).x, 0.001);
+        float result = resultSingle.get(0).x;
+        assertEquals(10f, result, 0.001);
     }
 
     @Test

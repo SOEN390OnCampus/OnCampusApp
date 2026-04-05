@@ -235,7 +235,7 @@ public class ShuttleHelperTest {
     public void getShuttleRoute_beforeInit_returnsEmptyList() {
         // Routes are null until init() is called; result must be a non-null empty list
         java.util.List<com.google.android.gms.maps.model.LatLng> route =
-                ShuttleHelper.getShuttleRoute(new com.google.android.gms.maps.model.LatLng(45.497, -73.578), null);
+                ShuttleHelper.getShuttleRoute(new com.google.android.gms.maps.model.LatLng(45.497, -73.578));
         // Either empty (routes not initialised) or non-empty (already initialised by another test) — both are valid
         assertNotNull(route);
     }
@@ -243,7 +243,7 @@ public class ShuttleHelperTest {
     @Test
     public void getShuttleRoute_nullStart_doesNotThrow() {
         java.util.List<com.google.android.gms.maps.model.LatLng> route =
-                ShuttleHelper.getShuttleRoute(null, null);
+                ShuttleHelper.getShuttleRoute(null);
         assertNotNull(route);
     }
 }

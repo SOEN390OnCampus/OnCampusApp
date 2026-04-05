@@ -52,7 +52,7 @@ public class BuildingDialogManager {
             Type type = new TypeToken<Map<String, BuildingDetails>>() {}.getType();
             geoIdToBuildingDetailsMap = gson.fromJson(jsonBuilder.toString(), type);
         } catch (Resources.NotFoundException | IOException e) {
-            throw new RuntimeException("File not found: " + e.getMessage());
+            throw new IllegalStateException("File not found: " + e.getMessage());
         }
     }
 

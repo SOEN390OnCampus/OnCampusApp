@@ -41,6 +41,10 @@ public class AccountPage extends AppCompatActivity {
     private String calendarListJson;
     private String calendarToken;
 
+    private View itemView;
+
+    private String bgColor;
+
     private BottomNavigationView bottomNav;
 
     private Button btnRefresh;
@@ -303,25 +307,15 @@ public class AccountPage extends AppCompatActivity {
 
                 String id = calendar.getString("id");
                 String summary = calendar.getString("summary");
-                String bgColor = calendar.optString("backgroundColor", "#888888");
+                bgColor = calendar.optString("backgroundColor", "#888888");
 
                 // Inflate the item layout
-                View itemView = getLayoutInflater().inflate(R.layout.item_calendar, calendarContainer, false);
-
-                View dot = itemView.findViewById(R.id.calendar_color_dot);
+                itemView = getLayoutInflater().inflate(R.layout.item_calendar, calendarContainer, false);
                 TextView name = itemView.findViewById(R.id.calendar_name);
                 TextView badge = itemView.findViewById(R.id.calendar_selected_badge);
 
+                colorDot();
                 name.setText(summary);
-
-                // Dynamically color the dot
-                GradientDrawable dotDrawable = (GradientDrawable) getResources().getDrawable(R.drawable.bg_circle, null).mutate();
-                try {
-                    dotDrawable.setColor(Color.parseColor(bgColor));
-                } catch (IllegalArgumentException e) {
-                    dotDrawable.setColor(Color.GRAY); // Fallback for invalid color strings
-                }
-                dot.setBackground(dotDrawable);
 
                 // Show the "Selected" badge if the IDs match
                 if (id.equals(selectedCalendarId)) {
@@ -352,6 +346,19 @@ public class AccountPage extends AppCompatActivity {
             Log.e(TAG, "Calendar population failed");
             Toast.makeText(this, "Error loading calendars", Toast.LENGTH_SHORT).show();
         }
+    }
+
+    // Dynamically color the dot
+    private void colorDot() {
+        // Dynamically color the dot
+        View dot = itemView.findViewById(R.id.calendar_color_dot);
+        GradientDrawable dotDrawable = (GradientDrawable) getResources().getDrawable(R.drawable.bg_circle, null).mutate();
+        try {
+            dotDrawable.setColor(Color.parseColor(bgColor));
+        } catch (IllegalArgumentException e) {
+            dotDrawable.setColor(Color.GRAY); // Fallback for invalid color strings
+        }
+        dot.setBackground(dotDrawable);
     }
 
     // --- The Banner UI Math & Injection Logic ---
