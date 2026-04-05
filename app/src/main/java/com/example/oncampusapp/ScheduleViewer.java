@@ -3,12 +3,11 @@ package com.example.oncampusapp;
 import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.os.Bundle;
+import android.util.Log; // <-- Added for logging
 import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.Window;
-import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
@@ -31,19 +30,19 @@ import java.util.function.IntSupplier;
 
 public class ScheduleViewer extends AppCompatActivity {
 
-    private LinearLayout headerRow, timeColumn, daysContainer;
+    private LinearLayout headerRow;
+    private LinearLayout timeColumn;
+    private LinearLayout daysContainer;
     private TextView weekTitle;
 
-    private Map<String, FrameLayout> dayColumns = new HashMap<>();
+    private final Map<String, FrameLayout> dayColumns = new HashMap<>();
     private final Calendar currentWeek = Calendar.getInstance();
 
-    private final int START_HOUR = 7; // 7 AM
-    private final int END_HOUR = 22;  // 10 PM
-    private final int HOUR_HEIGHT_DP = 60; // 1 min = 1 dp height
+    private static final int START_HOUR = 7; // 7 AM
+    private static final int END_HOUR = 22;  // 10 PM
+    private static final int HOUR_HEIGHT_DP = 60; // 1 min = 1 dp height
 
     private String calendarJson;
-
-    private CalendarRepository calendarRepository;
 
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
 
@@ -51,12 +50,6 @@ public class ScheduleViewer extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         TextSizePreferences.apply(this);
-
-        Window window = getWindow();
-        window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
-        window.setStatusBarColor(Color.parseColor("#8B1E2D"));
-
-        calendarRepository = CalendarRepository.getInstance();
 
         setContentView(R.layout.activity_schedule);
 
@@ -81,7 +74,7 @@ public class ScheduleViewer extends AppCompatActivity {
         String selectedCalendarId = prefs.getString("selected_calendar", "");
 
         if (calendarId.equals(selectedCalendarId))
-            btnMainCalendar.setText("Selected ✓");
+            btnMainCalendar.setText(R.string.selected_check);
 
         btnMainCalendar.setOnClickListener(v -> {
             if (calendarId.equals(selectedCalendarId))
@@ -91,7 +84,7 @@ public class ScheduleViewer extends AppCompatActivity {
             editor.putString("selected_calendar", calendarId);
             editor.apply();
 
-            btnMainCalendar.setText("Selected ✓");
+            btnMainCalendar.setText(R.string.selected_check);
         });
 
         calendarTitle.setText(calendarName);
@@ -126,7 +119,7 @@ public class ScheduleViewer extends AppCompatActivity {
                 String calendarToken = getIntent().getStringExtra("calendar_token");
                 String id = getIntent().getStringExtra("calendar_id");
 
-                String calendarEvents = calendarRepository.fetchCalendarEvents(calendarToken, id);
+                String calendarEvents = CalendarRepository.getInstance().fetchCalendarEvents(calendarToken, id);
                 JSONObject eventsRoot = new JSONObject(calendarEvents);
                 JSONArray events = eventsRoot.optJSONArray("items");
 
@@ -148,11 +141,10 @@ public class ScheduleViewer extends AppCompatActivity {
         // 1. Build Time Column (Left Side)
         for (int i = START_HOUR; i <= END_HOUR; i++) {
             TextView timeTxt = new TextView(this);
-            String amPm = (i < 12 || i == 24) ? "AM" : "PM";
+            String amPm = (i < 12) ? "AM" : "PM";
             int displayHour = (i % 12 == 0) ? 12 : (i % 12);
 
-            // Text is forced vertically (Hour on top, AM/PM below)
-            timeTxt.setText(displayHour + "\n" + amPm);
+            timeTxt.setText(getString(R.string.time_format_multiline, displayHour, amPm));
             timeTxt.setTextSize(9f);
             timeTxt.setTextColor(Color.parseColor("#999999"));
             timeTxt.setGravity(Gravity.CENTER_HORIZONTAL | Gravity.TOP);
@@ -268,25 +260,25 @@ public class ScheduleViewer extends AppCompatActivity {
                     FrameLayout column = dayColumns.get(day);
 
                     if (column != null) {
-                        column.addView(createEventBox(title, location, startIso, endIso, colorId));
+                        column.addView(createEventBox(title, location, startIso, endIso, colorId, column));
                     }
                 }
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            Log.e("ScheduleViewer", "Error refreshing events for the week", e);
         }
     }
 
-    private View createEventBox(String title, String location, String startIso, String endIso, String colorId) {
-        View layout = getLayoutInflater().inflate(R.layout.item_schedule, null);
+    private View createEventBox(String title, String location, String startIso, String endIso, String colorId, ViewGroup parent) {
+        View layout = getLayoutInflater().inflate(R.layout.item_schedule, parent, false);
 
         TextView titleView = layout.findViewById(R.id.event_title);
         TextView locView = layout.findViewById(R.id.event_location);
         View strip = layout.findViewById(R.id.event_strip);
         View bg = layout.findViewById(R.id.event_bg);
 
-        String[] locationSplitted = location.split(" - ");
-        String shortLocation = locationSplitted[locationSplitted.length - 1];
+        String[] locationParts = location.split(" - ");
+        String shortLocation = locationParts[locationParts.length - 1];
 
         titleView.setText(title);
         locView.setText(shortLocation);
@@ -411,6 +403,9 @@ public class ScheduleViewer extends AppCompatActivity {
             String datePart = iso.split("T")[0];
             SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
             Date date = sdf.parse(datePart);
+
+            if (date == null) return null;
+
             Calendar cal = Calendar.getInstance();
             cal.setTime(date);
             return cal;
@@ -423,6 +418,9 @@ public class ScheduleViewer extends AppCompatActivity {
             String datePart = isoDateTime.split("T")[0];
             SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
             Date date = sdf.parse(datePart);
+
+            if (date == null) return "";
+
             Calendar cal = Calendar.getInstance();
             cal.setTime(date);
             switch (cal.get(Calendar.DAY_OF_WEEK)) {
