@@ -104,11 +104,15 @@ public class PoiActivity extends AppCompatActivity {
         });
 
         etSearch.addTextChangedListener(new android.text.TextWatcher() {
-            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+                // Not needed: filtering is done in onTextChanged
+            }
             @Override public void onTextChanged(CharSequence s, int start, int before, int count) {
                 filterPois(s.toString());
             }
-            @Override public void afterTextChanged(android.text.Editable s) {}
+            @Override public void afterTextChanged(android.text.Editable s) {
+                // Not needed: filtering is done in onTextChanged
+            }
         });
     }
 
