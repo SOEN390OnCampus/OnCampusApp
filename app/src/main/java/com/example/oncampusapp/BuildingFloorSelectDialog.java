@@ -10,6 +10,7 @@ import android.view.Display;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.WindowMetrics;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -53,13 +54,21 @@ public class BuildingFloorSelectDialog extends DialogFragment {
     public void onStart() {
         super.onStart();
         if (getDialog() != null && getDialog().getWindow() != null) {
-            Display display = requireActivity().getWindowManager().getDefaultDisplay();
-            Point size = new Point();
-            display.getSize(size);
+            int screenWidth;
+            int screenHeight;
 
-            // Set the width and max height
-            int width = (int) (size.x * 0.80);
-            int maxHeight = (int) (size.y * 0.50);
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+                WindowMetrics windowMetrics = requireActivity().getWindowManager().getCurrentWindowMetrics();
+                screenWidth = windowMetrics.getBounds().width();
+                screenHeight = windowMetrics.getBounds().height();
+            } else {
+                Point size = new Point();
+                requireActivity().getWindowManager().getDefaultDisplay().getSize(size);
+                screenWidth = size.x;
+                screenHeight = size.y;
+            }
+            int width = (int) (screenWidth * 0.80);
+            int maxHeight = (int) (screenHeight * 0.50);
 
             getDialog().getWindow().setLayout(width, ViewGroup.LayoutParams.WRAP_CONTENT);
             getDialog().getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
