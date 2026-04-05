@@ -95,7 +95,7 @@ public class RoutePickerController {
         startDestinationText.setText(start);
         endDestinationText.setText(destination);
 
-        View searchBar = activity.findViewById(R.id.search_bar_container);
+        searchBar = activity.findViewById(R.id.search_bar_container);
         if (searchBar != null) searchBar.setVisibility(View.GONE);
         if (routePicker != null) routePicker.setVisibility(View.VISIBLE);
 
@@ -306,7 +306,7 @@ public class RoutePickerController {
             routeManager.initiateRoutePreview(startText, destText);
             return;
         }
-        startNavigation(startText, destText);
+        startNavigation(startText);
     }
 
     private boolean tryLaunchIndoorRoute(String startText, String destText) {
@@ -326,7 +326,7 @@ public class RoutePickerController {
         return false;
     }
 
-    private void startNavigation(String startText, String destText) {
+    private void startNavigation(String startText) {
         routeManager.removeStartDot();
         routeManager.startNavigationUpdates();
         Toast.makeText(activity, "Navigation Started", Toast.LENGTH_SHORT).show();
@@ -396,10 +396,10 @@ public class RoutePickerController {
     // ── Navigation UI toggling ───────────────────────────────────────────────
 
     void toggleNavigationUI(boolean isNavigating) {
-        LinearLayout layoutInputs    = activity.findViewById(R.id.layout_inputs);
-        LinearLayout layoutTabs      = activity.findViewById(R.id.layout_tabs);
-        Button btnGo                 = activity.findViewById(R.id.btn_go);
-        LinearLayout layoutNavActive = activity.findViewById(R.id.layout_navigation_active);
+        layoutInputs    = activity.findViewById(R.id.layout_inputs);
+        layoutTabs      = activity.findViewById(R.id.layout_tabs);
+        btnGo                 = activity.findViewById(R.id.btn_go);
+        layoutNavActive = activity.findViewById(R.id.layout_navigation_active);
         ConstraintLayout dirLayout   = activity.findViewById(R.id.dirLayout);
         ImageButton prevDirBtn       = activity.findViewById(R.id.prevDirBtn);
         ImageButton nextDirBtn       = activity.findViewById(R.id.nextDirBtn);

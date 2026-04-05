@@ -79,10 +79,9 @@ public class ShuttleHelper {
      * Requires init(Context) to have been called first.
      *
      * @param start the user's starting location
-     * @param end   the user's destination
      * @return ordered list of LatLng points representing the shuttle route
      */
-    public static List<LatLng> getShuttleRoute(LatLng start, LatLng end) {
+    public static List<LatLng> getShuttleRoute(LatLng start) {
         if (routeSgwToLoy == null || routeLoyToSgw == null) {
             Log.w(SHUTTLEHELPERSTR, "getShuttleRoute called before init()");
             return new ArrayList<>();

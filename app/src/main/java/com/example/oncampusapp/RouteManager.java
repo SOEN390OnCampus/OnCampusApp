@@ -143,7 +143,7 @@ public class RouteManager {
 
         clearNormalRoute();
         clearShuttleRoute();
-        shuttlePolyline = drawSegmentPolyline(ShuttleHelper.getShuttleRoute(pickupStop, dropoffStop), false);
+        shuttlePolyline = drawSegmentPolyline(ShuttleHelper.getShuttleRoute(pickupStop), false);
 
         TextView txtDuration = activity.findViewById(R.id.txt_duration);
         if (txtDuration != null) txtDuration.setText(ShuttleHelper.SHUTTLE_DURATION_FALLBACK.toUpperCase());
