@@ -38,7 +38,7 @@ public class EspressoIdlingResourceTest {
 
     @Test
     public void decrement_whenAlreadyIdle_doesNotThrow() {
-        // The implementation guards: if (!isIdleNow()) decrement — so this is safe
+        // The implementation guards: if "(!isIdleNow())" decrement — so this is safe
         assertTrue(EspressoIdlingResource.getIdlingResource().isIdleNow());
         EspressoIdlingResource.decrement(); // should be a no-op
         assertTrue(EspressoIdlingResource.getIdlingResource().isIdleNow());

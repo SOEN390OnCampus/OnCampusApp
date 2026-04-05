@@ -632,7 +632,8 @@ public class RouteManagerTest {
 
     @Test
     public void showCurrentDirection_emptyList_doesNothing() {
-        routeManager.showCurrentDirection(); // no crash
+        routeManager.showCurrentDirection();
+        assertNull(ShadowToast.getTextOfLatestToast());
     }
 
     @Test
@@ -697,7 +698,9 @@ public class RouteManagerTest {
         LatLng a = new LatLng(45.4972, -73.5790);
         LatLng b = new LatLng(45.4960, -73.5780);
 
-        routeManager.applySameCampusCheck(a, b);
+        boolean result = routeManager.applySameCampusCheck(a, b);
+        assertTrue(result);
+        assertEquals(RouteTravelMode.WALK, routeManager.getSelectedMode());
     }
 
     @Test
