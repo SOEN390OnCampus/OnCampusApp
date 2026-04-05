@@ -48,11 +48,13 @@ public class LocationTrackingServiceTest {
 
     @Before
     public void setUp() {
+        // Grab the Application context (used for both permissions and injection)
+        OnCampusApplication app = ApplicationProvider.getApplicationContext();
+
         // 1. Grant the POST_NOTIFICATIONS permission so notifications don't get blocked
-        ShadowApplication.getInstance().grantPermissions(Manifest.permission.POST_NOTIFICATIONS);
+        Shadows.shadowOf(app).grantPermissions(Manifest.permission.POST_NOTIFICATIONS);
 
         // 2. Mock the ILocationProvider and inject it into the Application class
-        OnCampusApplication app = ApplicationProvider.getApplicationContext();
         mockLocationProvider = Mockito.mock(ILocationProvider.class);
         app.setLocationProvider(mockLocationProvider);
 
