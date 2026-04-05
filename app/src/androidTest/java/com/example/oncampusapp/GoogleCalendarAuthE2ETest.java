@@ -4,10 +4,12 @@ package com.example.oncampusapp;
 import static androidx.test.espresso.Espresso.onView;
 import static androidx.test.espresso.action.ViewActions.click;
 import static androidx.test.espresso.action.ViewActions.scrollTo;
+import static androidx.test.espresso.assertion.ViewAssertions.matches;
 import static androidx.test.espresso.matcher.ViewMatchers.isDisplayed;
 import static androidx.test.espresso.matcher.ViewMatchers.withId;
 import static androidx.test.espresso.matcher.ViewMatchers.withText;
 import static org.hamcrest.Matchers.allOf;
+import static org.junit.Assert.assertNotNull;
 
 import android.content.Context;
 import android.content.SharedPreferences;
@@ -56,6 +58,8 @@ public class GoogleCalendarAuthE2ETest {
 
             onView(allOf(withId(R.id.btn_allow), withText("Allow"), isDisplayed()))
                     .perform(click());
+
+            scenario.onActivity(activity -> assertNotNull(activity));
         }
     }
 
@@ -84,6 +88,7 @@ public class GoogleCalendarAuthE2ETest {
             onView(childAtPosition(withId(R.id.calendarListContainer), 1))
                     .perform(click());
 
+            onView(withId(R.id.calendarListContainer)).check(matches(isDisplayed()));
         }
     }
 
