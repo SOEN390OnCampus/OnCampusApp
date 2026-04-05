@@ -14,6 +14,10 @@ public class PreviousClassFinder {
 
     private static final String DATETIME = "dateTime";
 
+    private PreviousClassFinder() {
+        // Used to hide implicit public constructor of utility class
+    }
+
     public static JSONObject findPreviousClass(String eventsJson, JSONObject targetClass) {
         try {
             JSONArray events = new JSONArray(eventsJson);

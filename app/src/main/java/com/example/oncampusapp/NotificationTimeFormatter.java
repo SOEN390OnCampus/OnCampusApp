@@ -4,6 +4,10 @@ import java.util.concurrent.TimeUnit;
 
 public class NotificationTimeFormatter {
 
+    private NotificationTimeFormatter() {
+        // Used to hide implicit public constructor of this utility clas
+    }
+
     public static String getBannerTimeStatus(long currentTimeMillis, long startTimeMillis, long endTimeMillis) {
         if (currentTimeMillis >= startTimeMillis && currentTimeMillis <= endTimeMillis) {
             return "Class is ongoing";

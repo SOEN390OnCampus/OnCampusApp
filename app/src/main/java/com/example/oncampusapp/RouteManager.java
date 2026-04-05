@@ -468,9 +468,11 @@ public class RouteManager {
         String[] parts = durationText.split(" ");
         for (int i = 0; i < parts.length; i++) {
             if (parts[i].startsWith("hour")) {
-                try { totalMinutes += Integer.parseInt(parts[i - 1]) * 60; } catch (Exception ignored) {}
+                try { totalMinutes += Integer.parseInt(parts[i - 1]) * 60; } catch (Exception ignored) {// For catching exception
+                }
             } else if (parts[i].startsWith("min")) {
-                try { totalMinutes += Integer.parseInt(parts[i - 1]); } catch (Exception ignored) {}
+                try { totalMinutes += Integer.parseInt(parts[i - 1]); } catch (Exception ignored) {// For catching exception
+                }
             }
         }
         return totalMinutes;

@@ -10,6 +10,10 @@ import java.util.Map;
 
 public class NotificationRouteHelper {
 
+    private NotificationRouteHelper() {
+        // Used to hide implicit public constructor of utility class
+    }
+
     public static Result resolveRoute(
             String eventsJson,
             JSONObject nextClass,
