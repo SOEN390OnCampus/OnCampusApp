@@ -1,9 +1,7 @@
 package com.example.oncampusapp;
 
-import androidx.activity.OnBackPressedCallback;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
-import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.core.view.WindowCompat;
@@ -14,93 +12,47 @@ import android.annotation.SuppressLint;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.content.Intent;
-import android.location.Location;
-import android.os.Looper;
 import android.view.ViewGroup;
 
 import androidx.fragment.app.FragmentActivity;
 import androidx.test.espresso.idling.CountingIdlingResource;
 
-import android.os.Handler;
-
 import android.Manifest;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
-import android.content.res.Resources;
 import android.graphics.Color;
-import android.graphics.Paint;
 import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.ArrayAdapter;
-import android.widget.Button;
 import android.widget.FrameLayout;
 import android.widget.ImageButton;
-import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.app.Dialog;
-import android.widget.ImageView;
 
 import com.example.oncampusapp.navigation.NavigationHelper;
 import com.example.oncampusapp.navigation.Route;
-import com.example.oncampusapp.navigation.Step;
-import com.example.oncampusapp.navigation.Direction;
-import com.google.android.gms.location.LocationRequest;
-import com.google.android.gms.location.LocationResult;
-import com.google.maps.android.SphericalUtil;
 import com.example.oncampusapp.location.FusedLocationProvider;
 import com.example.oncampusapp.location.FusedLocationSource;
 import com.example.oncampusapp.location.ILocationProvider;
-import com.google.android.gms.location.LocationCallback;
-import com.google.android.gms.location.Priority;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
-import com.google.android.gms.maps.model.BitmapDescriptorFactory;
-import com.google.android.gms.maps.model.CircleOptions;
-import com.google.android.gms.maps.model.Dot;
-import com.google.android.gms.maps.model.Gap;
-import com.google.android.gms.maps.model.GroundOverlayOptions;
 import com.google.android.gms.maps.model.LatLng;
 import com.example.oncampusapp.databinding.ActivityMapsBinding;
-import com.google.android.gms.maps.model.LatLngBounds;
-import com.google.android.gms.maps.model.MarkerOptions;
-import com.google.android.gms.maps.model.PatternItem;
 import com.google.android.gms.maps.model.Polyline;
-import com.google.android.gms.maps.model.PolylineOptions;
-import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
 import com.google.maps.android.data.Feature;
-import com.google.maps.android.data.Geometry;
-import com.google.maps.android.data.geojson.GeoJsonFeature;
 import com.google.maps.android.data.geojson.GeoJsonLayer;
-import com.google.maps.android.data.geojson.GeoJsonLineStringStyle;
-import com.google.maps.android.data.geojson.GeoJsonPolygon;
-import com.google.maps.android.data.geojson.GeoJsonPolygonStyle;
 
-import org.json.JSONException;
 import org.json.JSONObject;
 
-import com.example.oncampusapp.navigation.RouteTravelMode;
-
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.lang.reflect.Type;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
-import java.util.stream.Collectors;
-
-import com.bumptech.glide.Glide;
 
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback {
 
@@ -133,6 +85,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private static final String SGW = "SGW";
     private static final String LOY = "LOY";
     private static final String TAG = "MapsActivity";
+    private static final String CURRENT_LOCATION = "Current Location";
     private static final String KEY_NOTIFICATION_ID = "notification_id";
 
     // Pending notification flag
@@ -639,8 +592,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         Intent intent = new Intent(this, MapsActivity.class);
         startActivity(intent);
         finish();
-        overridePendingTransition(0, 0);
-    }
+        }
 
     private boolean isPoiNavigationActive = false;
 
@@ -676,7 +628,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         fusedLocationClient.getLastLocation()
                 .addOnSuccessListener(this, location -> {
                     if (location == null) {
-                        //Toast.makeText(this, "Could not get current location", Toast.LENGTH_SHORT).show();
                         return;
                     }
 
@@ -685,7 +636,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
                     if (pendingPoiName != null && !pendingPoiName.isEmpty()) {
                         setPoiNavigationActive(true);
-                        routePickerController.openWithStartAndDestination("Current Location", pendingPoiName);
+                        routePickerController.openWithStartAndDestination(CURRENT_LOCATION, pendingPoiName);
 
                     }
 
@@ -699,7 +650,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                                 public void onSuccess(Route route) {
                                     runOnUiThread(() -> {
                                         if (pendingPoiName != null && !pendingPoiName.isEmpty()) {
-                                            routePickerController.openWithStartAndDestination("Current Location", pendingPoiName);
+                                            routePickerController.openWithStartAndDestination(CURRENT_LOCATION, pendingPoiName);
                                         }
 
                                         routeManager.drawRouteOnMap(
@@ -810,7 +761,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 return;
             }
             LatLng startCoords = new LatLng(location.getLatitude(), location.getLongitude());
-            routePickerController.openWithStartAndDestination("Current Location", destinationBuilding);
+            routePickerController.openWithStartAndDestination(CURRENT_LOCATION, destinationBuilding);
             NavigationHelper.fetchRoute(startCoords, destCoords,
                     routeManager.getSelectedMode(), BuildConfig.MAPS_API_KEY,
                     new NavigationHelper.RoutesCallback() {
