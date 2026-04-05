@@ -62,4 +62,8 @@
     <string name="sign_out_failed_body">Sign-out failed. Please try again.</string>
     <string name="search_for_direction_building_room">Search for direction (building/room)</string>
     <string name="always_open">Always Open</string>
+
+    <!-- ScheduleViewer -->
+    <string name="selected_check">Selected ✓</string>
+    <string name="time_format_multiline">%1$d\n%2$s</string>
 </resources>
