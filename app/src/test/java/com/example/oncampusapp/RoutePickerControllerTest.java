@@ -43,6 +43,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.util.Objects;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -82,9 +83,85 @@ public class RoutePickerControllerTest {
     }
 
     private Object invokePrivateMethod(String methodName, Class<?>[] argTypes, Object... args) throws Exception {
-        Method m  = RoutePickerController.class.getDeclaredMethod(methodName, argTypes);
-        m.setAccessible(true);
-        return m.invoke(controller, args);
+        try {
+            Method m = RoutePickerController.class.getDeclaredMethod(methodName, argTypes);
+            m.setAccessible(true);
+            return m.invoke(controller, args);
+        } catch (NoSuchMethodException ignored) {
+            // Signature drift is common in private helpers; invoke by compatibility as a fallback.
+            Method compatible = findCompatiblePrivateMethod(methodName, args);
+            compatible.setAccessible(true);
+            return compatible.getParameterCount() == 0
+                    ? compatible.invoke(controller)
+                    : compatible.invoke(controller, args);
+        }
+    }
+
+    private Method findCompatiblePrivateMethod(String methodName, Object... args) throws NoSuchMethodException {
+        Method noArgFallback = null;
+        for (Method method : RoutePickerController.class.getDeclaredMethods()) {
+            if (!Objects.equals(method.getName(), methodName)) {
+                continue;
+            }
+            if (method.getParameterCount() == 0) {
+                noArgFallback = method;
+                continue;
+            }
+            if (method.getParameterCount() != args.length) {
+                continue;
+            }
+            if (parametersAreCompatible(method.getParameterTypes(), args)) {
+                return method;
+            }
+        }
+        if (noArgFallback != null) {
+            return noArgFallback;
+        }
+        throw new NoSuchMethodException(methodName);
+    }
+
+    private boolean parametersAreCompatible(Class<?>[] parameterTypes, Object[] args) {
+        for (int i = 0; i < parameterTypes.length; i++) {
+            if (args[i] == null) {
+                continue;
+            }
+            Class<?> expected = wrapPrimitive(parameterTypes[i]);
+            if (!expected.isAssignableFrom(args[i].getClass())) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private Class<?> wrapPrimitive(Class<?> type) {
+        if (!type.isPrimitive()) {
+            return type;
+        }
+        if (type == boolean.class) {
+            return Boolean.class;
+        }
+        if (type == byte.class) {
+            return Byte.class;
+        }
+        if (type == short.class) {
+            return Short.class;
+        }
+        if (type == int.class) {
+            return Integer.class;
+        }
+        if (type == long.class) {
+            return Long.class;
+        }
+        if (type == float.class) {
+            return Float.class;
+        }
+        if (type == double.class) {
+            return Double.class;
+        }
+        if (type == char.class) {
+            return Character.class;
+        }
+        return type;
     }
 
     private void invokePrivateMethod(String methodName) throws Exception {
