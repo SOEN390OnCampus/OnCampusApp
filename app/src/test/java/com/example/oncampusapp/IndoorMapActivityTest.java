@@ -7,6 +7,7 @@ import android.view.View;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import androidx.cardview.widget.CardView;
 import androidx.test.core.app.ApplicationProvider;
 
 import com.google.android.material.bottomnavigation.BottomNavigationView;
@@ -24,11 +25,14 @@ import org.robolectric.shadows.ShadowActivity;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -43,9 +47,10 @@ public class IndoorMapActivityTest {
 
     private Context context;
     private IndoorMapActivity initializedActivity;
+    private Class<?> stepTypeEnumClass;
 
     @Before
-    public void setUp() {
+    public void setUp() throws Exception {
         context = ApplicationProvider.getApplicationContext();
 
         // Build a standard initialized activity for tests that need the UI bound
@@ -53,7 +58,24 @@ public class IndoorMapActivityTest {
         validIntent.putExtra("BUILDING_ID", "H");
         validIntent.putExtra("FLOOR_ID", "8");
         initializedActivity = Robolectric.buildActivity(IndoorMapActivity.class, validIntent).create().get();
+
+        stepTypeEnumClass = Class.forName("com.example.oncampusapp.IndoorMapActivity$StepType");
     }
+
+    // ── Helper Methods for Reflection ─────────────────────────────────────────
+
+    private Object getEnum(String name) {
+        return Enum.valueOf((Class<Enum>) stepTypeEnumClass, name);
+    }
+
+    private Object createNavigationStep(Object type, String title, String subtitle, String floorId) throws Exception {
+        Class<?> navStepClass = Class.forName("com.example.oncampusapp.IndoorMapActivity$NavigationStep");
+        Constructor<?> constructor = navStepClass.getDeclaredConstructor(
+                stepTypeEnumClass, String.class, String.class, String.class);
+        constructor.setAccessible(true);
+        return constructor.newInstance(type, title, subtitle, floorId);
+    }
+
 
     // ── Lifecycle & Intent Validation Tests ───────────────────────────────────
 
@@ -73,6 +95,21 @@ public class IndoorMapActivityTest {
     }
 
     // ── Bottom Navigation Tests ───────────────────────────────────────────────
+
+    @Test
+    public void testBottomNav_clickHome_startsMapsActivityAndClearsTop() {
+        BottomNavigationView bottomNav = initializedActivity.findViewById(R.id.bottom_nav);
+        bottomNav.setSelectedItemId(R.id.nav_home);
+
+        ShadowActivity shadowActivity = Shadows.shadowOf(initializedActivity);
+        Intent actualIntent = shadowActivity.getNextStartedActivity();
+
+        assertEquals(MapsActivity.class.getName(), actualIntent.getComponent().getClassName());
+
+        // Ensure the CLEAR_TOP and SINGLE_TOP flags were added to prevent backstack buildup
+        int expectedFlags = Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP;
+        assertEquals(expectedFlags, actualIntent.getFlags() & expectedFlags);
+    }
 
     @Test
     public void testBottomNav_clickAccount_startsAuthActivity() {
@@ -126,7 +163,20 @@ public class IndoorMapActivityTest {
         assertEquals("TURN_RIGHT", result.toString());
     }
 
+    @Test
+    public void testComputeTurnType_detectsGoStraightWhenSegmentIsTooShort() throws Exception {
+        Method computeTurnType = IndoorMapActivity.class.getDeclaredMethod(
+                "computeTurnType", IndoorNode.class, IndoorNode.class, IndoorNode.class);
+        computeTurnType.setAccessible(true);
 
+        // Setup: Move DOWN 100px, but the next turn is only 10px long (Below the 80px threshold)
+        IndoorNode a = new IndoorNode.Builder().x(0).y(0).build();
+        IndoorNode b = new IndoorNode.Builder().x(0).y(100).build();
+        IndoorNode c = new IndoorNode.Builder().x(10).y(100).build();
+
+        Object result = computeTurnType.invoke(initializedActivity, a, b, c);
+        assertEquals("Should ignore short jaggies and say go straight", "GO_STRAIGHT", result.toString());
+    }
 
     // ── Node Logic & Property Checks (Reflection) ─────────────────────────────
 
@@ -144,15 +194,10 @@ public class IndoorMapActivityTest {
         Method isTurnCandidate = IndoorMapActivity.class.getDeclaredMethod("isTurnCandidate", IndoorNode.class);
         isTurnCandidate.setAccessible(true);
 
-        IndoorNode hallway = new IndoorNode.Builder().type("hallway").build();
-        IndoorNode doorway = new IndoorNode.Builder().type("doorway").build();
-        IndoorNode room = new IndoorNode.Builder().type("room").build();
-        IndoorNode nullType = new IndoorNode.Builder().build();
-
-        assertTrue((Boolean) isTurnCandidate.invoke(initializedActivity, hallway));
-        assertTrue((Boolean) isTurnCandidate.invoke(initializedActivity, doorway));
-        assertFalse((Boolean) isTurnCandidate.invoke(initializedActivity, room));
-        assertFalse((Boolean) isTurnCandidate.invoke(initializedActivity, nullType));
+        assertTrue((Boolean) isTurnCandidate.invoke(initializedActivity, new IndoorNode.Builder().type("hallway").build()));
+        assertTrue((Boolean) isTurnCandidate.invoke(initializedActivity, new IndoorNode.Builder().type("doorway").build()));
+        assertFalse((Boolean) isTurnCandidate.invoke(initializedActivity, new IndoorNode.Builder().type("room").build()));
+        assertFalse((Boolean) isTurnCandidate.invoke(initializedActivity, new IndoorNode.Builder().build()));
     }
 
     @Test
@@ -160,15 +205,11 @@ public class IndoorMapActivityTest {
         Method getTransitionType = IndoorMapActivity.class.getDeclaredMethod("getTransitionType", IndoorNode.class);
         getTransitionType.setAccessible(true);
 
-        IndoorNode escalator = new IndoorNode.Builder().type("escalator").build();
-        IndoorNode stair = new IndoorNode.Builder().type("stair").build();
-        IndoorNode elevator = new IndoorNode.Builder().type("elevator").build();
-        IndoorNode room = new IndoorNode.Builder().type("room").build();
-
-        assertEquals("TAKE_ESCALATOR", getTransitionType.invoke(initializedActivity, escalator).toString());
-        assertEquals("TAKE_STAIRS", getTransitionType.invoke(initializedActivity, stair).toString());
-        assertEquals("TAKE_ELEVATOR", getTransitionType.invoke(initializedActivity, elevator).toString());
-        assertNull(getTransitionType.invoke(initializedActivity, room));
+        assertEquals("TAKE_ESCALATOR", getTransitionType.invoke(initializedActivity, new IndoorNode.Builder().type("escalator").build()).toString());
+        assertEquals("TAKE_STAIRS", getTransitionType.invoke(initializedActivity, new IndoorNode.Builder().type("stair").build()).toString());
+        assertEquals("TAKE_ELEVATOR", getTransitionType.invoke(initializedActivity, new IndoorNode.Builder().type("elevator").build()).toString());
+        assertNull(getTransitionType.invoke(initializedActivity, new IndoorNode.Builder().type("room").build()));
+        assertNull(getTransitionType.invoke(initializedActivity, new IndoorNode.Builder().build())); // Null type check
     }
 
     @Test
@@ -176,19 +217,15 @@ public class IndoorMapActivityTest {
         Method isTransitOnly = IndoorMapActivity.class.getDeclaredMethod("isTransitOnly", List.class);
         isTransitOnly.setAccessible(true);
 
-        List<IndoorNode> emptyList = new ArrayList<>();
-        List<IndoorNode> transitList = Arrays.asList(
+        assertTrue((Boolean) isTransitOnly.invoke(initializedActivity, new ArrayList<>()));
+        assertTrue((Boolean) isTransitOnly.invoke(initializedActivity, Arrays.asList(
                 new IndoorNode.Builder().type("elevator").build(),
                 new IndoorNode.Builder().type("stair").build()
-        );
-        List<IndoorNode> mixedList = Arrays.asList(
+        )));
+        assertFalse((Boolean) isTransitOnly.invoke(initializedActivity, Arrays.asList(
                 new IndoorNode.Builder().type("elevator").build(),
                 new IndoorNode.Builder().type("room").build()
-        );
-
-        assertTrue((Boolean) isTransitOnly.invoke(initializedActivity, emptyList));
-        assertTrue((Boolean) isTransitOnly.invoke(initializedActivity, transitList));
-        assertFalse((Boolean) isTransitOnly.invoke(initializedActivity, mixedList));
+        )));
     }
 
     @Test
@@ -205,18 +242,12 @@ public class IndoorMapActivityTest {
 
     @Test
     public void testTransitionTitle_formatsCorrectly() throws Exception {
-        // Need to grab the private enum StepType
-        Class<?> stepTypeClass = Class.forName("com.example.oncampusapp.IndoorMapActivity$StepType");
-        Object takeStairs = Enum.valueOf((Class<Enum>) stepTypeClass, "TAKE_STAIRS");
-        Object takeEscalator = Enum.valueOf((Class<Enum>) stepTypeClass, "TAKE_ESCALATOR");
-        Object takeElevator = Enum.valueOf((Class<Enum>) stepTypeClass, "TAKE_ELEVATOR");
-
-        Method transitionTitle = IndoorMapActivity.class.getDeclaredMethod("transitionTitle", stepTypeClass, String.class);
+        Method transitionTitle = IndoorMapActivity.class.getDeclaredMethod("transitionTitle", stepTypeEnumClass, String.class);
         transitionTitle.setAccessible(true);
 
-        assertEquals("Take Staircase to Floor 8", transitionTitle.invoke(initializedActivity, takeStairs, "8"));
-        assertEquals("Take Escalator to Floor 2", transitionTitle.invoke(initializedActivity, takeEscalator, "2"));
-        assertEquals("Take Elevator to Floor 5", transitionTitle.invoke(initializedActivity, takeElevator, "5"));
+        assertEquals("Take Staircase to Floor 8", transitionTitle.invoke(initializedActivity, getEnum("TAKE_STAIRS"), "8"));
+        assertEquals("Take Escalator to Floor 2", transitionTitle.invoke(initializedActivity, getEnum("TAKE_ESCALATOR"), "2"));
+        assertEquals("Take Elevator to Floor 5", transitionTitle.invoke(initializedActivity, getEnum("TAKE_ELEVATOR"), "5"));
     }
 
     @Test
@@ -233,48 +264,7 @@ public class IndoorMapActivityTest {
     // ── JSON Parsing Tests ────────────────────────────────────────────────────
 
     @Test
-    public void testComputeTurnType_detectsGoStraightWhenSegmentIsTooShort() throws Exception {
-        IndoorMapActivity activity = Robolectric.buildActivity(IndoorMapActivity.class).get();
-        Method computeTurnType = IndoorMapActivity.class.getDeclaredMethod(
-                "computeTurnType", IndoorNode.class, IndoorNode.class, IndoorNode.class);
-        computeTurnType.setAccessible(true);
-
-        // Setup: Move DOWN 100px, but the next turn is only 10px long (Below the 80px threshold)
-        IndoorNode a = new IndoorNode.Builder().x(0).y(0).build();
-        IndoorNode b = new IndoorNode.Builder().x(0).y(100).build();
-        IndoorNode c = new IndoorNode.Builder().x(10).y(100).build();
-
-        Object result = computeTurnType.invoke(activity, a, b, c);
-        assertEquals("Should ignore short jaggies and say go straight", "GO_STRAIGHT", result.toString());
-    }
-
-    // ── Bottom Navigation Tests ───────────────────────────────────────────────
-
-    @Test
-    public void testBottomNav_clickHome_startsMapsActivityAndClearsTop() {
-        Intent validIntent = new Intent(context, IndoorMapActivity.class);
-        validIntent.putExtra("BUILDING_ID", "H");
-        validIntent.putExtra("FLOOR_ID", "8");
-        IndoorMapActivity activity = Robolectric.buildActivity(IndoorMapActivity.class, validIntent).create().get();
-
-        BottomNavigationView bottomNav = activity.findViewById(R.id.bottom_nav);
-        bottomNav.setSelectedItemId(R.id.nav_home);
-
-        ShadowActivity shadowActivity = Shadows.shadowOf(activity);
-        Intent actualIntent = shadowActivity.getNextStartedActivity();
-
-        assertEquals(MapsActivity.class.getName(), actualIntent.getComponent().getClassName());
-
-        // Ensure the CLEAR_TOP and SINGLE_TOP flags were added to prevent backstack buildup
-        int expectedFlags = Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP;
-        assertEquals(expectedFlags, actualIntent.getFlags() & expectedFlags);
-    }
-
-    // ── Your Existing JSON Parsing Tests ──────────────────────────────────────
-
-    @Test
     public void testLoadNodesForFloor_handlesStandardAndMBBasements() throws Exception {
-        IndoorMapActivity activity = Robolectric.buildActivity(IndoorMapActivity.class).get();
         Resources mockResources = Mockito.mock(Resources.class);
 
         String fakeJson = "{ \"nodes\": [" +
@@ -284,7 +274,7 @@ public class IndoorMapActivityTest {
 
         InputStream fakeInputStream = new ByteArrayInputStream(fakeJson.getBytes(StandardCharsets.UTF_8));
 
-        IndoorMapActivity spyActivity = Mockito.spy(activity);
+        IndoorMapActivity spyActivity = Mockito.spy(initializedActivity);
         when(spyActivity.getResources()).thenReturn(mockResources);
         when(mockResources.openRawResource(anyInt())).thenReturn(fakeInputStream);
 
@@ -304,7 +294,6 @@ public class IndoorMapActivityTest {
 
     @Test
     public void testLoadNodesForFloor_skipsInvalidAndEmptyNodes() throws Exception {
-        IndoorMapActivity activity = Robolectric.buildActivity(IndoorMapActivity.class).get();
         Resources mockResources = Mockito.mock(Resources.class);
 
         String dirtyJson = "{ \"nodes\": [" +
@@ -316,7 +305,7 @@ public class IndoorMapActivityTest {
 
         InputStream fakeInputStream = new ByteArrayInputStream(dirtyJson.getBytes(StandardCharsets.UTF_8));
 
-        IndoorMapActivity spyActivity = Mockito.spy(activity);
+        IndoorMapActivity spyActivity = Mockito.spy(initializedActivity);
         when(spyActivity.getResources()).thenReturn(mockResources);
         when(mockResources.openRawResource(anyInt())).thenReturn(fakeInputStream);
 
@@ -327,5 +316,74 @@ public class IndoorMapActivityTest {
 
         assertEquals(1, result.size());
         assertEquals("H-101", result.get(0).getLabel());
+    }
+
+    // ── Navigation Step Filter Logic ──────────────────────────────────────────
+
+    @Test
+    public void testFilterSteps_removesRedundantGoStraightCommands() throws Exception {
+        Method filterStepsMethod = IndoorMapActivity.class.getDeclaredMethod("filterSteps", List.class);
+        filterStepsMethod.setAccessible(true);
+
+        List<Object> rawSteps = new ArrayList<>();
+        // This Go Straight is BEFORE the transition -> filtered out
+        rawSteps.add(createNavigationStep(getEnum("GO_STRAIGHT"), "Go Straight", "F8", "8"));
+
+        // The Transition -> kept
+        rawSteps.add(createNavigationStep(getEnum("TAKE_STAIRS"), "Take Stairs", "F8", "8"));
+
+        // This Go Straight is AFTER the transition -> filtered out
+        rawSteps.add(createNavigationStep(getEnum("GO_STRAIGHT"), "Go Straight", "F7", "7"));
+
+        // The Arrival -> kept
+        rawSteps.add(createNavigationStep(getEnum("ARRIVE"), "Arrived", "F7", "7"));
+
+        List<?> filtered = (List<?>) filterStepsMethod.invoke(initializedActivity, rawSteps);
+
+        // Expect exactly 2 steps to remain (The stairs and the arrival)
+        assertEquals("Should remove the Go Straight before AND after the stairs", 2, filtered.size());
+
+        // Verify the exact steps that survived
+        assertEquals("TAKE_STAIRS", getStepType(filtered.get(0)));
+        assertEquals("ARRIVE", getStepType(filtered.get(1)));
+    }
+
+    private String getStepType(Object navStep) throws Exception {
+        Field typeField = navStep.getClass().getDeclaredField("type");
+        typeField.setAccessible(true);
+        return typeField.get(navStep).toString();
+    }
+
+    // ── UI Visibility Logic ───────────────────────────────────────────────────
+
+    @Test
+    public void testShowRoutePanels_hidesSearchBarAndShowsCards() throws Exception {
+        Method showRoutePanels = IndoorMapActivity.class.getDeclaredMethod("showRoutePanels");
+        showRoutePanels.setAccessible(true);
+
+        showRoutePanels.invoke(initializedActivity);
+
+        assertEquals(View.GONE, initializedActivity.findViewById(R.id.et_indoor_search).getVisibility());
+        assertEquals(View.VISIBLE, initializedActivity.findViewById(R.id.row_info_cards).getVisibility());
+        assertEquals(View.VISIBLE, initializedActivity.findViewById(R.id.card_current_step).getVisibility());
+        assertEquals(View.VISIBLE, initializedActivity.findViewById(R.id.card_next_step).getVisibility());
+    }
+
+    // ── Step Display Logic ────────────────────────────────────────────────────
+
+    @Test
+    public void testUpdateNextCard_handlesNullGracefully() throws Exception {
+        Method updateNextCard = IndoorMapActivity.class.getDeclaredMethod("updateNextCard", Class.forName("com.example.oncampusapp.IndoorMapActivity$NavigationStep"));
+        updateNextCard.setAccessible(true);
+
+        // Ensure UI panels are visible first so we can grab the TextView
+        Method showRoutePanels = IndoorMapActivity.class.getDeclaredMethod("showRoutePanels");
+        showRoutePanels.setAccessible(true);
+        showRoutePanels.invoke(initializedActivity);
+
+        updateNextCard.invoke(initializedActivity, (Object) null);
+
+        TextView tvNext = initializedActivity.findViewById(R.id.tv_next_step_title);
+        assertEquals("—", tvNext.getText().toString());
     }
 }

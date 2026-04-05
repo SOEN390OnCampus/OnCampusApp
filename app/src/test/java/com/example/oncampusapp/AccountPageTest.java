@@ -1,5 +1,7 @@
 package com.example.oncampusapp;
 
+import org.json.JSONArray;
+import org.json.JSONObject;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -8,13 +10,18 @@ import org.robolectric.RobolectricTestRunner;
 import org.robolectric.annotation.Config;
 
 import java.lang.reflect.Method;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Locale;
 
 import static org.junit.Assert.*;
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.content.Intent;
+import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
+import android.widget.TextView;
 
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.button.MaterialButton;
@@ -23,15 +30,10 @@ import org.robolectric.Shadows;
 import org.robolectric.shadows.ShadowActivity;
 import org.robolectric.shadows.ShadowAlertDialog;
 import org.robolectric.shadows.ShadowDialog;
+import org.robolectric.shadows.ShadowToast;
 
 /**
- * Tests for AccountPage pure-logic methods.
- *
- * We obtain an AccountPage instance via Robolectric.buildActivity(...).get()
- * WITHOUT calling .create(), because onCreate() calls Google Sign-In APIs
- * that are unavailable in the test environment. The private methods under test
- * (resolveOnlineLabel) use only their parameters — no instance state — so the
- * uninitialised activity is safe to use as a receiver.
+ * Tests for AccountPage pure-logic methods and UI flows.
  */
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk = 34)
@@ -108,7 +110,6 @@ public class AccountPageTest {
 
     @Test
     public void resolveOnlineLabel_caseInsensitive_zoom() throws Exception {
-        // search is lowercased, so "ZOOM" in rawLocation still matches
         assertEquals("ZOOM MEETING",
                 resolveOnlineLabel.invoke(activity, "ZOOM LINK", ""));
     }
@@ -119,21 +120,10 @@ public class AccountPageTest {
                 resolveOnlineLabel.invoke(activity, "Microsoft Teams Meeting", ""));
     }
 
-    // ── populateCalendarList — null calendarListJson guard ────────────────────
-
-    @Test
-    public void populateCalendarList_nullJson_returnsImmediately() throws Exception {
-        // calendarListJson is null by default (no Intent extras) → method returns early
-        Method m = AccountPage.class.getDeclaredMethod("populateCalendarList");
-        m.setAccessible(true);
-        // No crash expected — null check at top of method guards all view access
-        m.invoke(activity);
-    }
     // ── setLocationText ───────────────────────────────────────────────────────
 
     @Test
     public void setLocationText_whenOnline_showsTagAndResolvesLabel() throws Exception {
-        // Setup raw views using the application context
         android.content.Context context = androidx.test.core.app.ApplicationProvider.getApplicationContext();
         android.widget.TextView detailsView = new android.widget.TextView(context);
         android.widget.TextView onlineTagView = new android.widget.TextView(context);
@@ -144,10 +134,8 @@ public class AccountPageTest {
                 String.class, String.class, String.class);
         setLocationText.setAccessible(true);
 
-        // Action: Call with "Online" as the parsed location
         setLocationText.invoke(activity, detailsView, onlineTagView, "Online", "zoom.us", "");
 
-        // Assertion: Tag should be visible, and the text should be resolved to ZOOM MEETING
         assertEquals(android.view.View.VISIBLE, onlineTagView.getVisibility());
         assertEquals("ZOOM MEETING", detailsView.getText().toString());
     }
@@ -157,58 +145,172 @@ public class AccountPageTest {
         android.content.Context context = androidx.test.core.app.ApplicationProvider.getApplicationContext();
         android.widget.TextView detailsView = new android.widget.TextView(context);
         android.widget.TextView onlineTagView = new android.widget.TextView(context);
-        onlineTagView.setVisibility(android.view.View.VISIBLE); // Start visible to ensure it gets hidden
+        onlineTagView.setVisibility(android.view.View.VISIBLE);
 
         Method setLocationText = AccountPage.class.getDeclaredMethod(
                 "setLocationText", android.widget.TextView.class, android.widget.TextView.class,
                 String.class, String.class, String.class);
         setLocationText.setAccessible(true);
 
-        // Action: Call with a physical room
         setLocationText.invoke(activity, detailsView, onlineTagView, "H-820", "", "");
 
-        // Assertion: Tag should be hidden, text should just be the room name
         assertEquals(android.view.View.GONE, onlineTagView.getVisibility());
         assertEquals("H-820", detailsView.getText().toString());
     }
 
-    // ── populateCalendarList (UI Inflation without onCreate) ──────────────────
+    // ── populateCalendarList ──────────────────────────────────────────────────
 
     @Test
-    public void populateCalendarList_withValidJson_inflatesCalendarItems() throws Exception {
-        /* * JEDI TRICK: We can test the UI inflation WITHOUT calling onCreate() by
-         * manually setting the theme, inflating the layout, and calling setViews()!
-         */
+    public void populateCalendarList_nullJson_returnsImmediately() throws Exception {
+        Method m = AccountPage.class.getDeclaredMethod("populateCalendarList");
+        m.setAccessible(true);
+        m.invoke(activity); // Should not crash
+    }
 
-        // 1. Manually setup the UI environment
+    @Test
+    public void populateCalendarList_malformedJson_showsToast() throws Exception {
         activity.setTheme(androidx.appcompat.R.style.Theme_AppCompat_Light);
         activity.setContentView(R.layout.account_page);
 
-        // 2. Call setViews() via reflection to bind the XML elements to the Activity's private fields
         Method setViewsMethod = AccountPage.class.getDeclaredMethod("setViews");
         setViewsMethod.setAccessible(true);
         setViewsMethod.invoke(activity);
 
-        // 3. Inject mock JSON directly into the private 'calendarListJson' field
-        String mockJson = "{ \"items\": [{\"id\": \"cal1\", \"summary\": \"Test Calendar\", \"backgroundColor\": \"#8B1E2D\"}] }";
         java.lang.reflect.Field jsonField = AccountPage.class.getDeclaredField("calendarListJson");
         jsonField.setAccessible(true);
-        jsonField.set(activity, mockJson);
+        jsonField.set(activity, "{ this is obviously broken JSON ]");
 
-        // 4. Invoke the populate method
         Method populateMethod = AccountPage.class.getDeclaredMethod("populateCalendarList");
         populateMethod.setAccessible(true);
         populateMethod.invoke(activity);
 
-        // 5. Assert the views were successfully generated and appended to the screen
-        android.widget.LinearLayout container = activity.findViewById(R.id.calendarListContainer);
-        assertEquals("Container should have exactly 1 calendar item inflated", 1, container.getChildCount());
-
-        android.widget.TextView nameText = container.getChildAt(0).findViewById(R.id.calendar_name);
-        assertEquals("Test Calendar", nameText.getText().toString());
+        assertEquals("Error loading calendars", ShadowToast.getTextOfLatestToast());
     }
 
-// ── Full Activity UI & Lifecycle Tests ────────────────────────────────────
+    @Test
+    public void populateCalendarList_emptyJsonArray_createsZeroItems() throws Exception {
+        activity.setTheme(androidx.appcompat.R.style.Theme_AppCompat_Light);
+        activity.setContentView(R.layout.account_page);
+
+        Method setViewsMethod = AccountPage.class.getDeclaredMethod("setViews");
+        setViewsMethod.setAccessible(true);
+        setViewsMethod.invoke(activity);
+
+        String mockJson = "{ \"items\": [] }";
+        java.lang.reflect.Field jsonField = AccountPage.class.getDeclaredField("calendarListJson");
+        jsonField.setAccessible(true);
+        jsonField.set(activity, mockJson);
+
+        Method populateMethod = AccountPage.class.getDeclaredMethod("populateCalendarList");
+        populateMethod.setAccessible(true);
+        populateMethod.invoke(activity);
+
+        android.widget.LinearLayout container = activity.findViewById(R.id.calendarListContainer);
+        assertEquals("Container should be empty if no calendars exist", 0, container.getChildCount());
+    }
+
+    @Test
+    public void populateCalendarList_withValidJson_inflatesCalendarItemsAndHandlesClicks() throws Exception {
+        activity.setTheme(androidx.appcompat.R.style.Theme_AppCompat_Light);
+        activity.setContentView(R.layout.account_page);
+
+        Method setViewsMethod = AccountPage.class.getDeclaredMethod("setViews");
+        setViewsMethod.setAccessible(true);
+        setViewsMethod.invoke(activity);
+
+        String mockJson = "{ \"items\": [{\"id\": \"cal123\", \"summary\": \"Test Calendar\", \"backgroundColor\": \"#8B1E2D\"}] }";
+        java.lang.reflect.Field jsonField = AccountPage.class.getDeclaredField("calendarListJson");
+        jsonField.setAccessible(true);
+        jsonField.set(activity, mockJson);
+
+        Method populateMethod = AccountPage.class.getDeclaredMethod("populateCalendarList");
+        populateMethod.setAccessible(true);
+        populateMethod.invoke(activity);
+
+        android.widget.LinearLayout container = activity.findViewById(R.id.calendarListContainer);
+        assertEquals(1, container.getChildCount());
+
+        View itemView = container.getChildAt(0);
+        TextView nameText = itemView.findViewById(R.id.calendar_name);
+        assertEquals("Test Calendar", nameText.getText().toString());
+
+        // Perform click on the inflated item
+        itemView.performClick();
+
+        // Verify Intent was fired correctly
+        ShadowActivity shadowActivity = Shadows.shadowOf(activity);
+        Intent intent = shadowActivity.getNextStartedActivity();
+        assertNotNull("Clicking a calendar should launch an Intent", intent);
+        assertEquals(ScheduleViewer.class.getName(), intent.getComponent().getClassName());
+        assertEquals("cal123", intent.getStringExtra("calendar_id"));
+        assertEquals("Test Calendar", intent.getStringExtra("calendar_name"));
+        assertEquals("#8B1E2D", intent.getStringExtra("calendar_color"));
+    }
+
+    // ── Banner Logic Tests ────────────────────────────────────────────────────
+
+    private String generateDynamicIsoDate(long offsetMillis) {
+        SimpleDateFormat fmt = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX", Locale.getDefault());
+        return fmt.format(new Date(System.currentTimeMillis() + offsetMillis));
+    }
+
+    @Test
+    public void populateBanner_eventMoreThanOneHourAway_hidesBanner() throws Exception {
+        activity.setTheme(androidx.appcompat.R.style.Theme_AppCompat_Light);
+        activity.setContentView(R.layout.account_page);
+        View bannerView = activity.findViewById(R.id.included_banner);
+
+        // Make an event that starts 2 hours from now
+        long twoHoursMillis = 2 * 60 * 60 * 1000L;
+        JSONObject startObj = new JSONObject().put("dateTime", generateDynamicIsoDate(twoHoursMillis));
+        JSONObject endObj = new JSONObject().put("dateTime", generateDynamicIsoDate(twoHoursMillis + 3600000L));
+
+        JSONObject mockEvent = new JSONObject();
+        mockEvent.put("summary", "Future Class");
+        mockEvent.put("start", startObj);
+        mockEvent.put("end", endObj);
+
+        Method populateBanner = AccountPage.class.getDeclaredMethod("populateBanner", View.class, JSONObject.class);
+        populateBanner.setAccessible(true);
+        populateBanner.invoke(activity, bannerView, mockEvent);
+
+        assertEquals("Banner should be GONE if event is > 1 hour away", View.GONE, bannerView.getVisibility());
+    }
+
+    @Test
+    public void populateBanner_eventWithinOneHour_showsBannerAndPopulatesData() throws Exception {
+        activity.setTheme(androidx.appcompat.R.style.Theme_AppCompat_Light);
+        activity.setContentView(R.layout.account_page);
+        View bannerView = activity.findViewById(R.id.included_banner);
+
+        // Start visible = false so we can prove it turns visible
+        bannerView.setVisibility(View.GONE);
+
+        // Make an event that starts in 30 minutes
+        long thirtyMinsMillis = 30 * 60 * 1000L;
+        JSONObject startObj = new JSONObject().put("dateTime", generateDynamicIsoDate(thirtyMinsMillis));
+        JSONObject endObj = new JSONObject().put("dateTime", generateDynamicIsoDate(thirtyMinsMillis + 3600000L));
+
+        JSONObject mockEvent = new JSONObject();
+        mockEvent.put("summary", "Imminent Class");
+        mockEvent.put("start", startObj);
+        mockEvent.put("end", endObj);
+        mockEvent.put("location", "H-820");
+
+        Method populateBanner = AccountPage.class.getDeclaredMethod("populateBanner", View.class, JSONObject.class);
+        populateBanner.setAccessible(true);
+        populateBanner.invoke(activity, bannerView, mockEvent);
+
+        assertEquals("Banner should be VISIBLE if event is < 1 hour away", View.VISIBLE, bannerView.getVisibility());
+        TextView titleView = bannerView.findViewById(R.id.banner_event_title);
+        assertEquals("Imminent Class", titleView.getText().toString());
+
+        TextView detailsView = bannerView.findViewById(R.id.banner_event_details);
+        // FIX: Expect the fully expanded location name generated by the LocationParser
+        assertEquals("Henry F. Hall Building - Room 820", detailsView.getText().toString());
+    }
+
+    // ── Full Activity UI & Lifecycle Tests ────────────────────────────────────
 
     /**
      * Safely boots a fully lifecycle-aware Activity for UI testing
@@ -318,13 +420,8 @@ public class AccountPageTest {
                 Robolectric.buildActivity(AccountPage.class).create().resume();
         AccountPage fullActivity = controller.get();
 
-        // Action: Destroy the activity to trigger onDestroy()
         controller.destroy();
 
-        // Assertion: If the timer wasn't cleaned up, Robolectric would throw a memory leak error.
-        // We assert it is finishing/destroyed to ensure the lifecycle ran successfully.
         assertTrue(fullActivity.isFinishing() || fullActivity.isDestroyed());
     }
-
-
 }
