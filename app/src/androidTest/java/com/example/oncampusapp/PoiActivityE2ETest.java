@@ -1,10 +1,7 @@
 package com.example.oncampusapp;
 
 import static androidx.test.espresso.Espresso.onView;
-import static androidx.test.espresso.Espresso.pressBack;
 import static androidx.test.espresso.action.ViewActions.click;
-import static androidx.test.espresso.action.ViewActions.closeSoftKeyboard;
-import static androidx.test.espresso.action.ViewActions.replaceText;
 import static androidx.test.espresso.assertion.ViewAssertions.doesNotExist;
 import static androidx.test.espresso.assertion.ViewAssertions.matches;
 import static androidx.test.espresso.intent.Intents.intended;
@@ -16,17 +13,16 @@ import static androidx.test.espresso.matcher.ViewMatchers.withId;
 import static androidx.test.espresso.matcher.ViewMatchers.withText;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
 import android.app.Activity;
 import android.app.Instrumentation;
 
 import androidx.lifecycle.Lifecycle;
 import androidx.test.core.app.ActivityScenario;
-import androidx.test.espresso.Espresso;
 import androidx.test.espresso.intent.Intents;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 
-import org.hamcrest.CoreMatchers;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -84,6 +80,7 @@ public class PoiActivityE2ETest {
 
         ActivityScenario.launch(PoiActivity.class);
 
+        onView(withText("Cafe Van Houtte")).check(matches(isDisplayed()));
         onView(withText("Cafe Van Houtte")).perform(click());
 
         intended(hasComponent(MapsActivity.class.getName()));
@@ -100,8 +97,10 @@ public class PoiActivityE2ETest {
 
         intending(hasComponent(MapsActivity.class.getName())).respondWith(result);
 
-        ActivityScenario.launch(PoiActivity.class);
+        ActivityScenario<PoiActivity> scenario = ActivityScenario.launch(PoiActivity.class);
+        assertNotNull(scenario);
 
+        onView(withId(R.id.bottom_nav)).check(matches(isDisplayed()));
         onView(withId(R.id.nav_home)).perform(click());
 
         intended(hasComponent(MapsActivity.class.getName()));
@@ -114,8 +113,10 @@ public class PoiActivityE2ETest {
 
         intending(hasComponent(GoogleCalendarAuthActivity.class.getName())).respondWith(result);
 
-        ActivityScenario.launch(PoiActivity.class);
+       ActivityScenario<PoiActivity> scenario = ActivityScenario.launch(PoiActivity.class);
+        assertNotNull(scenario);
 
+        onView(withId(R.id.bottom_nav)).check(matches(isDisplayed()));
         onView(withId(R.id.nav_account)).perform(click());
 
         intended(hasComponent(GoogleCalendarAuthActivity.class.getName()));
@@ -128,8 +129,10 @@ public class PoiActivityE2ETest {
 
         intending(hasComponent(SettingsActivity.class.getName())).respondWith(result);
 
-        ActivityScenario.launch(PoiActivity.class);
+        ActivityScenario<PoiActivity> scenario = ActivityScenario.launch(PoiActivity.class);
+        assertNotNull(scenario);
 
+        onView(withId(R.id.bottom_nav)).check(matches(isDisplayed()));
         onView(withId(R.id.nav_settings)).perform(click());
 
         intended(hasComponent(SettingsActivity.class.getName()));
