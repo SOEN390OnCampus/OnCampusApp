@@ -54,9 +54,6 @@ public class GoogleCalendarAuthE2ETest {
             onView(withId(R.id.refreshCalendar))
                     .perform(scrollTo(), click());
 
-            // Wait for dialog to appear
-            try { Thread.sleep(1000); } catch (InterruptedException e) { Thread.currentThread().interrupt(); }
-
             onView(allOf(withId(R.id.btn_allow), withText("Allow"), isDisplayed()))
                     .perform(click());
         }
@@ -66,12 +63,10 @@ public class GoogleCalendarAuthE2ETest {
     @Test
     public void OpenCalendarTest() throws InterruptedException {
         try (ActivityScenario<AccountPage> scenario = ActivityScenario.launch(AccountPage.class)) {
-            Thread.sleep(1000); // let onResume populate the calendar list
 
             onView(childAtPosition(withId(R.id.calendarListContainer), 0))
                     .perform(click());
 
-            Thread.sleep(3000);
 
             onView(withId(R.id.nav_right))
                     .perform(click());
@@ -85,12 +80,10 @@ public class GoogleCalendarAuthE2ETest {
             onView(withId(R.id.btn_back))
                     .perform(click());
 
-            Thread.sleep(3000);
 
             onView(childAtPosition(withId(R.id.calendarListContainer), 1))
                     .perform(click());
 
-            Thread.sleep(3000);
         }
     }
 
