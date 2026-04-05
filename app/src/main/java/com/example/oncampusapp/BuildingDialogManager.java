@@ -99,8 +99,13 @@ public class BuildingDialogManager {
         llAccessibility.setVisibility(buildingDetails.isAccessible() ? View.VISIBLE : View.GONE);
         llMetroConnect.setVisibility(buildingDetails.hasDirectTunnelToMetro() ? View.VISIBLE : View.GONE);
 
-        if (buildingDetails.getSchedule() == null) {
-            llOpeningHours.setVisibility(View.GONE);
+        if (buildingDetails.getSchedule() == null || buildingDetails.getSchedule().isAlwaysOpen()) {
+            if (buildingDetails.getSchedule().isAlwaysOpen()){
+                llOpeningHours.setVisibility(View.VISIBLE);
+                txtOpeningHours.setText(R.string.always_open);
+            } else {
+                llOpeningHours.setVisibility(View.GONE);
+            }
         } else {
             llOpeningHours.setVisibility(View.VISIBLE);
             txtOpeningHours.setText(buildingDetails.getSchedule().toString());
