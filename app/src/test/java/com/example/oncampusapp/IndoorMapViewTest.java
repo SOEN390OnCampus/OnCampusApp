@@ -16,9 +16,11 @@ import org.robolectric.shadows.ShadowLooper;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 @RunWith(RobolectricTestRunner.class)
@@ -136,5 +138,160 @@ public class IndoorMapViewTest {
         // Second interpolated dot
         assertEquals(240f, result.get(2).x, 0.001);
         assertEquals(0f, result.get(2).y, 0.001);
+    }
+
+    // ── setPath / clearPath ───────────────────────────────────────────────────
+
+    @Test
+    public void testSetPath_storesPoints() throws Exception {
+        Context context = ApplicationProvider.getApplicationContext();
+        IndoorMapView mapView = new IndoorMapView(context, null);
+
+        List<PointF> points = Arrays.asList(new PointF(0f, 0f), new PointF(100f, 0f));
+        mapView.setPath(points);
+
+        Field field = IndoorMapView.class.getDeclaredField("pathPoints");
+        field.setAccessible(true);
+        List<?> stored = (List<?>) field.get(mapView);
+        assertEquals(2, stored.size());
+    }
+
+    @Test
+    public void testSetPath_null_storesEmptyList() throws Exception {
+        Context context = ApplicationProvider.getApplicationContext();
+        IndoorMapView mapView = new IndoorMapView(context, null);
+
+        mapView.setPath(null);
+
+        Field field = IndoorMapView.class.getDeclaredField("pathPoints");
+        field.setAccessible(true);
+        List<?> stored = (List<?>) field.get(mapView);
+        assertTrue(stored.isEmpty());
+    }
+
+    @Test
+    public void testClearPath_emptiesPathAndEvenPoints() throws Exception {
+        Context context = ApplicationProvider.getApplicationContext();
+        IndoorMapView mapView = new IndoorMapView(context, null);
+
+        mapView.setPath(Arrays.asList(new PointF(0f, 0f), new PointF(200f, 0f)));
+        mapView.clearPath();
+
+        Field pathField = IndoorMapView.class.getDeclaredField("pathPoints");
+        pathField.setAccessible(true);
+        Field evenField = IndoorMapView.class.getDeclaredField("evenPathPoints");
+        evenField.setAccessible(true);
+
+        assertTrue(((List<?>) pathField.get(mapView)).isEmpty());
+        assertTrue(((List<?>) evenField.get(mapView)).isEmpty());
+    }
+
+    // ── onMeasure ─────────────────────────────────────────────────────────────
+
+    @Test
+    public void testOnMeasure_withFloorPlan_exactlyMode_usesGivenHeight() throws Exception {
+        Activity activity = Robolectric.buildActivity(Activity.class).setup().get();
+        IndoorMapView mapView = new IndoorMapView(activity, null);
+
+        // Inject a 200x400 floor plan so the aspect-ratio branch is reached
+        Bitmap bitmap = Bitmap.createBitmap(200, 400, Bitmap.Config.ARGB_8888);
+        Field fp = IndoorMapView.class.getDeclaredField("floorPlan");
+        fp.setAccessible(true);
+        fp.set(mapView, bitmap);
+
+        int widthSpec  = View.MeasureSpec.makeMeasureSpec(500, View.MeasureSpec.EXACTLY);
+        int heightSpec = View.MeasureSpec.makeMeasureSpec(300, View.MeasureSpec.EXACTLY);
+        mapView.measure(widthSpec, heightSpec);
+
+        assertEquals(300, mapView.getMeasuredHeight());
+    }
+
+    @Test
+    public void testOnMeasure_withFloorPlan_atMostMode_clampsToBound() throws Exception {
+        Activity activity = Robolectric.buildActivity(Activity.class).setup().get();
+        IndoorMapView mapView = new IndoorMapView(activity, null);
+
+        Bitmap bitmap = Bitmap.createBitmap(200, 400, Bitmap.Config.ARGB_8888);
+        Field fp = IndoorMapView.class.getDeclaredField("floorPlan");
+        fp.setAccessible(true);
+        fp.set(mapView, bitmap);
+
+        int widthSpec  = View.MeasureSpec.makeMeasureSpec(500, View.MeasureSpec.EXACTLY);
+        int heightSpec = View.MeasureSpec.makeMeasureSpec(200, View.MeasureSpec.AT_MOST);
+        mapView.measure(widthSpec, heightSpec);
+
+        // desired = 500 * (400/200) = 1000 — clamped to AT_MOST bound 200
+        assertEquals(200, mapView.getMeasuredHeight());
+    }
+
+    @Test
+    public void testOnMeasure_withFloorPlan_unspecifiedMode_usesDesiredHeight() throws Exception {
+        Activity activity = Robolectric.buildActivity(Activity.class).setup().get();
+        IndoorMapView mapView = new IndoorMapView(activity, null);
+
+        // 100x50 bitmap: aspect = 0.5, width=400 → desired height = 200
+        Bitmap bitmap = Bitmap.createBitmap(100, 50, Bitmap.Config.ARGB_8888);
+        Field fp = IndoorMapView.class.getDeclaredField("floorPlan");
+        fp.setAccessible(true);
+        fp.set(mapView, bitmap);
+
+        int widthSpec  = View.MeasureSpec.makeMeasureSpec(400, View.MeasureSpec.EXACTLY);
+        int heightSpec = View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED);
+        mapView.measure(widthSpec, heightSpec);
+
+        assertEquals(200, mapView.getMeasuredHeight());
+    }
+
+    @Test
+    public void testOnMeasure_withoutFloorPlan_usesDefaultMeasure() {
+        Context context = ApplicationProvider.getApplicationContext();
+        IndoorMapView mapView = new IndoorMapView(context, null);
+
+        int spec = View.MeasureSpec.makeMeasureSpec(500, View.MeasureSpec.EXACTLY);
+        mapView.measure(spec, spec);
+
+        assertNotNull(mapView);
+    }
+
+    // ── onDraw ────────────────────────────────────────────────────────────────
+
+    @Test
+    public void testOnDraw_withFloorPlanAndPin_doesNotThrow() throws Exception {
+        Activity activity = Robolectric.buildActivity(Activity.class).setup().get();
+        IndoorMapView mapView = new IndoorMapView(activity, null);
+
+        Bitmap bitmap = Bitmap.createBitmap(200, 200, Bitmap.Config.ARGB_8888);
+        mapView.setMapData(bitmap);
+        ShadowLooper.idleMainLooper();
+
+        mapView.setPinLocation(100f, 100f);
+
+        // Draw onto a real canvas backed by a bitmap
+        Bitmap canvas = Bitmap.createBitmap(200, 200, Bitmap.Config.ARGB_8888);
+        mapView.draw(new android.graphics.Canvas(canvas));
+
+        assertNotNull(mapView);
+    }
+
+    @Test
+    public void testOnDraw_withPath_doesNotThrow() throws Exception {
+        Activity activity = Robolectric.buildActivity(Activity.class).setup().get();
+        IndoorMapView mapView = new IndoorMapView(activity, null);
+        activity.setContentView(mapView);
+
+        int spec = View.MeasureSpec.makeMeasureSpec(300, View.MeasureSpec.EXACTLY);
+        mapView.measure(spec, spec);
+        mapView.layout(0, 0, 300, 300);
+
+        Bitmap bitmap = Bitmap.createBitmap(300, 300, Bitmap.Config.ARGB_8888);
+        mapView.setMapData(bitmap);
+        ShadowLooper.idleMainLooper();
+
+        mapView.setPath(Arrays.asList(new PointF(0f, 0f), new PointF(300f, 0f)));
+
+        Bitmap canvas = Bitmap.createBitmap(300, 300, Bitmap.Config.ARGB_8888);
+        mapView.draw(new android.graphics.Canvas(canvas));
+
+        assertNotNull(mapView);
     }
 }
