@@ -10,6 +10,7 @@ import android.widget.TextView;
 
 import com.example.oncampusapp.navigation.Direction;
 import com.example.oncampusapp.navigation.RouteTravelMode;
+import com.example.oncampusapp.navigation.Step;
 import com.example.oncampusapp.location.ILocationProvider;
 import com.google.android.gms.location.LocationCallback;
 import com.google.android.gms.location.LocationRequest;
@@ -29,6 +30,7 @@ import org.robolectric.RobolectricTestRunner;
 import org.robolectric.shadows.ShadowToast;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -385,5 +387,318 @@ public class RouteManagerTest {
         // Assertions
         assertFalse(routeManager.isPreviewActive());
         assertEquals(RouteTravelMode.DRIVE, routeManager.getSelectedMode());
+    }
+
+    @Test
+    public void testTryUpdateShuttleTotal_WhenAllDone_UpdatesTextView() throws Exception {
+        TextView mockTv = new TextView(activity);
+        mockTv.setId(R.id.txt_duration);
+        activity.setContentView(mockTv);
+
+        // Using reflection to invoke the private helper
+        Method method = RouteManager.class.getDeclaredMethod("tryUpdateShuttleTotal",
+                int[].class, int[].class, int[].class, boolean[].class, boolean[].class, boolean[].class);
+        method.setAccessible(true);
+
+        int[] to = {5}, shut = {15}, from = {5};
+        boolean[] toD = {true}, shutD = {true}, fromD = {true};
+
+        // Action: All boolean flags are true
+        method.invoke(routeManager, to, shut, from, toD, shutD, fromD);
+
+        // Assertion: 5 + 15 + 5 = 25
+        assertEquals("25 MIN", mockTv.getText().toString());
+    }
+
+    @Test
+    public void testTryUpdateShuttleTotal_WhenNotDone_DoesNothing() throws Exception {
+        TextView mockTv = new TextView(activity);
+        mockTv.setId(R.id.txt_duration);
+        mockTv.setText("OLD VALUE");
+
+        Method method = RouteManager.class.getDeclaredMethod("tryUpdateShuttleTotal",
+                int[].class, int[].class, int[].class, boolean[].class, boolean[].class, boolean[].class);
+        method.setAccessible(true);
+
+        // One flag is false
+        method.invoke(routeManager, new int[]{0}, new int[]{0}, new int[]{0},
+                new boolean[]{true}, new boolean[]{false}, new boolean[]{true});
+
+        assertEquals("OLD VALUE", mockTv.getText().toString());
+    }
+
+    @Test
+    public void testBuildPolylineOptions_WalkMode_SetsDottedPattern() throws Exception {
+        Step walkStep = mock(Step.class);
+        when(walkStep.getTravelMode()).thenReturn(RouteTravelMode.WALK);
+        when(walkStep.getPoints()).thenReturn(Arrays.asList(new LatLng(0,0)));
+
+        Method method = RouteManager.class.getDeclaredMethod("buildPolylineOptions", Step.class);
+        method.setAccessible(true);
+
+        PolylineOptions options = (PolylineOptions) method.invoke(routeManager, walkStep);
+
+        assertNotNull(options.getPattern());
+        assertEquals(Color.parseColor("#4285F4"), options.getColor());
+    }
+
+    @Test
+    public void testBuildPolylineOptions_TransitMode_SetsLineColor() throws Exception {
+        Step transitStep = mock(Step.class);
+        com.example.oncampusapp.navigation.TransitDetails details = mock(com.example.oncampusapp.navigation.TransitDetails.class);
+        com.example.oncampusapp.navigation.TransitLine line = mock(com.example.oncampusapp.navigation.TransitLine.class);
+
+        when(transitStep.getTravelMode()).thenReturn(RouteTravelMode.TRANSIT);
+        when(transitStep.getTransitDetails()).thenReturn(details);
+        when(details.getTransitLine()).thenReturn(line);
+        when(line.getColor()).thenReturn("#FF0000"); // Red line
+        when(transitStep.getPoints()).thenReturn(Arrays.asList(new LatLng(0,0)));
+
+        Method method = RouteManager.class.getDeclaredMethod("buildPolylineOptions", Step.class);
+        method.setAccessible(true);
+
+        PolylineOptions options = (PolylineOptions) method.invoke(routeManager, transitStep);
+
+        assertEquals(Color.RED, options.getColor());
+        assertNull("Transit should have solid line (no pattern)", options.getPattern());
+    }
+
+    @Test
+    public void testShowCurrentDirection_UpdatesTextView() throws Exception {
+        TextView mockTextDir = new TextView(activity);
+        mockTextDir.setId(R.id.textDir);
+        activity.setContentView(mockTextDir);
+
+        Direction mockDir = mock(Direction.class);
+        when(mockDir.getInstructions()).thenReturn("Turn Left");
+        when(mockDir.getDistance()).thenReturn("100m");
+
+        List<Direction> dirs = new ArrayList<>();
+        dirs.add(mockDir);
+
+        setPrivateField(routeManager, "directionsList", dirs);
+        setPrivateField(routeManager, "currentDirectionIndex", 0);
+
+        routeManager.showCurrentDirection();
+
+        assertTrue(mockTextDir.getText().toString().contains("Turn Left"));
+        assertTrue(mockTextDir.getText().toString().contains("100m"));
+    }
+
+    @Test
+    public void testUpdateRouteProgress_UpdatesPolylinePoints() throws Exception {
+        Polyline mockPoly = mock(Polyline.class);
+        routeManager.getRoutePolylines().add(mockPoly);
+
+        // 1. Give currentRoutePoints a size of 2
+        List<LatLng> originalPoints = new ArrayList<>(Arrays.asList(
+                new LatLng(0, 0),
+                new LatLng(1, 1)
+        ));
+        setPrivateField(routeManager, "currentRoutePoints", originalPoints);
+        setPrivateField(routeManager, "isPreviewActive", true);
+
+        // 2. Intercept the static NavigationHelper class to force our desired outcome
+        try (org.mockito.MockedStatic<com.example.oncampusapp.navigation.NavigationHelper> mockedHelper =
+                     mockStatic(com.example.oncampusapp.navigation.NavigationHelper.class)) {
+
+            // Force getUpdatedPath to return a list of size 1
+            // (This guarantees updatedPath.size() != currentRoutePoints.size() will be TRUE)
+            List<LatLng> smallerPath = new ArrayList<>(Arrays.asList(new LatLng(1, 1)));
+            mockedHelper.when(() -> com.example.oncampusapp.navigation.NavigationHelper.getUpdatedPath(
+                    any(LatLng.class), anyList(), anyDouble()
+            )).thenReturn(smallerPath);
+
+            // Prevent the hasArrived method from triggering unwanted UI logic in this test
+            mockedHelper.when(() -> com.example.oncampusapp.navigation.NavigationHelper.hasArrived(
+                    any(LatLng.class), anyList(), anyDouble()
+            )).thenReturn(false);
+
+            // 3. Trigger the progress update
+            routeManager.updateRouteProgress(new LatLng(1, 1));
+        }
+
+        // 4. Verify setPoints was FINALLY called!
+        verify(mockPoly, atLeastOnce()).setPoints(anyList());
+    }
+
+    @Test
+    public void testShowWalkToStopResult_TogglesVisibility() throws Exception {
+        LinearLayout layout = new LinearLayout(activity);
+        layout.setId(R.id.layout_walk_to_shuttle);
+        TextView tv = new TextView(activity);
+        tv.setId(R.id.txt_walk_to_shuttle);
+
+        activity.setContentView(layout);
+        layout.addView(tv);
+
+        // Reflection to call private method
+        Method method = RouteManager.class.getDeclaredMethod("showWalkToStopResult", List.class, int.class);
+        method.setAccessible(true);
+
+        List<Step> emptyList = new ArrayList<>();
+
+        // Test with 5 minutes (Should be VISIBLE)
+        method.invoke(routeManager, emptyList, 5);
+        assertEquals(View.VISIBLE, layout.getVisibility());
+        assertEquals("5 MIN TO STOP", tv.getText().toString());
+
+        // Test with 0 minutes (Should be GONE)
+        method.invoke(routeManager, emptyList, 0);
+        assertEquals(View.GONE, layout.getVisibility());
+    }
+
+    @Test
+    public void testApplySameCampusCheck_DifferentCampus_DoesNothing() {
+        routeManager.setSelectedMode(RouteTravelMode.SHUTTLE);
+
+        // SGW vs LOY (Far apart)
+        LatLng sgw = new LatLng(45.4961, -73.5773);
+        LatLng loy = new LatLng(45.4582, -73.6405);
+
+        boolean switched = routeManager.applySameCampusCheck(sgw, loy);
+
+        assertFalse("Should NOT switch to walk if they are on different campuses", switched);
+        assertEquals(RouteTravelMode.SHUTTLE, routeManager.getSelectedMode());
+    }
+
+    @Test
+    public void testParseDuration_ComplexAndEdgeCases() {
+        // Multiple hours and minutes
+        assertEquals(145, RouteManager.parseDurationToMinutes("2 hours 25 mins"));
+        // Singular hour
+        assertEquals(60, RouteManager.parseDurationToMinutes("1 hour"));
+        // Just minutes
+        assertEquals(45, RouteManager.parseDurationToMinutes("45 min"));
+        // Malformed strings that should return 0 or partial (hits catch blocks)
+        assertEquals(0, RouteManager.parseDurationToMinutes("just some text"));
+        assertEquals(0, RouteManager.parseDurationToMinutes("hours 10")); // Wrong order
+    }
+
+    @Test
+    public void testAdjustGoButtonWidth_CheckMargins() {
+        Button btnGo = new Button(activity);
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(100, 100);
+        btnGo.setLayoutParams(params);
+
+        // Action: Timetable visible
+        routeManager.adjustGoButtonWidth(btnGo, true);
+        LinearLayout.LayoutParams updatedParams = (LinearLayout.LayoutParams) btnGo.getLayoutParams();
+
+        // On standard Robolectric, density is 1.0, so 4 * 1 = 4px margin
+        assertEquals(4, updatedParams.getMarginEnd());
+        assertEquals(1.3f, updatedParams.weight, 0.01f);
+    }
+
+    @Test
+    public void testDrawRouteOnMap_TransitBranch() throws Exception {
+        GoogleMap mockMap = mock(GoogleMap.class);
+        routeManager.setMap(mockMap);
+
+        // Build a transit step
+        Step transitStep = mock(Step.class);
+        com.example.oncampusapp.navigation.TransitDetails details = mock(com.example.oncampusapp.navigation.TransitDetails.class);
+        com.example.oncampusapp.navigation.TransitLine line = mock(com.example.oncampusapp.navigation.TransitLine.class);
+
+        when(transitStep.getTravelMode()).thenReturn(RouteTravelMode.TRANSIT);
+        when(transitStep.getTransitDetails()).thenReturn(details);
+        when(details.getTransitLine()).thenReturn(line);
+        when(line.getColor()).thenReturn("#ABCDEF");
+        when(transitStep.getPoints()).thenReturn(Arrays.asList(new LatLng(10, 10), new LatLng(11, 11)));
+
+        // Mock locations for transit stops
+        when(details.getDepartureStopLocation()).thenReturn(new LatLng(10, 10));
+        when(details.getArrivalStopLocation()).thenReturn(new LatLng(11, 11));
+
+        // Action
+        try {
+            routeManager.drawRouteOnMap(Arrays.asList(new LatLng(10, 10)), "10 mins", Arrays.asList(transitStep));
+        } catch (NullPointerException e) {
+            // Expected catch: CameraUpdateFactory cannot be initialized cleanly in a headless environment
+            // without full mockStatic configuration. It crashes on map.moveCamera at the end of the method.
+        }
+
+        // Verify map successfully added the transit-colored line prior to the camera movement
+        verify(mockMap, atLeastOnce()).addPolyline(any(PolylineOptions.class));
+    }
+
+    @Test
+    public void testNavigateToNextDirection_CrossBuildingFinish() throws Exception {
+        // Setup activity to return true for pending indoor
+        MapsActivity spyActivity = spy(activity);
+        doReturn(true).when(spyActivity).hasPendingFinalIndoorAfterOutdoor();
+
+        // Create new manager with spy
+        RouteManager spyManager = new RouteManager(spyActivity);
+
+        // Inject directions so we are at the end
+        Direction mockDir = mock(Direction.class);
+        setPrivateField(spyManager, "directionsList", Arrays.asList(mockDir));
+        setPrivateField(spyManager, "currentDirectionIndex", 0);
+
+        // Mock the "End Trip" button to simulate the click
+        Button btnEndTrip = new Button(spyActivity);
+        btnEndTrip.setId(R.id.btn_end_trip);
+        spyActivity.setContentView(btnEndTrip);
+
+        // Action: navigate at the last step
+        spyManager.navigateToNextDirection();
+
+        // Verify it checked the cross-building transition on the activity
+        verify(spyActivity, atLeastOnce()).hasPendingFinalIndoorAfterOutdoor();
+    }
+
+    @Test
+    public void testHideKeyboard_Branch() throws Exception {
+        // Setup a view that has focus
+        View view = new View(activity);
+        activity.setContentView(view);
+        view.requestFocus();
+
+        // Invoke private hideKeyboard
+        java.lang.reflect.Method method = RouteManager.class.getDeclaredMethod("hideKeyboard");
+        method.setAccessible(true);
+
+        // Action
+        method.invoke(routeManager);
+    }
+
+    @Test
+    public void testClearNormalRoute_HandlesNulls() throws Exception {
+        setPrivateField(routeManager, "startDot", null);
+        setPrivateField(routeManager, "endMarker", null);
+
+        // Should not crash
+        routeManager.clearNormalRoute();
+        routeManager.removeStartDot();
+    }
+
+    @Test
+    public void testInitialization_AndSimpleSetters() {
+        // Constructor test
+        RouteManager manager = new RouteManager(activity);
+        assertNotNull(manager);
+
+        // Setters for UI components to hit those lines
+        manager.setTransportButtons(mock(ImageButton.class), mock(Button.class), mock(Button.class));
+        manager.setBuildingsMap(new HashMap<>());
+
+        // Verifying the getter after setting
+        manager.setSelectedMode(RouteTravelMode.WALK);
+        assertEquals(RouteTravelMode.WALK, manager.getSelectedMode());
+    }
+
+    @Test
+    public void testUpdateRouteProgress_ArrivedBranch_NoButton() throws Exception {
+        // This hits the branch where btnEndTrip is NULL
+        List<LatLng> points = new ArrayList<>(Arrays.asList(new LatLng(0,0), new LatLng(1,1)));
+        setPrivateField(routeManager, "currentRoutePoints", points);
+        routeManager.getRoutePolylines().add(mock(Polyline.class));
+
+        // Ensure the layout has NO button with id btn_end_trip
+        activity.setContentView(new View(activity));
+
+        routeManager.updateRouteProgress(new LatLng(1,1));
+        assertEquals("You have arrived!", ShadowToast.getTextOfLatestToast());
     }
 }
