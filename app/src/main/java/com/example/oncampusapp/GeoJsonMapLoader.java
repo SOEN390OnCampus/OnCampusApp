@@ -183,12 +183,11 @@ public class GeoJsonMapLoader {
 
             String buildingId = Objects.requireNonNull(buildingDialogManager.getGeoIdToBuildingDetailsMap().get(resolvedId)).getCode();
 
-            map.addMarker(new MarkerOptions()
-                    .position(center)
-                    .icon(BitmapDescriptorFactory.fromBitmap(createBuildingMarkerBitmap(buildingId)))
-                    .anchor(0.5f, 0.5f)  // center the marker on the point
-                    .title(name)
+            map.addGroundOverlay(new GroundOverlayOptions()
+                    .image(BitmapDescriptorFactory.fromBitmap(createBuildingMarkerBitmap(buildingId)))
+                    .position(center, 20f, 20f)
                     .zIndex(100));
+
 
         }
     }
