@@ -9,6 +9,7 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import com.example.oncampusapp.navigation.Direction;
+import com.example.oncampusapp.navigation.NavigationHelper;
 import com.example.oncampusapp.navigation.RouteTravelMode;
 import com.example.oncampusapp.navigation.Step;
 import com.example.oncampusapp.location.ILocationProvider;
@@ -25,6 +26,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.MockedStatic;
 import org.robolectric.Robolectric;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.shadows.ShadowToast;
@@ -181,9 +183,9 @@ public class RouteManagerTest {
         routeManager.adjustGoButtonWidth(btnGo, true);
         LinearLayout.LayoutParams params = (LinearLayout.LayoutParams) btnGo.getLayoutParams();
 
-        // Assert: Weight expands, margin is added
+        // Assert: Weight expands, margin is added (4px on density 1.0)
         assertEquals(1.3f, params.weight, 0.01f);
-        assertTrue("Margin should be applied", params.getMarginEnd() > 0);
+        assertEquals(4, params.getMarginEnd());
 
         // Action: Adjust for Timetable hidden
         routeManager.adjustGoButtonWidth(btnGo, false);
@@ -499,18 +501,17 @@ public class RouteManagerTest {
         setPrivateField(routeManager, "isPreviewActive", true);
 
         // 2. Intercept the static NavigationHelper class to force our desired outcome
-        try (org.mockito.MockedStatic<com.example.oncampusapp.navigation.NavigationHelper> mockedHelper =
-                     mockStatic(com.example.oncampusapp.navigation.NavigationHelper.class)) {
+        try (MockedStatic<NavigationHelper> mockedHelper = mockStatic(NavigationHelper.class)) {
 
             // Force getUpdatedPath to return a list of size 1
             // (This guarantees updatedPath.size() != currentRoutePoints.size() will be TRUE)
             List<LatLng> smallerPath = new ArrayList<>(Arrays.asList(new LatLng(1, 1)));
-            mockedHelper.when(() -> com.example.oncampusapp.navigation.NavigationHelper.getUpdatedPath(
+            mockedHelper.when(() -> NavigationHelper.getUpdatedPath(
                     any(LatLng.class), anyList(), anyDouble()
             )).thenReturn(smallerPath);
 
             // Prevent the hasArrived method from triggering unwanted UI logic in this test
-            mockedHelper.when(() -> com.example.oncampusapp.navigation.NavigationHelper.hasArrived(
+            mockedHelper.when(() -> NavigationHelper.hasArrived(
                     any(LatLng.class), anyList(), anyDouble()
             )).thenReturn(false);
 
@@ -520,6 +521,179 @@ public class RouteManagerTest {
 
         // 4. Verify setPoints was FINALLY called!
         verify(mockPoly, atLeastOnce()).setPoints(anyList());
+    }
+
+    @Test
+    public void initiateRoutePreview_validInputs_callsStandardRoute() {
+        Map<String, Building> map = new HashMap<>();
+        map.put("A", new Building("A", "A", new ArrayList<>()));
+        map.put("B", new Building("B", "B", new ArrayList<>()));
+
+        routeManager.setBuildingsMap(map);
+        routeManager.setSelectedMode(RouteTravelMode.WALK);
+
+        // Mock static BuildingLookup
+        try (MockedStatic<BuildingLookup> mocked = mockStatic(BuildingLookup.class)) {
+            mocked.when(() -> BuildingLookup.getLatLngFromBuildingName(eq("A"), any()))
+                    .thenReturn(new LatLng(1,1));
+            mocked.when(() -> BuildingLookup.getLatLngFromBuildingName(eq("B"), any()))
+                    .thenReturn(new LatLng(2,2));
+
+            // Mock NavigationHelper to avoid real call
+            try (MockedStatic<NavigationHelper> navMock = mockStatic(NavigationHelper.class)) {
+                navMock.when(() -> NavigationHelper.fetchRoute(
+                        any(), any(), any(), any(), any()
+                )).thenAnswer(invocation -> null);
+
+                routeManager.initiateRoutePreview("A", "B");
+
+                navMock.verify(() -> NavigationHelper.fetchRoute(
+                        any(), any(), eq(RouteTravelMode.WALK), any(), any()
+                ));
+            }
+        }
+    }
+
+    @Test
+    public void initiateRoutePreview_shuttleMode_callsShuttleRoute() {
+        routeManager.setSelectedMode(RouteTravelMode.SHUTTLE);
+
+        Map<String, Building> map = new HashMap<>();
+        map.put("A", new Building("A", "A", new ArrayList<>()));
+        map.put("B", new Building("B", "B", new ArrayList<>()));
+        routeManager.setBuildingsMap(map);
+
+        try (MockedStatic<BuildingLookup> mocked = mockStatic(BuildingLookup.class)) {
+            mocked.when(() -> BuildingLookup.getLatLngFromBuildingName(any(), any()))
+                    .thenReturn(new LatLng(1,1));
+
+            // Prevent crash inside shuttle logic
+            routeManager.setMap(mock(GoogleMap.class));
+            routeManager.setShuttleMarkers(new Marker[]{mock(Marker.class), mock(Marker.class)});
+
+            routeManager.initiateRoutePreview("A", "B");
+        }
+    }
+
+    @Test
+    public void drawRouteOnMap_emptyPath_throwsException() {
+        GoogleMap map = mock(GoogleMap.class);
+        routeManager.setMap(map);
+
+        // Expect the IllegalStateException from LatLngBounds.Builder
+        assertThrows(IllegalStateException.class, () -> {
+            routeManager.drawRouteOnMap(new ArrayList<>(), "10 mins", new ArrayList<>());
+        });
+
+        // Ensure the map was never touched before the crash
+        verifyNoInteractions(map);
+    }
+
+    @Test
+    public void drawRouteOnMap_nullMap_returnsEarly() {
+        routeManager.setMap(null);
+
+        routeManager.drawRouteOnMap(
+                Arrays.asList(new LatLng(0,0)),
+                "10 mins",
+                new ArrayList<>()
+        );
+        // Will throw NPE if early return fails, so just running this without exception is passing
+    }
+
+    @Test
+    public void drawSegmentPolyline_nullMap_returnsNull() {
+        routeManager.setMap(null);
+
+        Polyline result = routeManager.drawSegmentPolyline(
+                Arrays.asList(new LatLng(1,1)),
+                true
+        );
+
+        assertNull(result);
+    }
+
+    @Test
+    public void startNavigationUpdates_removesOldCallback() throws Exception {
+        ILocationProvider provider = mock(ILocationProvider.class);
+        LocationCallback oldCallback = mock(LocationCallback.class);
+
+        routeManager.setLocationClient(provider);
+        setPrivateField(routeManager, "navigationLocationCallback", oldCallback);
+
+        routeManager.startNavigationUpdates();
+
+        verify(provider).removeLocationUpdates(oldCallback);
+    }
+
+    @Test
+    public void showCurrentDirection_emptyList_doesNothing() {
+        routeManager.showCurrentDirection(); // no crash
+    }
+
+    @Test
+    public void showCurrentDirection_nullTextView_doesNothing() throws Exception {
+        List<Direction> dirs = Arrays.asList(mock(Direction.class));
+        setPrivateField(routeManager, "directionsList", dirs);
+
+        // No TextView in layout
+        activity.setContentView(new View(activity));
+
+        routeManager.showCurrentDirection();
+    }
+
+    @Test
+    public void clearShuttleRoute_nullFields_doesNotCrash() throws Exception {
+        setPrivateField(routeManager, "walkToStopPolyline", null);
+        setPrivateField(routeManager, "shuttlePolyline", null);
+        setPrivateField(routeManager, "walkFromStopPolyline", null);
+
+        routeManager.clearShuttleRoute();
+    }
+
+    @Test
+    public void parseDuration_edgeCases_moreCoverage() {
+        assertEquals(120, RouteManager.parseDurationToMinutes("2 hours"));
+        assertEquals(30, RouteManager.parseDurationToMinutes("30 mins extra text"));
+        assertEquals(0, RouteManager.parseDurationToMinutes("mins"));
+        // Multiple hours and minutes
+        assertEquals(145, RouteManager.parseDurationToMinutes("2 hours 25 mins"));
+        // Malformed strings that should return 0
+        assertEquals(0, RouteManager.parseDurationToMinutes("just some text"));
+        assertEquals(0, RouteManager.parseDurationToMinutes("hours 10")); // Wrong order
+    }
+
+    @Test
+    public void navigateToNextDirection_emptyList_showsToast() {
+        routeManager.navigateToNextDirection();
+        assertEquals("You are at the last step", ShadowToast.getTextOfLatestToast());
+    }
+
+    @Test
+    public void navigateToPreviousDirection_emptyList_showsToast() {
+        routeManager.navigateToPreviousDirection();
+        assertEquals("You are at the first step", ShadowToast.getTextOfLatestToast());
+    }
+
+    @Test
+    public void resetRouteState_clearsEverything() throws Exception {
+        setPrivateField(routeManager, "isPreviewActive", true);
+        setPrivateField(routeManager, "currentRoutePoints", new ArrayList<>(Arrays.asList(new LatLng(1,1))));
+
+        routeManager.resetRouteState();
+
+        assertFalse(routeManager.isPreviewActive());
+        assertNull(routeManager.getFirstRoutePoint());
+    }
+
+    @Test
+    public void applySameCampusCheck_nullButtons_noCrash() {
+        routeManager.setSelectedMode(RouteTravelMode.SHUTTLE);
+
+        LatLng a = new LatLng(45.4972, -73.5790);
+        LatLng b = new LatLng(45.4960, -73.5780);
+
+        routeManager.applySameCampusCheck(a, b);
     }
 
     @Test
@@ -563,34 +737,6 @@ public class RouteManagerTest {
     }
 
     @Test
-    public void testParseDuration_ComplexAndEdgeCases() {
-        // Multiple hours and minutes
-        assertEquals(145, RouteManager.parseDurationToMinutes("2 hours 25 mins"));
-        // Singular hour
-        assertEquals(60, RouteManager.parseDurationToMinutes("1 hour"));
-        // Just minutes
-        assertEquals(45, RouteManager.parseDurationToMinutes("45 min"));
-        // Malformed strings that should return 0 or partial (hits catch blocks)
-        assertEquals(0, RouteManager.parseDurationToMinutes("just some text"));
-        assertEquals(0, RouteManager.parseDurationToMinutes("hours 10")); // Wrong order
-    }
-
-    @Test
-    public void testAdjustGoButtonWidth_CheckMargins() {
-        Button btnGo = new Button(activity);
-        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(100, 100);
-        btnGo.setLayoutParams(params);
-
-        // Action: Timetable visible
-        routeManager.adjustGoButtonWidth(btnGo, true);
-        LinearLayout.LayoutParams updatedParams = (LinearLayout.LayoutParams) btnGo.getLayoutParams();
-
-        // On standard Robolectric, density is 1.0, so 4 * 1 = 4px margin
-        assertEquals(4, updatedParams.getMarginEnd());
-        assertEquals(1.3f, updatedParams.weight, 0.01f);
-    }
-
-    @Test
     public void testDrawRouteOnMap_TransitBranch() throws Exception {
         GoogleMap mockMap = mock(GoogleMap.class);
         routeManager.setMap(mockMap);
@@ -610,15 +756,12 @@ public class RouteManagerTest {
         when(details.getDepartureStopLocation()).thenReturn(new LatLng(10, 10));
         when(details.getArrivalStopLocation()).thenReturn(new LatLng(11, 11));
 
-        // Action
-        try {
+        // Action: assert throws NPE because CameraUpdateFactory is unmocked in Robolectric
+        assertThrows(NullPointerException.class, () -> {
             routeManager.drawRouteOnMap(Arrays.asList(new LatLng(10, 10)), "10 mins", Arrays.asList(transitStep));
-        } catch (NullPointerException e) {
-            // Expected catch: CameraUpdateFactory cannot be initialized cleanly in a headless environment
-            // without full mockStatic configuration. It crashes on map.moveCamera at the end of the method.
-        }
+        });
 
-        // Verify map successfully added the transit-colored line prior to the camera movement
+        // Verify map successfully added the transit-colored line prior to the camera movement crash
         verify(mockMap, atLeastOnce()).addPolyline(any(PolylineOptions.class));
     }
 
