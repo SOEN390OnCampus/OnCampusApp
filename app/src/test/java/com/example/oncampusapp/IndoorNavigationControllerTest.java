@@ -1,7 +1,6 @@
 package com.example.oncampusapp;
 
 import android.content.Intent;
-import android.widget.ArrayAdapter;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -37,10 +36,6 @@ import static org.mockito.Mockito.when;
 public class IndoorNavigationControllerTest {
 
     private MapsActivity activity;
-
-    private ArrayAdapter<String> mockAdapter;
-
-
     private Map<String, IndoorNode> indoorRoomMap;
     private IndoorNavigationController controller;
 
@@ -48,8 +43,6 @@ public class IndoorNavigationControllerTest {
     public void setUp() {
         // Build a raw activity context using Robolectric to handle Intents and Toasts
         activity = Robolectric.buildActivity(MapsActivity.class).get();
-        mockAdapter = mock(ArrayAdapter.class);
-
         indoorRoomMap = new LinkedHashMap<>();
         controller = new IndoorNavigationController(activity, indoorRoomMap);
     }

@@ -273,28 +273,28 @@ public class PlaceDetailsServiceTest {
     }
     @Test
     public void buildPhotoRequest_invalidMetadata_throwsException() {
-        PlaceDetailsService service =
+        PlaceDetailsService serviceLocal =
                 new PlaceDetailsService(mock(PlacesClient.class));
 
         assertThrows(IllegalArgumentException.class, () ->
-                service.buildPhotoRequest(photoMetadata)
+                serviceLocal.buildPhotoRequest(photoMetadata)
         );
     }
     @Test
     public void constructor_withContext_executes() {
         try (MockedStatic<Places> mockedPlaces = mockStatic(Places.class)) {
             mockedPlaces.when(Places::isInitialized).thenReturn(true); // Skip initializing place
-            Context context = mock(Context.class);
+            Context contextLocal = mock(Context.class);
 
-            when(context.getApplicationContext()).thenReturn(context);
+            when(contextLocal.getApplicationContext()).thenReturn(contextLocal);
 
-            mockedPlaces.when(() -> Places.createClient(context))
+            mockedPlaces.when(() -> Places.createClient(contextLocal))
                     .thenReturn(mock(PlacesClient.class));
 
-            PlaceDetailsService service =
-                    new PlaceDetailsService(context);
+            PlaceDetailsService serviceLocal =
+                    new PlaceDetailsService(contextLocal);
 
-            assertNotNull(service);
+            assertNotNull(serviceLocal);
         }
     }
     @Test

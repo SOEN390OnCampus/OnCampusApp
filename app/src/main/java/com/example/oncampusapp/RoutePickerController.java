@@ -51,7 +51,7 @@ public class RoutePickerController {
     private AutoCompleteTextView endDestinationText;
     private LinearLayout routePicker;
     private GoogleMap mMap;
-    private CardView searchBar;
+    private View searchBar;
     private LinearLayout layoutInputs;
     private LinearLayout layoutTabs;
     private LinearLayout layoutNavActive;
