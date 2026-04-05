@@ -10,6 +10,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import android.graphics.Bitmap;
 import android.graphics.Color;
 
 import com.google.android.gms.maps.GoogleMap;
@@ -236,5 +237,40 @@ public class GeoJsonMapLoaderTest {
         assertEquals("detailButton", feature.getProperty("layer"));
         assertTrue(feature.getGeometry() instanceof GeoJsonPolygon);
         assertEquals(5, ((GeoJsonPolygon) feature.getGeometry()).getCoordinates().get(0).size());
+    }
+
+
+    // ── BitMap GroundOVerlay test ──────────────────────────────────────────
+    @Test
+    public void createBuildingMarkerBitmap_isNotNull() {
+        assertNotNull(loader.createBuildingMarkerBitmap("H"));
+    }
+
+    @Test
+    public void createBuildingMarkerBitmap_hasCorrectDimensions() {
+        Bitmap result = loader.createBuildingMarkerBitmap("H");
+        assertEquals(80, result.getWidth());
+        assertEquals(80, result.getHeight());
+    }
+
+    @Test
+    public void createBuildingMarkerBitmap_isArgb8888() {
+        Bitmap result = loader.createBuildingMarkerBitmap("H");
+        assertEquals(Bitmap.Config.ARGB_8888, result.getConfig());
+    }
+
+    @Test
+    public void createBuildingMarkerBitmap_isNotRecycled() {
+        assertFalse(loader.createBuildingMarkerBitmap("H").isRecycled());
+    }
+
+    @Test
+    public void createBuildingMarkerBitmap_emptyLabelDoesNotCrash() {
+        assertNotNull(loader.createBuildingMarkerBitmap(""));
+    }
+
+    @Test
+    public void createBuildingMarkerBitmap_longLabelDoesNotCrash() {
+        assertNotNull(loader.createBuildingMarkerBitmap("VERY_VERY_LONG_LABEL"));
     }
 }

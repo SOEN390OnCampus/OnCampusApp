@@ -1,12 +1,18 @@
 package com.example.oncampusapp;
 
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.Paint;
+import android.graphics.Typeface;
 import android.util.Log;
 
 import com.google.android.gms.maps.GoogleMap;
+import com.google.android.gms.maps.model.BitmapDescriptor;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.GroundOverlayOptions;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.maps.android.data.Feature;
 import com.google.maps.android.data.Geometry;
 import com.google.maps.android.data.geojson.GeoJsonFeature;
@@ -22,6 +28,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Loads the Concordia GeoJSON layer onto the map, processes buildings into
@@ -173,10 +180,16 @@ public class GeoJsonMapLoader {
 
         if (buildingDialogManager.getGeoIdToBuildingDetailsMap().containsKey(resolvedId)) {
             pointFeatures.add(createSquareFeature(center, resolvedId));
-            map.addGroundOverlay(new GroundOverlayOptions()
-                    .image(BitmapDescriptorFactory.fromResource(R.drawable.ic_building_details))
-                    .position(center, 10f, 10f)
+
+            String buildingId = Objects.requireNonNull(buildingDialogManager.getGeoIdToBuildingDetailsMap().get(resolvedId)).getCode();
+
+            map.addMarker(new MarkerOptions()
+                    .position(center)
+                    .icon(BitmapDescriptorFactory.fromBitmap(createBuildingMarkerBitmap(buildingId)))
+                    .anchor(0.5f, 0.5f)  // center the marker on the point
+                    .title(name)
                     .zIndex(100));
+
         }
     }
 
@@ -214,4 +227,39 @@ public class GeoJsonMapLoader {
         corners.add(new LatLng(center.latitude + latOffset, center.longitude - lngOffset)); // back to NW
         return corners;
     }
+
+    // Helper function used to create the button on top of the button that on click give details
+     Bitmap createBuildingMarkerBitmap(String label) {
+        int size = 80; // px
+        Bitmap bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888);
+        Canvas canvas = new Canvas(bitmap);
+
+        // Big white circle in the back for the border
+        Paint borderPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        borderPaint.setColor(Color.WHITE);
+        canvas.drawCircle(size / 2f, size / 2f, size / 2f, borderPaint);
+
+        // Black circle
+        float borderWidth = 4f;
+        Paint circlePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        circlePaint.setColor(Color.BLACK);
+        canvas.drawCircle(size / 2f, size / 2f, size / 2f - borderWidth, circlePaint);
+
+        // Draw white text
+        Paint textPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        textPaint.setColor(Color.WHITE);
+        textPaint.setTextSize(30f);
+        textPaint.setTextAlign(Paint.Align.CENTER);
+        textPaint.setTypeface(Typeface.DEFAULT_BOLD);
+
+        // Center text vertically
+        Paint.FontMetrics fm = textPaint.getFontMetrics();
+        float textY = size / 2f - (fm.ascent + fm.descent) / 2f;
+
+        canvas.drawText(label, size / 2f, textY, textPaint);
+
+         return bitmap;
+    }
+
+
 }
