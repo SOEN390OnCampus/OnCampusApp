@@ -81,7 +81,7 @@ public class CalendarEventManagerTest {
     @Test
     public void testSetGlobalEventsJson_UpdatesField() {
         CalendarEventManager.setGlobalEventsJson("test_value");
-        assertEquals("test_value", CalendarEventManager.globalEventsJson);
+        assertEquals("test_value", CalendarEventManager.getGlobalEventsJson());
         CalendarEventManager.setGlobalEventsJson(""); // clean up
     }
 
@@ -100,8 +100,8 @@ public class CalendarEventManagerTest {
 
         latch.await();
         // After all threads complete, the field must hold exactly one of the written values (no corruption)
-        assertNotNull(CalendarEventManager.globalEventsJson);
-        assertTrue(CalendarEventManager.globalEventsJson.startsWith("thread_"));
+        assertNotNull(CalendarEventManager.getGlobalEventsJson());
+        assertTrue(CalendarEventManager.getGlobalEventsJson().startsWith("thread_"));
         CalendarEventManager.setGlobalEventsJson(""); // clean up
     }
 

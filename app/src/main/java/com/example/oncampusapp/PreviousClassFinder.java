@@ -35,9 +35,9 @@ public class PreviousClassFinder {
             for (int i = 0; i < events.length(); i++) {
                 JSONObject event = events.getJSONObject(i);
 
-                if (!event.has(START) || !event.has("end")) continue;
-                if (!event.getJSONObject(START).has(DATETIME)) continue;
-                if (!event.getJSONObject("end").has(DATETIME)) continue;
+                if (!event.has(START) || !event.has("end")
+                        || !event.getJSONObject(START).has(DATETIME)
+                        || !event.getJSONObject("end").has(DATETIME)) continue;
 
                 long eventEnd = format.parse(
                         event.getJSONObject("end").getString(DATETIME)

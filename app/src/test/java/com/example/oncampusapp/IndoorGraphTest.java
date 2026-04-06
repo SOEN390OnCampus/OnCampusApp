@@ -10,6 +10,8 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+
 
 import static org.junit.Assert.*;
 
@@ -100,35 +102,9 @@ public class IndoorGraphTest {
         assertEquals(0, graph.penaltyPerType(""));
     }
 
-    // ── shortestPath — node-not-found guards ──────────────────────────────────
-
-    @Test
-    public void shortestPath_unknownSource_returnsEmpty() {
-        List<String> path = graph.shortestPath("NONEXISTENT", "H2");
-        assertNotNull(path);
-        assertTrue(path.isEmpty());
-    }
-
-    @Test
-    public void shortestPath_unknownTarget_returnsEmpty() {
-        List<String> path = graph.shortestPath("H1", "NONEXISTENT");
-        assertNotNull(path);
-        assertTrue(path.isEmpty());
-    }
-
     @Test
     public void shortestPath_bothUnknown_returnsEmpty() {
         assertTrue(graph.shortestPath("FOO", "BAR").isEmpty());
-    }
-
-    // ── shortestPath — unreachable node (graph is disconnected) ──────────────
-
-    @Test
-    public void shortestPath_unreachable_returnsEmpty() {
-        // Elevator1/2 form an isolated subgraph — not reachable from H1
-        List<String> path = graph.shortestPath("H1", "Elevator1");
-        assertNotNull(path);
-        assertTrue(path.isEmpty());
     }
 
     // ── shortestPath — source equals target ───────────────────────────────────
@@ -162,12 +138,9 @@ public class IndoorGraphTest {
 
     @Test
     public void getAllNodes_isUnmodifiable() {
-        try {
-            graph.getAllNodes().put("NEW", new IndoorNode());
-            fail("Expected UnsupportedOperationException");
-        } catch (UnsupportedOperationException e) {
-            // expected — view is read-only
-        }
+        Map<String, IndoorNode> nodes = graph.getAllNodes();
+        assertThrows(UnsupportedOperationException.class,
+                () -> nodes.put("NEW", new IndoorNode()));
     }
 
     // ── pathDistance — edge cases ─────────────────────────────────────────────

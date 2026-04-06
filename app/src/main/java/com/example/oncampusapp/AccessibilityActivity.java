@@ -64,8 +64,16 @@ public class AccessibilityActivity extends AppCompatActivity {
             if (intent != null) {
                 startActivity(intent);
                 finish();
-                // 2. Use the old method here. The warning is now suppressed.
-                overridePendingTransition(0, 0);
+
+                // Use the modern transition method for Android 14+ (API 34+)
+                if (android.os.Build.VERSION.SDK_INT >= 34) {
+                    overrideActivityTransition(Activity.OVERRIDE_TRANSITION_OPEN, 0, 0);
+                    overrideActivityTransition(Activity.OVERRIDE_TRANSITION_CLOSE, 0, 0);
+                } else {
+                    // Fallback for older Android versions
+                    //noinspection deprecation
+                    overridePendingTransition(0, 0);
+                }
                 return true;
             }
             return false;
