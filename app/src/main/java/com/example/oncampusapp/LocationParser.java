@@ -85,7 +85,8 @@ public class LocationParser {
         }
 
         boolean found = false;
-        for (Map.Entry<String, String> entry : SORTED_BUILDINGS) {
+        for (int i = 0; i < SORTED_BUILDINGS.size() && !found; i++) {
+            Map.Entry<String, String> entry = SORTED_BUILDINGS.get(i);
             String prefix = entry.getKey();
 
             Pattern pattern = Pattern.compile("\\b" + prefix + "[-\\s]?([A-Z]?\\d+[A-Z0-9.]*)\\b");
@@ -99,11 +100,9 @@ public class LocationParser {
                     displayLocation = new StringBuilder(displayLocation).append(" - Room ").append(roomNum).toString();
                 }
                 found = true;
-                break;
             } else if (searchText.matches(".*\\b" + prefix + "\\b.*")) {
                 displayLocation = entry.getValue();
                 found = true;
-                break;
             }
         }
 
