@@ -50,7 +50,6 @@ public class PoiActivity extends AppCompatActivity {
                 return true;
             } else if (id == R.id.nav_settings) {
                 startActivity(new Intent(PoiActivity.this, SettingsActivity.class));
-                finish();
                 return true;
             }
 
