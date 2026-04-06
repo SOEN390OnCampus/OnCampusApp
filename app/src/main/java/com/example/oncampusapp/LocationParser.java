@@ -27,10 +27,9 @@ public class LocationParser {
     // Lazy load the JSON only once
     private static void loadBuildingsIfNeeded(Context context) {
         if (isLoaded) return;
-        try {
+        try (InputStream is = context.getResources().openRawResource(R.raw.concordia_building_details);
+             BufferedReader reader = new BufferedReader(new InputStreamReader(is))) {
             // Point this to concordia_building_details.json file
-            InputStream is = context.getResources().openRawResource(R.raw.concordia_building_details);
-            BufferedReader reader = new BufferedReader(new InputStreamReader(is));
             StringBuilder jsonBuilder = new StringBuilder();
             String line;
             while ((line = reader.readLine()) != null) {
