@@ -4,6 +4,7 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -126,7 +127,7 @@ public class CalendarRepository {
         int responseCode = conn.getResponseCode();
 
         if (responseCode != HttpURLConnection.HTTP_OK) {
-            throw new Exception("HTTP " + responseCode + " from Google API");
+            throw new IOException("HTTP " + responseCode + " from Google API");
         }
 
         try (BufferedReader reader =

@@ -46,7 +46,7 @@ public class EventBannerManagerTest {
     @After
     public void tearDown() {
         // Prevent static state leaking between tests
-        CalendarEventManager.globalEventsJson = null;
+        CalendarEventManager.setGlobalEventsJson(null);
     }
 
     // ── Constructor ───────────────────────────────────────────────────────────
@@ -124,14 +124,14 @@ public class EventBannerManagerTest {
 
     @Test
     public void checkAndDisplayNextEventBanner_nullEventsJson_doesNotTouchActivity() {
-        CalendarEventManager.globalEventsJson = null;
+        CalendarEventManager.setGlobalEventsJson(null);
         manager.checkAndDisplayNextEventBanner();
         verify(mockActivity, never()).findViewById(anyInt());
     }
 
     @Test
     public void checkAndDisplayNextEventBanner_emptyEventsJson_doesNotTouchActivity() {
-        CalendarEventManager.globalEventsJson = "";
+        CalendarEventManager.setGlobalEventsJson("");
         manager.checkAndDisplayNextEventBanner();
         verify(mockActivity, never()).findViewById(anyInt());
     }
@@ -139,7 +139,7 @@ public class EventBannerManagerTest {
     @Test
     public void checkAndDisplayNextEventBanner_routePickerOpen_doesNotTouchActivity() {
         // Route picker open → immediate return before any activity interaction
-        CalendarEventManager.globalEventsJson = "{\"items\":[]}";
+        CalendarEventManager.setGlobalEventsJson("{\"items\":[]}");
         manager.setRoutePickerOpen(true);
         manager.checkAndDisplayNextEventBanner();
         verify(mockActivity, never()).findViewById(anyInt());
@@ -147,7 +147,7 @@ public class EventBannerManagerTest {
 
     @Test
     public void checkAndDisplayNextEventBanner_routePickerClosed_nullJson_doesNotTouchActivity() {
-        CalendarEventManager.globalEventsJson = null;
+        CalendarEventManager.setGlobalEventsJson(null);
         manager.setRoutePickerOpen(false);
         manager.checkAndDisplayNextEventBanner();
         verify(mockActivity, never()).findViewById(anyInt());
@@ -155,7 +155,7 @@ public class EventBannerManagerTest {
 
     @Test
     public void checkAndDisplayNextEventBanner_calledMultipleTimes_doesNotThrow() {
-        CalendarEventManager.globalEventsJson = null;
+        CalendarEventManager.setGlobalEventsJson(null);
         manager.checkAndDisplayNextEventBanner();
         manager.checkAndDisplayNextEventBanner();
         manager.checkAndDisplayNextEventBanner();
@@ -169,7 +169,7 @@ public class EventBannerManagerTest {
     public void checkAndDisplayNextEventBanner_noEvents_hidesBannerView() {
         View mockBannerView = mock(View.class);
         doReturn(mockBannerView).when(mockActivity).findViewById(R.id.included_banner);
-        CalendarEventManager.globalEventsJson = "[]"; // valid JSON array, no events
+        CalendarEventManager.setGlobalEventsJson("[]"); // valid JSON array, no events
         manager.checkAndDisplayNextEventBanner();
         verify(mockBannerView).setVisibility(View.GONE);
     }
@@ -177,7 +177,7 @@ public class EventBannerManagerTest {
     /** Upcoming event, but bannerView.findViewById returns null → early return at null guard. */
     @Test
     public void checkAndDisplayNextEventBanner_upcomingEvent_nullTitleView_returnsEarly() {
-        CalendarEventManager.globalEventsJson = buildEventJson(30, 90);
+        CalendarEventManager.setGlobalEventsJson(buildEventJson(30, 90));
         View mockBannerView = mock(View.class);
         doReturn(mockBannerView).when(mockActivity).findViewById(R.id.included_banner);
         // bannerView.findViewById returns null by default → titleView == null → return
@@ -189,7 +189,7 @@ public class EventBannerManagerTest {
     /** Event starting in 30 min (within the 60-min window) → banner shown. */
     @Test
     public void checkAndDisplayNextEventBanner_eventWithin60Min_showsBanner() {
-        CalendarEventManager.globalEventsJson = buildEventJson(30, 90);
+        CalendarEventManager.setGlobalEventsJson(buildEventJson(30, 90));
         View mockBannerView    = mock(View.class);
         TextView mockTitleView  = mock(TextView.class);
         TextView mockDetailsView = mock(TextView.class);
@@ -206,7 +206,7 @@ public class EventBannerManagerTest {
     /** Event starting in 90 min (beyond the 60-min window) → banner hidden. */
     @Test
     public void checkAndDisplayNextEventBanner_eventBeyond60Min_hidesBanner() {
-        CalendarEventManager.globalEventsJson = buildEventJson(90, 150);
+        CalendarEventManager.setGlobalEventsJson(buildEventJson(90, 150));
         View mockBannerView    = mock(View.class);
         TextView mockTitleView  = mock(TextView.class);
         TextView mockDetailsView = mock(TextView.class);
@@ -222,7 +222,7 @@ public class EventBannerManagerTest {
     /** Currently-ongoing event (start in past, end in future) → banner shown. */
     @Test
     public void checkAndDisplayNextEventBanner_ongoingEvent_showsBanner() {
-        CalendarEventManager.globalEventsJson = buildEventJson(-30, 30);
+        CalendarEventManager.setGlobalEventsJson(buildEventJson(-30, 30));
         View mockBannerView    = mock(View.class);
         TextView mockTitleView  = mock(TextView.class);
         TextView mockDetailsView = mock(TextView.class);

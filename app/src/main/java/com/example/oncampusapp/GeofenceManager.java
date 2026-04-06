@@ -59,7 +59,7 @@ public class GeofenceManager {
                 .addOnSuccessListener(aVoid ->
                         Log.d("GEOFENCE", "Geofence added"))
                 .addOnFailureListener(e ->
-                        Log.e("GEOFENCE", "Failed: " + e.getMessage()));;
+                        Log.e("GEOFENCE", "Failed: " + e.getMessage()));
     }
 
     private int enterAndExit() {
@@ -83,14 +83,12 @@ public class GeofenceManager {
 
     /** Experimental feature, to visualise the geofence radius **/
     protected static CircleOptions drawGeofenceCircle(LatLng center, float radius) {
-        CircleOptions circleOptions = new CircleOptions()
+        return new CircleOptions()
                 .center(center)
                 .radius(radius) // meters
                 .strokeWidth(4f)
                 .strokeColor(Color.BLUE)
                 .fillColor(0x220000FF); // transparent blue
-
-        return circleOptions;
     }
 
     protected static LatLng getPolygonCenter(List<LatLng> points) {

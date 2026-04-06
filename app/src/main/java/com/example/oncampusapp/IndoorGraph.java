@@ -338,11 +338,7 @@ public class IndoorGraph {
         }
 
         boolean isSourceOrTarget = edge.targetId.equals(sourceId) || edge.targetId.equals(targetId);
-        if (!isSourceOrTarget && !nextNode.isAccessible()) {
-            return false;
-        }
-
-        return true;
+        return isSourceOrTarget || nextNode.isAccessible();
     }
 
 

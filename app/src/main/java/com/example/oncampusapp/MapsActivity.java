@@ -632,7 +632,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         if (!pendingNotificationDirections) return;
         if (mMap == null || buildingsMap.isEmpty()) return;
 
-        String eventsJson = CalendarEventManager.globalEventsJson;
+        String eventsJson = CalendarEventManager.getGlobalEventsJson();
         if (eventsJson == null || eventsJson.isEmpty()) {
             Toast.makeText(this, "No calendar events available", Toast.LENGTH_SHORT).show();
             return;
@@ -715,7 +715,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         View bannerView = findViewById(R.id.included_banner);
         if (bannerView != null) bannerView.setVisibility(View.GONE);
         try {
-            String eventsJson = CalendarEventManager.globalEventsJson;
+            String eventsJson = CalendarEventManager.getGlobalEventsJson();
             NotificationRouteHelper.Result result = NotificationRouteHelper.resolveRoute(
                     eventsJson, nextClass, buildingDialogManager.getGeoIdToBuildingDetailsMap());
 

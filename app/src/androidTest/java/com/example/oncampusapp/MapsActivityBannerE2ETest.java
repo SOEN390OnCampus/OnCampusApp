@@ -68,7 +68,7 @@ public class MapsActivityBannerE2ETest {
                 events.put(prevEvent);
                 events.put(nextEvent);
 
-                CalendarEventManager.globalEventsJson = events.toString();
+                CalendarEventManager.setGlobalEventsJson(events.toString());
 
                 activity.checkAndDisplayNextEventBannerForTest();
             } catch (JSONException e) {

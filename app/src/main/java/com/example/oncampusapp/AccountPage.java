@@ -57,8 +57,6 @@ public class AccountPage extends AppCompatActivity {
     private static final String CALENDAR_SCOPE =
             "https://www.googleapis.com/auth/calendar.readonly";
 
-    private GoogleSignInClient googleSignInClient;
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
 
@@ -72,8 +70,8 @@ public class AccountPage extends AppCompatActivity {
         calendarToken = getIntent().getStringExtra("calendar_token");
 
         // Pull from global variables instead of Intent to avoid TransactionTooLargeException/DeadObjectException
-        eventsJson = CalendarEventManager.globalEventsJson;
-        calendarListJson = CalendarEventManager.globalCalendarListJson;
+        eventsJson = CalendarEventManager.getGlobalEventsJson();
+        calendarListJson = CalendarEventManager.getGlobalCalendarListJson();
 
         repository = CalendarRepository.getInstance();
 
@@ -139,8 +137,8 @@ public class AccountPage extends AppCompatActivity {
             return;
         }
         // Refresh data from global variables in case they changed
-        eventsJson = CalendarEventManager.globalEventsJson;
-        calendarListJson = CalendarEventManager.globalCalendarListJson;
+        eventsJson = CalendarEventManager.getGlobalEventsJson();
+        calendarListJson = CalendarEventManager.getGlobalCalendarListJson();
         populateCalendarList();
     }
 
@@ -359,7 +357,7 @@ public class AccountPage extends AppCompatActivity {
 
     // --- The Banner UI Math & Injection Logic ---
     private void refreshBannerUI() {
-        String localEventsJson = CalendarEventManager.globalEventsJson;
+        String localEventsJson = CalendarEventManager.getGlobalEventsJson();
         if (localEventsJson == null || localEventsJson.isEmpty()) return;
 
         JSONObject nextClass = CalendarEventManager.findNextUpcomingEvent(localEventsJson);
@@ -473,7 +471,7 @@ public class AccountPage extends AppCompatActivity {
                 .requestScopes(new Scope(CALENDAR_SCOPE))
                 .build();
 
-        googleSignInClient = GoogleSignIn.getClient(this, options);
+        GoogleSignInClient googleSignInClient = GoogleSignIn.getClient(this, options);
 
         MaterialButton btnSignOut = findViewById(R.id.btn_sign_out);
         btnSignOut.setOnClickListener(v ->

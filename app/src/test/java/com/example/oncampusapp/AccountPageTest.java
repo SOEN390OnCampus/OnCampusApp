@@ -317,8 +317,8 @@ public class AccountPageTest {
      * by clearing globals to prevent background crashes during onCreate().
      */
     private AccountPage createFullActivity() {
-        CalendarEventManager.globalCalendarListJson = "";
-        CalendarEventManager.globalEventsJson = "";
+        CalendarEventManager.setGlobalCalendarListJson("");
+        CalendarEventManager.setGlobalEventsJson("");
         return Robolectric.buildActivity(AccountPage.class).create().resume().get();
     }
 

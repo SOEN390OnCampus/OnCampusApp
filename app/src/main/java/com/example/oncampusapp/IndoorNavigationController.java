@@ -184,8 +184,7 @@ public class IndoorNavigationController {
     private List<IndoorNode> getDoorwayNodesForBuilding(String buildingId) {
         List<IndoorNode> result = new ArrayList<>();
         for (IndoorNode node : allIndoorNodesById.values()) {
-            if (node == null) continue;
-            if (!buildingId.equalsIgnoreCase(node.getRootBuildingId())) continue;
+            if (node == null || !buildingId.equalsIgnoreCase(node.getRootBuildingId())) continue;
             if (node.getId() != null && node.getId().toLowerCase().contains("building_entry_exit")) {
                 result.add(node);
             }
