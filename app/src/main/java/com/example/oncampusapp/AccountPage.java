@@ -57,8 +57,6 @@ public class AccountPage extends AppCompatActivity {
     private static final String CALENDAR_SCOPE =
             "https://www.googleapis.com/auth/calendar.readonly";
 
-    private GoogleSignInClient googleSignInClient;
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
 
@@ -473,7 +471,7 @@ public class AccountPage extends AppCompatActivity {
                 .requestScopes(new Scope(CALENDAR_SCOPE))
                 .build();
 
-        googleSignInClient = GoogleSignIn.getClient(this, options);
+        GoogleSignInClient googleSignInClient = GoogleSignIn.getClient(this, options);
 
         MaterialButton btnSignOut = findViewById(R.id.btn_sign_out);
         btnSignOut.setOnClickListener(v ->
