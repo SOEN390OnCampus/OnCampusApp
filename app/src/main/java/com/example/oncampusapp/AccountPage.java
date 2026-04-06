@@ -72,8 +72,8 @@ public class AccountPage extends AppCompatActivity {
         calendarToken = getIntent().getStringExtra("calendar_token");
 
         // Pull from global variables instead of Intent to avoid TransactionTooLargeException/DeadObjectException
-        eventsJson = CalendarEventManager.globalEventsJson;
-        calendarListJson = CalendarEventManager.globalCalendarListJson;
+        eventsJson = CalendarEventManager.getGlobalEventsJson();
+        calendarListJson = CalendarEventManager.getGlobalCalendarListJson();
 
         repository = CalendarRepository.getInstance();
 
@@ -139,8 +139,8 @@ public class AccountPage extends AppCompatActivity {
             return;
         }
         // Refresh data from global variables in case they changed
-        eventsJson = CalendarEventManager.globalEventsJson;
-        calendarListJson = CalendarEventManager.globalCalendarListJson;
+        eventsJson = CalendarEventManager.getGlobalEventsJson();
+        calendarListJson = CalendarEventManager.getGlobalCalendarListJson();
         populateCalendarList();
     }
 
@@ -359,7 +359,7 @@ public class AccountPage extends AppCompatActivity {
 
     // --- The Banner UI Math & Injection Logic ---
     private void refreshBannerUI() {
-        String localEventsJson = CalendarEventManager.globalEventsJson;
+        String localEventsJson = CalendarEventManager.getGlobalEventsJson();
         if (localEventsJson == null || localEventsJson.isEmpty()) return;
 
         JSONObject nextClass = CalendarEventManager.findNextUpcomingEvent(localEventsJson);
