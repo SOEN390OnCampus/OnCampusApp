@@ -133,6 +133,7 @@ public class IndoorDirectionsActivity extends AppCompatActivity {
         for (String buildingId : BUILDING_IDS) {
             int resId = getBuildingRawResId(buildingId);
             if (resId == 0) continue;
+
             try (InputStream is = getResources().openRawResource(resId)) {
                 parseRoomsFromStream(is);
             } catch (IOException | JSONException e) {
@@ -140,9 +141,7 @@ public class IndoorDirectionsActivity extends AppCompatActivity {
             }
         }
 
-        runOnUiThread(() -> {
-            autocompleteAdapter.notifyDataSetChanged();
-        });
+        runOnUiThread(() -> autocompleteAdapter.notifyDataSetChanged());
     }
 
     private void parseRoomsFromStream(InputStream is) throws IOException, JSONException {
