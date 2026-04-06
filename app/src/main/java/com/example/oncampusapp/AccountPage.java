@@ -180,6 +180,7 @@ public class AccountPage extends AppCompatActivity {
             else if (id == R.id.nav_settings) {
                 Intent intent = new Intent(AccountPage.this, SettingsActivity.class);
                 startActivity(intent);
+                finish();
                 return true;
             }
 
