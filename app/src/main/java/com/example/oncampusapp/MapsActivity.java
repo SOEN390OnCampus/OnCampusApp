@@ -62,8 +62,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     public static final String EXTRA_POI_NAME = "POI_NAME";
     public static final String EXTRA_NOTIFICATION_ID = "notification_id";
     private GoogleMap mMap;
-    public static Map<String, Building> buildingsMap = new HashMap<>();
-    private ActivityMapsBinding binding;
+
+    // Issue 1 & 2: Make static final
+    public static final Map<String, Building> buildingsMap = new HashMap<>();
+
+    // Issue 3: binding field removed to be a local variable
+
     // Managers
     private RouteManager routeManager;
     private BuildingDialogManager buildingDialogManager;
@@ -73,12 +77,14 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private GeoJsonMapLoader geoJsonMapLoader;
     private RoutePickerController routePickerController;
 
-    private BuildingClassifier buildingClassifier;
+    // Issue 4: buildingClassifier field removed to be a local variable
     protected BuildingManager buildingManager;
     private GeoJsonLayer layer;
     public static final LatLng SGW_COORDS = new LatLng(45.496107243097704, -73.57725834380621);
     public static final LatLng LOY_COORDS = new LatLng(45.4582, -73.6405);
-    public ILocationProvider fusedLocationClient;
+
+    // Issue 5: Make non-public
+    private ILocationProvider fusedLocationClient;
     private FusedLocationSource myLocationSource;
 
     private ActivityResultLauncher<String[]> locationPermissionRequest;
@@ -104,9 +110,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private String pendingCrossToBuilding;
     private boolean shouldStartOutdoorAfterIndoor = false;
     private boolean pendingFinalIndoorAfterOutdoor = false;
+    private final CountingIdlingResource mapIdlingResource = new CountingIdlingResource("MapReadyResource");
 
-    // A counter that tells Espresso tests to wait for the map to load
-    public CountingIdlingResource mapIdlingResource = new CountingIdlingResource("MapReadyResource");
+    public CountingIdlingResource getMapIdlingResource() {
+        return mapIdlingResource;
+    }
 
     // Indoor room data – populated in background once map is ready
     private final java.util.Map<String, IndoorNode> indoorRoomMap = new java.util.LinkedHashMap<>();
@@ -124,9 +132,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             mMap.setLocationSource(this.myLocationSource);
         }
 
-        // Set it globally so the Service can use the mock too!
-        if (getApplication() instanceof OnCampusApplication) {
-            ((OnCampusApplication) getApplication()).setLocationProvider(provider);
+        // Use pattern matching for instanceo
+        if (getApplication() instanceof OnCampusApplication app) {
+            app.setLocationProvider(provider);
         }
     }
     private void checkLocationPermissions() {
@@ -162,7 +170,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         TextSizePreferences.apply(this);
 
         WindowCompat.setDecorFitsSystemWindows(getWindow(), true);
-        getWindow().setStatusBarColor(Color.TRANSPARENT);
+        // Removed deprecated setStatusBarColor
 
         // locationPermManager is initialized after fusedLocationClient — use direct launcher here
         List<String> perms = new ArrayList<>();
@@ -176,8 +184,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
         if (!perms.isEmpty()) requestMultiplePermissionsLauncher.launch(perms.toArray(new String[0]));
 
-        // ViewBinding: inflate, then set content view ONCE
-        binding = ActivityMapsBinding.inflate(getLayoutInflater());
+        // Localized ActivityMapsBinding
+        ActivityMapsBinding binding = ActivityMapsBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
 
         // Poi methods when user clicks on the button
@@ -197,7 +205,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             });
         }
 
-        buildingClassifier = new BuildingClassifier();
+        // Localized BuildingClassifier
+        BuildingClassifier buildingClassifier = new BuildingClassifier();
 
         OnCampusApplication app = (OnCampusApplication) getApplication();
 
@@ -237,14 +246,14 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             if (id == R.id.nav_account) {
                 startActivity(new Intent(this, GoogleCalendarAuthActivity.class));
                 finish();
-                overridePendingTransition(0, 0);
+                // Removed deprecated overridePendingTransition
                 return true;
             }
 
             if (id == R.id.nav_settings) {
                 startActivity(new Intent(this, SettingsActivity.class));
                 finish();
-                overridePendingTransition(0, 0);
+                // Removed deprecated overridePendingTransition
                 return true;
             }
 
@@ -591,7 +600,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         Intent intent = new Intent(this, MapsActivity.class);
         startActivity(intent);
         finish();
-        }
+    }
 
     private boolean isPoiNavigationActive = false;
 

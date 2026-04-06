@@ -65,20 +65,20 @@ public class LocationPermissionManager {
     }
 
     public void moveMapToLocation(LatLng location, float zoom) {
-        activity.mapIdlingResource.increment();
+        activity.getMapIdlingResource().increment();
         mMap.animateCamera(CameraUpdateFactory.newCameraPosition(
-                new CameraPosition.Builder()
-                        .target(location).zoom(zoom).tilt(0f).build()),
+                        new CameraPosition.Builder()
+                                .target(location).zoom(zoom).tilt(0f).build()),
                 new GoogleMap.CancelableCallback() {
                     @Override public void onFinish() {
                         mMap.setOnMapLoadedCallback(() -> {
-                            if (!activity.mapIdlingResource.isIdleNow())
-                                activity.mapIdlingResource.decrement();
+                            if (!activity.getMapIdlingResource().isIdleNow())
+                                activity.getMapIdlingResource().decrement();
                         });
                     }
                     @Override public void onCancel() {
-                        if (!activity.mapIdlingResource.isIdleNow())
-                            activity.mapIdlingResource.decrement();
+                        if (!activity.getMapIdlingResource().isIdleNow())
+                            activity.getMapIdlingResource().decrement();
                     }
                 });
     }
