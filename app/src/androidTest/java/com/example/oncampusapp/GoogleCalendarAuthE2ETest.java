@@ -38,11 +38,11 @@ public class GoogleCalendarAuthE2ETest {
     @Before
     public void setUp() {
         // Seed mock calendar data so AccountPage renders without real Google auth
-        CalendarEventManager.globalCalendarListJson = "{\"items\":["
+        CalendarEventManager.setGlobalCalendarListJson("{\"items\":["
                 + "{\"id\":\"primary\",\"summary\":\"My Calendar\",\"backgroundColor\":\"#4285F4\"},"
                 + "{\"id\":\"work\",\"summary\":\"Work Calendar\",\"backgroundColor\":\"#0F9D58\"}"
-                + "]}";
-        CalendarEventManager.globalEventsJson = "[]";
+                + "]}");
+        CalendarEventManager.setGlobalEventsJson("[]");
 
         Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
         SharedPreferences prefs = context.getSharedPreferences("OnCampusPrefs", Context.MODE_PRIVATE);

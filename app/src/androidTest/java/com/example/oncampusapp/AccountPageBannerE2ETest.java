@@ -50,7 +50,7 @@ public class AccountPageBannerE2ETest {
         JSONArray array = new JSONArray();
         array.put(event);
 
-        CalendarEventManager.globalEventsJson = array.toString();
+        CalendarEventManager.setGlobalEventsJson(array.toString());
     }
 
     @Test
@@ -84,6 +84,6 @@ public class AccountPageBannerE2ETest {
     @After
     public void tearDown() {
         // Clean up so it doesn't affect other tests
-        CalendarEventManager.globalEventsJson = "";
+        CalendarEventManager.setGlobalEventsJson("");
     }
 }
