@@ -29,7 +29,7 @@ public class SettingsActivity extends AppCompatActivity {
 
         ImageView backButton = findViewById(R.id.btn_back_settings);
         backButton.setOnClickListener(v -> {
-            getOnBackPressedDispatcher().onBackPressed();
+            finish();
             disableActivityTransitions();
         });
 

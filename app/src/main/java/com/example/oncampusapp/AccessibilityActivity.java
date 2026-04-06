@@ -63,9 +63,7 @@ public class AccessibilityActivity extends AppCompatActivity {
 
             if (intent != null) {
                 startActivity(intent);
-                if (id != R.id.nav_settings) {
-                    finish();
-                }
+                finish();
 
                 // Use the modern transition method for Android 14+ (API 34+)
                 if (android.os.Build.VERSION.SDK_INT >= 34) {

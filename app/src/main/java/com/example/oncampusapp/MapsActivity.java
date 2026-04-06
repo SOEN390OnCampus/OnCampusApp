@@ -252,6 +252,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
             if (id == R.id.nav_settings) {
                 startActivity(new Intent(this, SettingsActivity.class));
+                finish();
                 // Removed deprecated overridePendingTransition
                 return true;
             }
