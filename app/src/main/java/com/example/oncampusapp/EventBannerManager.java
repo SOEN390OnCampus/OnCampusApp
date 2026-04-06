@@ -3,6 +3,7 @@ package com.example.oncampusapp;
 import android.graphics.Color;
 import android.graphics.drawable.Drawable;
 import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 import android.view.View;
 import android.widget.ImageView;
@@ -27,7 +28,7 @@ public class EventBannerManager {
     private final MapsActivity activity;
     private boolean isRoutePickerOpen = false;
 
-    private final Handler bannerHandler = new Handler();
+    private final Handler bannerHandler = new Handler(Looper.getMainLooper());
     private final Runnable bannerRunnable = new Runnable() {
         @Override
         public void run() {
@@ -59,7 +60,7 @@ public class EventBannerManager {
     public void checkAndDisplayNextEventBanner() {
         if (isRoutePickerOpen) return;
 
-        String eventsJson = CalendarEventManager.globalEventsJson;
+        String eventsJson = CalendarEventManager.getGlobalEventsJson();
         if (eventsJson == null || eventsJson.isEmpty()) return;
 
         JSONObject nextClass = CalendarEventManager.findNextUpcomingEvent(eventsJson);
