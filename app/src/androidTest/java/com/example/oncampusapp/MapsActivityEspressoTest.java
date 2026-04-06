@@ -56,7 +56,6 @@ import androidx.test.platform.app.InstrumentationRegistry;
 import androidx.test.rule.GrantPermissionRule;
 
 import com.example.oncampusapp.location.FakeLocationProvider;
-import com.example.oncampusapp.location.ILocationProvider;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.model.LatLng;
 
@@ -102,22 +101,23 @@ public class MapsActivityEspressoTest {
     @Before
     public void setUp() {
         activityRule.getScenario().onActivity(activity -> {
-            FakeLocationProvider fakeProvider = new FakeLocationProvider(activity);
-            activity.setLocationProvider(fakeProvider); // Injects the mock into the Activity and App
-            fakeProvider.setFakeLocation(45.5009, -73.5724); // Set a random default location
+            // Call your method here
+            activity.setLocationProvider(new FakeLocationProvider(activity));
+            activity.fusedLocationClient.setFakeLocation(45.5009, -73.5724); // Set a random default location
         });
     }
+
     @Before
     public void registerIdlingResource() {
         activityRule.getScenario().onActivity(activity -> {
-            IdlingRegistry.getInstance().register(activity.getMapIdlingResource());
+            IdlingRegistry.getInstance().register(activity.mapIdlingResource);
         });
     }
 
     @After
     public void unregisterIdlingResource() {
         activityRule.getScenario().onActivity(activity -> {
-            IdlingRegistry.getInstance().unregister(activity.getMapIdlingResource());
+            IdlingRegistry.getInstance().unregister(activity.mapIdlingResource);
         });
     }
 
@@ -265,10 +265,7 @@ public class MapsActivityEspressoTest {
             LatLng cameraPos = activity.getMap().getCameraPosition().target;
             float zoom = activity.getMap().getCameraPosition().zoom;
 
-            // Retrieve the mocked provider from the application
-            ILocationProvider provider = ((OnCampusApplication) activity.getApplication()).getLocationProvider();
-
-            provider.getLastLocation().addOnSuccessListener(location -> {
+            activity.fusedLocationClient.getLastLocation().addOnSuccessListener(location -> {
                 try {
                     if (location != null) {
                         assertEquals(location.getLatitude(), cameraPos.latitude, 0.0001);
@@ -338,7 +335,7 @@ public class MapsActivityEspressoTest {
         // Get map instance and move to the JMSB building
         activityRule.getScenario().onActivity(activity -> {
             mapInstance[0] = activity.getMap();
-            mapIdleResource[0] = activity.getMapIdlingResource(); // <-- Fixed here
+            mapIdleResource[0] = activity.mapIdlingResource;
 
             activity.moveMapToLocation(jmsbCoords, 18f);
         });
