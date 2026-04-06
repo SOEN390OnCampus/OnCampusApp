@@ -137,12 +137,8 @@ public class IndoorGraphTest {
 
     @Test
     public void getAllNodes_isUnmodifiable() {
-        try {
-            graph.getAllNodes().put("NEW", new IndoorNode());
-            fail("Expected UnsupportedOperationException");
-        } catch (UnsupportedOperationException e) {
-            // expected — view is read-only
-        }
+        assertThrows(UnsupportedOperationException.class,
+                () -> graph.getAllNodes().put("NEW", new IndoorNode()));
     }
 
     // ── pathDistance — edge cases ─────────────────────────────────────────────
