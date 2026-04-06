@@ -10,6 +10,7 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 
 import static org.junit.Assert.*;
@@ -137,8 +138,9 @@ public class IndoorGraphTest {
 
     @Test
     public void getAllNodes_isUnmodifiable() {
+        Map<String, IndoorNode> nodes = graph.getAllNodes();
         assertThrows(UnsupportedOperationException.class,
-                () -> graph.getAllNodes().put("NEW", new IndoorNode()));
+                () -> nodes.put("NEW", new IndoorNode()));
     }
 
     // ── pathDistance — edge cases ─────────────────────────────────────────────
