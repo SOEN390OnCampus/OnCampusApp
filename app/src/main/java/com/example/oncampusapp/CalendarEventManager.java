@@ -9,8 +9,8 @@ import java.util.Locale;
 
 public class CalendarEventManager {
 
-    public static String globalEventsJson = "";
-    public static String globalCalendarListJson = "";
+    private static String globalEventsJson = "";
+    private static String globalCalendarListJson = "";
     private static final String DATE_TIME_KEY = "dateTime";
 
     private CalendarEventManager() {
@@ -19,6 +19,18 @@ public class CalendarEventManager {
 
     public static synchronized void setGlobalEventsJson(String json) {
         globalEventsJson = json;
+    }
+
+    public static synchronized String getGlobalEventsJson() {
+        return globalEventsJson;
+    }
+
+    public static synchronized void setGlobalCalendarListJson(String json) {
+        globalCalendarListJson = json;
+    }
+
+    public static synchronized String getGlobalCalendarListJson() {
+        return globalCalendarListJson;
     }
 
     /**
