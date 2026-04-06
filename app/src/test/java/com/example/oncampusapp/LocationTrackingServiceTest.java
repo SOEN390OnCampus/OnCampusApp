@@ -59,7 +59,7 @@ public class LocationTrackingServiceTest {
         app.setLocationProvider(mockLocationProvider);
 
         // 3. Reset the static buildings map so tests don't bleed into each other
-        MapsActivity.buildingsMap = new HashMap<>();
+        MapsActivity.buildingsMap.clear();
 
         // 4. Build and start the Service
         controller = Robolectric.buildService(LocationTrackingService.class);
