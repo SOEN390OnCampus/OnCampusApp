@@ -139,10 +139,13 @@ public class IndoorGraphTest {
     @Test
     public void getAllNodes_isUnmodifiable() {
         Map<String, IndoorNode> nodes = graph.getAllNodes();
-        assertThrows(UnsupportedOperationException.class,
-                () -> nodes.put("NEW", new IndoorNode()));
-    }
 
+        // Extract the object creation outside the lambda
+        IndoorNode newNode = new IndoorNode();
+
+        assertThrows(UnsupportedOperationException.class,
+                () -> nodes.put("NEW", newNode));
+    }
     // ── pathDistance — edge cases ─────────────────────────────────────────────
 
     @Test
