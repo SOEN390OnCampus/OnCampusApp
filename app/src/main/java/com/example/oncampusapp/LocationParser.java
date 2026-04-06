@@ -97,7 +97,7 @@ public class LocationParser {
                 String roomNum = matcher.group(1);
 
                 if (roomNum != null && !roomNum.isEmpty()) {
-                    displayLocation += " - Room " + roomNum;
+                    displayLocation = new StringBuilder(displayLocation).append(" - Room ").append(roomNum).toString();
                 }
                 found = true;
                 break;
